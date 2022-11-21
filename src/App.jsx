@@ -3,7 +3,7 @@ import './App.css'
 import About from './component/About';
 import Home from './component/Home';
 import Game from './component/boardgame.jsx';
-import Chart from './component/mychart.jsx';
+import MyChart from './component/MyChart.jsx';
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 function App() {
@@ -16,7 +16,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/tictactoe" element={<Game />} />
           <Route path="/about" element={<About />} />
-          <Route path="/chart" element={<Chart />} />
+          <Route path="/chart" element={<MyChart />} />
       </Routes>
 
     </div>

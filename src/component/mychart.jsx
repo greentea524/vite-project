@@ -1,18 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React from "react";
+import { Chart } from "react-google-charts";
 
-function mychart() {
-  useEffect(() => {
-    // call api or anything
-    console.log("loaded");
-    drawChart();
- });
+export const data = [
+  ["Year", "Sales", "Expenses"],
+  ["2004", 1000, 400],
+  ["2005", 1170, 460],
+  ["2006", 660, 1120],
+  ["2008", 1030, 540],
+  ["2009", 1000, 400],
+  ["2010", 1170, 460],
+  ["2011", 660, 1120],
+  ["2012", 1030, 540],
+];
+
+export const options = {
+  title: "Company Performance",
+  curveType: "function",
+  legend: { position: "bottom" },
+};
+
+function MyChart() {
   return (
-    <div className="row">
-      <div className="col-md-12">
-        <div id="donutchart"></div>
-      </div>
-    </div>
+    <Chart
+      chartType="ScatterChart"
+      width="80%"
+      height="400px"
+      data={data}
+      options={options}
+    />
   );
 }
 
-export default mychart;
+export default MyChart;
