@@ -28,7 +28,7 @@ class NavHeader extends Component {
               <Navbar.Collapse id="basic-navbar-nav">
                 <Nav className="me-auto">
                   
-                  <CustomLink to="/">Home</CustomLink>
+                  <CustomLink to="/home">Home</CustomLink>
                   <CustomLink to="/tictactoe">TicTacToe</CustomLink>
                   <CustomLink to="/chart">Chart</CustomLink>
                   <CustomLink to="/about">About</CustomLink>
