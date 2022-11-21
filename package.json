@@ -1,12 +1,14 @@
 {
-  "name": "vite-project",
+  "homepage": "https://greentea524.github.io/vite-project",
+  "name": "greentea524.github.io",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "gh-pages -b master -d build"
   },
   "dependencies": {
     "react": "^18.2.0",
