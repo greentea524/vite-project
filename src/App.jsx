@@ -1,31 +1,22 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
+
 import './App.css'
-import Game from './component/boardgame';
+import About from './component/About';
+import Home from './component/Home';
+import Game from './component/boardgame.jsx';
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
+
     <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-      </div>
-      {/* <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p> */}
-      <Game />
+      
+      <Routes>
+          <Route path="/home" element={<Home />} />
+          <Route path="/tictactoe" element={<Game />} />
+          <Route path="/about" element={<About />} />
+      </Routes>
+
     </div>
   )
 }

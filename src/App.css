@@ -6,7 +6,7 @@
 }
 
 .logo {
-  height: 6em;
+  height: 5em;
   padding: 1.5em;
   will-change: filter;
 }
@@ -38,4 +38,42 @@
 
 .read-the-docs {
   color: #888;
+}
+
+.nav {
+  color: black;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 2rem;
+  padding: 0 1rem;
+}
+
+.nav ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+}
+
+.nav a {
+  text-decoration: none;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: .25rem;
+}
+
+.nav li.active {
+  background-color: rgb(182, 222, 182);
+}
+
+a:hover {
+  color: white;
+  text-decoration: none;
+}
+
+span.navbrand {
+  pointer-events: none;
 }

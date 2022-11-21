@@ -123,7 +123,7 @@ export default class Game extends React.Component {
 
 // ========================================
 
-ReactDOM.render(<Game />, document.getElementById("root"));
+//ReactDOM.createRoot(document.getElementById('tictac')).render(<Game />)
 
 function calculateWinner(squares) {
   const lines = [
