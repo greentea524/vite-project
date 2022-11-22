@@ -22,12 +22,10 @@ export const options = {
 function MyChart() {
   return (
     <Chart
-      chartType="ScatterChart"
-      width="80%"
-      height="400px"
-      data={data}
-      options={options}
-    />
+    chartType="ScatterChart"
+    data={data}
+    options={options}
+  />
   );
 }
 

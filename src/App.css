@@ -40,38 +40,8 @@
   color: #888;
 }
 
-.nav {
-  color: black;
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
-  gap: 2rem;
-  padding: 0 1rem;
-}
-
-.nav ul {
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  display: flex;
-  gap: 1rem;
-}
-
-.nav a {
-  text-decoration: none;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  padding: .25rem;
-}
-
-.nav li.active {
-  background-color: rgb(182, 222, 182);
-}
-
-a:hover {
-  color: white;
-  text-decoration: none;
+.justify {
+  flex: 1;
 }
 
 span.navbrand {

@@ -42,7 +42,7 @@ function ProjectLinks() {
               <i className="fa fa-gamepad fa-2x"></i> Wordle
             </a>
           </div>
-          <hr></hr>
+          <br></br>
         </div>
       </div>
       <div className="row">
