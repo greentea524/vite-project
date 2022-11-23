@@ -10,14 +10,14 @@ export function newMineGame() {
 export function Minesweeper() {
   return (
     <div>
-      <h1 className="title">Minesweeper</h1>
-      <div className="scoreboard odometer"></div>
+      <div className="title">
+        Points: <span className="scoreboard odometer"></span>
+      </div>
       <div className="gamestatus"></div>
       <div className="subtext"></div>
-      <div className="a">
-        {" "}
+      <div className="somediv">
         <button className="newgame">
-          Level <div className="level odometer"></div>
+          Level <span className="level odometer"></span>
         </button>
       </div>
 
