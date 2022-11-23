@@ -16,21 +16,17 @@ function Home() {
         </a>
       </div>
       <h1>Vite + React</h1>
-      <div className="cardcounter">
+      {/* <div className="cardcounter">
         <button
           className="btn btn-primary"
           onClick={() => setCount((count) => count + 1)}
         >
           count is {count}
         </button>
-      </div>
+      </div> */}
       <br></br>
       <ProjectLinks />
-      <div className="row">
-      <div className="col-md-12">
-        <div id="donutchart"></div>
-      </div>
-    </div>
+
       <div className="footer-div">
         <p className={"footer-text"}>
           Experimental page using React
@@ -39,7 +35,20 @@ function Home() {
            https://greentea524.github.io/
           </a>
         </p>
+        <div className="row">
+        <div className="small-12 column">
+          <div className="my-arrow-div text-center">
+            <a href="https://github.com/greentea524" target="_blank">
+              <i className="fa fa-github-alt fa-2x"></i>
+            </a>
+            <a href="https://www.twitter.com/davidphong_" target="_blank">
+              <i className="fa fa-twitter fa-2x"></i>
+            </a>
+          </div>
+        </div>
       </div>
+      </div>
+
     </div>
   );
 }
