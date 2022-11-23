@@ -6,8 +6,12 @@ import Home from "./Home";
 import TicTacGame from "./boardgame.jsx";
 import MyChart from "./MyChart.jsx";
 import MyDataTable from "./datatables/MyDataTable.jsx";
+import { Minesweeper, newMineGame } from "./Minesweeper.jsx";
 
 class ReactTabHeader extends Component {
+  componentDidMount() {
+    newMineGame();
+  }
   render() {
     return (
       <Tabs
@@ -31,6 +35,11 @@ class ReactTabHeader extends Component {
         <Tab eventKey="tictac" title="TicTacToe">
           <div className="d-flex justify-content-center">
             <TicTacGame />
+          </div>
+        </Tab>
+        <Tab eventKey="minesweeper" title="Minesweeper">
+          <div className="d-flex justify-content-center">
+            <Minesweeper />
           </div>
         </Tab>
         <Tab eventKey="datatable" title="DataTables">

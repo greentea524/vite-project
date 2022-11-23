@@ -1,5 +1,3 @@
-// Display/UI
-
 import {
   TILE_STATUSES,
   createBoard,
@@ -13,13 +11,6 @@ import {
 
 const BOARD_SIZE = 10
 const NUMBER_OF_MINES = 3
-const boardElement = document.querySelector(".board")
-const gameStatus = document.querySelector(".gamestatus")
-const messageText = document.querySelector(".subtext")
-const newGameButton = document.querySelector(".newgame")
-const scoreBoard = document.querySelector(".scoreboard")
-const level = document.querySelector(".level")
-const odometer = document.querySelector(".odometer")
 
 let board = [];
 let difficulty = 0;
@@ -28,7 +19,6 @@ let scoreAdded = false;
 
 export function newGame() {
 
-    board = [];
     scoreAdded = false;
 
     var boardSizeChoice = BOARD_SIZE;
@@ -42,14 +32,16 @@ export function newGame() {
       boardSizeChoice,
       getMinePositions(boardSizeChoice, numberOfMines)
     )
-      console.log('createboard', board);
+      console.log('createboardx', board);
     renderBoard();
+    
 }
 
 export function renderBoard() {
   document.querySelector(".board").innerHTML = ""
 
   if(board){
+    console.log('trying to render',board)
       checkGameEnd()
 
       getTileElements().forEach(element => {
@@ -61,25 +53,61 @@ export function renderBoard() {
 
 }
 
-function refreshScore() {
+export function setListeners() {
+  var boardElement = document.querySelector(".board");
+  boardElement.style.setProperty("--size", BOARD_SIZE);
+  boardElement.addEventListener("click", (e) => {
+
+    if (!e.target.matches("[data-status]")) return;
+    console.log(
+      board[e.target.dataset.x][e.target.dataset.y],
+      "e.target.dataset.x"
+    );
+    board = revealTile(board, {
+      x: parseInt(e.target.dataset.x),
+      y: parseInt(e.target.dataset.y),
+    });
+
+    renderBoard();
+
+  });
+
+  boardElement.addEventListener("contextmenu", (e) => {
+    if (!e.target.matches("[data-status]")) return;
+
+    e.preventDefault();
+    board = markTile(board, {
+      x: parseInt(e.target.dataset.x),
+      y: parseInt(e.target.dataset.y),
+    });
+
+    console.log("markTile");
+  });
+
+  document.querySelector(".newgame").addEventListener("click", e => {
+    newGame()
+})
+}
+
+export function refreshScore() {
   document.querySelector(".scoreboard").innerHTML = score;
 }
 
-function refreshLevel() {
+export function refreshLevel() {
   document.querySelector(".level").innerHTML = difficulty;
 }
 
-function displayMinesLeft() {
+export function displayMinesLeft() {
   document.querySelector(".subtext").innerHTML = "Mines Left: <span data-mine-count></span>"
 }
 
-function getTileElements() {
+export function getTileElements() {
   return board.flatMap(row => {
     return row.map(tileToElement)
   })
 }
 
-function tileToElement(tile) {
+export function tileToElement(tile) {
   const element = document.createElement("div")
   element.dataset.status = tile.status
   element.dataset.x = tile.x
@@ -90,7 +118,7 @@ function tileToElement(tile) {
 
 
 
-function listMinesLeft() {
+export function listMinesLeft() {
     let minesLeftText = document.querySelector("[data-mine-count]")
     if(minesLeftText !== null){
         minesLeftText.innerHTML = NUMBER_OF_MINES + difficulty - markedTilesCount(board)
@@ -100,7 +128,8 @@ function listMinesLeft() {
 function checkGameEnd() {
   const win = checkWin(board)
   const lose = checkLose(board)
-
+  var messageText = document.querySelector(".subtext")
+  var newGameButton = document.querySelector(".newgame")
   // if (win || lose) {
   //   boardElement.addEventListener("click", stopProp, { capture: true })
   //   boardElement.addEventListener("contextmenu", stopProp, { capture: true })
@@ -138,7 +167,7 @@ function stopProp(e) {
   e.stopImmediatePropagation()
 }
 
-function getMinePositions(boardSize, numberOfMines) {
+export function getMinePositions(boardSize, numberOfMines) {
   const positions = []
 
   while (positions.length < numberOfMines) {
