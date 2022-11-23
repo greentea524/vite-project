@@ -32,7 +32,6 @@ export function newGame() {
       boardSizeChoice,
       getMinePositions(boardSizeChoice, numberOfMines)
     )
-      console.log('createboardx', board);
     renderBoard();
     
 }
@@ -41,7 +40,6 @@ export function renderBoard() {
   document.querySelector(".board").innerHTML = ""
 
   if(board){
-    console.log('trying to render',board)
       checkGameEnd()
 
       getTileElements().forEach(element => {
@@ -59,10 +57,7 @@ export function setListeners() {
   boardElement.addEventListener("click", (e) => {
 
     if (!e.target.matches("[data-status]")) return;
-    console.log(
-      board[e.target.dataset.x][e.target.dataset.y],
-      "e.target.dataset.x"
-    );
+
     board = revealTile(board, {
       x: parseInt(e.target.dataset.x),
       y: parseInt(e.target.dataset.y),
@@ -81,7 +76,6 @@ export function setListeners() {
       y: parseInt(e.target.dataset.y),
     });
 
-    console.log("markTile");
   });
 
   document.querySelector(".newgame").addEventListener("click", e => {
