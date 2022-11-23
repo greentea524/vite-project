@@ -23,7 +23,7 @@ class NavHeader extends Component {
         return(
             <Navbar className="nav" bg="light" expand="lg" fixed="top">
             <Container>
-              <Navbar.Brand className="navbrand"> {"<David Phong>"} </Navbar.Brand>
+              <Navbar.Brand className="navbrand"> {"< David Phong />"} </Navbar.Brand>
               <Navbar.Toggle aria-controls="basic-navbar-nav" />
               <Navbar.Collapse id="basic-navbar-nav">
                 <Nav className="me-auto">
