@@ -7,6 +7,7 @@ import TicTacToe from "./boardgame.jsx";
 import MyChart from "./MyChart.jsx";
 import MyDataTable from "./datatables/MyDataTable.jsx";
 import { Minesweeper, newMineGame } from "./Minesweeper.jsx";
+import JuriChart from "./JuriChart";
 
 class ReactTabHeader extends Component {
   componentDidMount() {
@@ -28,8 +29,9 @@ class ReactTabHeader extends Component {
           <About />
         </Tab>
         <Tab eventKey="chart" title="Chart">
-          <div className="d-flex justify-content-center">
-            <MyChart />
+          <div>
+            {/* <MyChart /> */}
+            <JuriChart />
           </div>
         </Tab>
         <Tab eventKey="tictactoe" title="TicTacToe">

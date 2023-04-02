@@ -6,7 +6,7 @@ function App() {
 
   return (
     <div className="App">
-      <div className="navbrand">{"< David Phong />"}</div>
+      <div className="navbrand">{"¯\_(ツ)_/¯"}</div>
       <ReactTabHeader />
     </div>
   )

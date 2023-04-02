@@ -21,11 +21,14 @@ export const options = {
 
 function MyChart() {
   return (
-    <Chart
-    chartType="ScatterChart"
-    data={data}
-    options={options}
-  />
+    <div>
+      <Chart
+        chartType="ScatterChart"
+        data={data}
+        options={options}
+      />
+    </div>
+
   );
 }
 
