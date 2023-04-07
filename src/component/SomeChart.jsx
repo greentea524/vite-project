@@ -2,11 +2,11 @@ import React from "react";
 import { Chart } from "react-google-charts";
 //import textFile from "../assets/data.txt";
 
-var juridatax = [
+var someData = [
   ["Element", "Percentage"]
 ];
 
-var juri_options = {
+var someOptions = {
   title: "Company Performances",
   width: 900,
   hAxis: { gridlines: { count: 25 } },
@@ -15,7 +15,6 @@ var juri_options = {
 };
 
 var randosum = [
-  // 32023
   110,111,112,113,114,115,116,117,126,127,128,130,131,132,137,138,310,311,312,313,315,316,317,320,321,410,411,412,413,416,417,418,419,424,425,
   110,111,112,113,114,117,118,119,120,124
 ]
@@ -34,7 +33,8 @@ function SomeChart() {
     return acc[curr] ? ++acc[curr] : acc[curr] = 0, acc
   }, {});
   
-  var occurrences = randosum.reduce(function (acc, curr) {
+  // occurrences
+  randosum.reduce(function (acc, curr) {
     curr = curr.toString().substring(1);
     return randoObject[curr] ? ++randoObject[curr] : randoObject[curr] = 1, acc
   }, {});
@@ -47,7 +47,7 @@ function SomeChart() {
       // [ the pattern, the count ]
       var percentage = (value[1] / weeks) * 100;
       var this_value = [value[0], Math.round(percentage)];
-      juridatax.push(this_value);
+      someData.push(this_value);
     }
   });
 
@@ -55,13 +55,13 @@ function SomeChart() {
     <div>
       <Chart
         chartType="ColumnChart"
-        data={juridatax}
-        options={juri_options}
+        data={someData}
+        options={someOptions}
       />
       <hr></hr>
       <Chart
         chartType="Table"
-        data={juridatax}
+        data={someData}
       />
     </div>
 
