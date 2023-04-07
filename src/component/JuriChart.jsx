@@ -3,25 +3,9 @@ import { Chart } from "react-google-charts";
 //import textFile from "../assets/data.txt";
 
 var juridatax = [
-  ["Element", "Density"]
+  ["Element", "Percentage"]
 ];
 
-/**
- * 
-137,138 friday
-
-229,230 thursday
-233,234 friday
-
-310,311,312,313 monday
-315,316,317 tuesday
-320,321 wednesday
-
-410, 411, 412, 413, mon
-416, 417, 418, 419 tues
-424, 425 thurs
- * 
- */
 var juri_options = {
   title: "Company Performances",
   width: 900,
@@ -30,19 +14,13 @@ var juri_options = {
   legend: {position: 'none'}
 };
 
-var collected_weeks = 4;
-
 var jurisum = [
   // 32023
-  137, 138, 229, 230, 233, 234, 310, 311, 312, 313, 315, 316, 317, 320, 321, 410, 411, 412, 413, 416, 417, 418, 419, 424, 425
+  110,111,112,113,114,115,116,117,126,127,128,130,131,132,137,138,310,311,312,313,315,316,317,320,321,410,411,412,413,416,417,418,419,424,425,
+  110,111,112,113,114,117,118,119,120,124,210,310,410
 ]
 
 function JuriChart() {
-  // var setOne = numberRange(110, 150);
-  // var setTwo = numberRange(210, 250);
-  // var setThree = numberRange(310, 350);
-  // var setFour = numberRange(410, 450);
-  // var juriSet = juridatax.concat(setOne, setTwo, setThree, setFour);
   var groupLabel = numberRange(10, 50);
   // const [text, setText] = React.useState();
   // fetch(textFile)
@@ -62,12 +40,13 @@ function JuriChart() {
   }, {});
 
   var juriResult = Object.keys(juriObject).map((key) => [Number(key), juriObject[key]]);
-
+  // since 10 is guaranteed
+  var collected_weeks = juriObject[10];
   juriResult.forEach(function(value, index, array){
     if(!isNaN(value[0])){
       // [ the group pattern, the total week of data ]
-      var percentage = (value[1] / collected_weeks);
-      var this_value = [value[0], percentage];
+      var percentage = (value[1] / collected_weeks) * 100;
+      var this_value = [value[0], Math.round(percentage)];
       juridatax.push(this_value);
     }
   });
