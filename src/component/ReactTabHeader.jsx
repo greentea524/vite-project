@@ -7,7 +7,7 @@ import TicTacToe from "./boardgame.jsx";
 import MyChart from "./MyChart.jsx";
 import MyDataTable from "./datatables/MyDataTable.jsx";
 import { Minesweeper, newMineGame } from "./Minesweeper.jsx";
-import JuriChart from "./JuriChart";
+import SomeChart from "./SomeChart";
 
 class ReactTabHeader extends Component {
   componentDidMount() {
@@ -31,7 +31,7 @@ class ReactTabHeader extends Component {
         <Tab eventKey="chart" title="Chart">
           <div>
             {/* <MyChart /> */}
-            <JuriChart />
+            <SomeChart />
           </div>
         </Tab>
         <Tab eventKey="tictactoe" title="TicTacToe">
