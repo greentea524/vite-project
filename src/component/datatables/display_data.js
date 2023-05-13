@@ -22,18 +22,13 @@ const PlayData = (function () {
     displayDataTableUser();
   }
 
-  function fetchMockend() {
-    displayDataTablePost();
-  }
-
   return {
     jsonPlaceHolder: jsonPlaceHolder,
-    fetchMockend: fetchMockend,
   };
 })();
 
 PlayData.jsonPlaceHolder();
-PlayData.fetchMockend();
+//PlayData.fetchMockend();
 
 export function displayDataTableUser() {
   if ($.fn.dataTable.isDataTable("#myTableOne")) {
@@ -73,48 +68,48 @@ export function displayDataTableUser() {
   // .then(json => console.log(json))
 }
 
-export function displayDataTablePost() {
-  if ($.fn.dataTable.isDataTable("#myTableTwo")) {
-    return;
-  }
-  $("#myTableTwo").DataTable({
-    ajax: {
-      url: "https://mockend.com/greentea524/greentea524.github.io/posts",
-      type: "GET",
-      dataSrc: "",
-    },
-    columns: [
-      { data: "title" },
-      { data: "views" },
-      { data: "published", visible: false },
-      { data: "createdAt" },
-    ],
-    responsive: true,
-    dom: "Bfrtip",
-    buttons: [
-      {
-        extend: "colvis",
-        collectionLayout: "fixed columns",
-        collectionTitle: "Column visibility control",
-        postfixButtons: ["colvisRestore"],
-      },
-      {
-        extend: "pdfHtml5",
-        download: "open",
-      },
-    ],
-  });
+// export function displayDataTablePost() {
+//   if ($.fn.dataTable.isDataTable("#myTableTwo")) {
+//     return;
+//   }
+//   $("#myTableTwo").DataTable({
+//     ajax: {
+//       url: "https://mockend.com/greentea524/greentea524.github.io/posts",
+//       type: "GET",
+//       dataSrc: "",
+//     },
+//     columns: [
+//       { data: "title" },
+//       { data: "views" },
+//       { data: "published", visible: false },
+//       { data: "createdAt" },
+//     ],
+//     responsive: true,
+//     dom: "Bfrtip",
+//     buttons: [
+//       {
+//         extend: "colvis",
+//         collectionLayout: "fixed columns",
+//         collectionTitle: "Column visibility control",
+//         postfixButtons: ["colvisRestore"],
+//       },
+//       {
+//         extend: "pdfHtml5",
+//         download: "open",
+//       },
+//     ],
+//   });
 
-  // fetch('https://mockend.com/greentea524/greentea524.github.io/posts')
-  // .then(response => response.json())
-  // .then(json => {
-  //     console.log(json)
-  //     //displayDataTablePost(json);
-  // })
-  //
-  // fetch('https://mockend.com/greentea524/greentea524.github.io/users/1')
-  // .then(response => response.json())
-  // .then(json => {
-  //     console.log(json)
-  // })
-}
+//   // fetch('https://mockend.com/greentea524/greentea524.github.io/posts')
+//   // .then(response => response.json())
+//   // .then(json => {
+//   //     console.log(json)
+//   //     //displayDataTablePost(json);
+//   // })
+//   //
+//   // fetch('https://mockend.com/greentea524/greentea524.github.io/users/1')
+//   // .then(response => response.json())
+//   // .then(json => {
+//   //     console.log(json)
+//   // })
+// }

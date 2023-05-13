@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { displayDataTableUser, displayDataTablePost } from "./display_data";
+import { displayDataTableUser } from "./display_data";
 function MyDataTable() {
   useEffect(() => {
     displayDataTableUser();
-    displayDataTablePost();
   });
   return (
     <>
@@ -22,19 +21,7 @@ function MyDataTable() {
               Users
             </a>
           </li>
-          <li className="nav-item">
-            <a
-              className="nav-link"
-              id="pills-post-tab"
-              data-toggle="pill"
-              href="#pills-post"
-              role="tab"
-              aria-controls="pills-post"
-              aria-selected="false"
-            >
-              Posts
-            </a>
-          </li>
+
         </ul>
         <hr></hr>
         <div className="row">
