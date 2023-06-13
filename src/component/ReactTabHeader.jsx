@@ -25,7 +25,7 @@ class ReactTabHeader extends Component {
         <Tab eventKey="home" title="Home">
           <Home />
         </Tab>
-        <Tab eventKey="profile" title="Profile">
+        <Tab eventKey="profile" title="About">
           <About />
         </Tab>
         <Tab eventKey="chart" title="Chart">
@@ -41,22 +41,22 @@ class ReactTabHeader extends Component {
         </Tab>
         <Tab eventKey="othergames" title="Games">
           <div className="d-flex justify-content-center">
-          <div className="cta text-center">
-            <a
-              className="my-button cta-button"
-              href="https://greentea524.github.io/game/js-2048-main/"
-            >
-              <i className="fa fa-gamepad fa-2x"></i> 2048
-            </a>
-          </div>
-          <div className="cta text-center">
-            <a
-              className="my-button cta-button"
-              href="https://greentea524.github.io/game/wordle-clone-main/"
-            >
-              <i className="fa fa-gamepad fa-2x"></i> Wordle
-            </a>
-          </div>
+            <div className="cta text-center">
+              <a
+                className="my-button cta-button"
+                href="https://greentea524.github.io/game/js-2048-main/"
+              >
+                <i className="fa fa-gamepad fa-2x"></i> 2048
+              </a>
+            </div>
+            <div className="cta text-center">
+              <a
+                className="my-button cta-button"
+                href="https://greentea524.github.io/game/wordle-clone-main/"
+              >
+                <i className="fa fa-gamepad fa-2x"></i> Wordle
+              </a>
+            </div>
           </div>
         </Tab>
         <Tab eventKey="minesweeper" title="Minesweeper">

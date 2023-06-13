@@ -2,23 +2,26 @@ import React from "react";
 import { Chart } from "react-google-charts";
 //import textFile from "../assets/data.txt";
 
-var someData = [
-  ["Element", "Percentage"]
-];
+var someData = [["Element", "Percentage"]];
 
 var someOptions = {
   title: "Company Performances",
   width: 900,
   hAxis: { gridlines: { count: 25 } },
   //vAxis: { viewWindow: { max: 1 }},
-  legend: {position: 'none'}
+  legend: { position: "none" },
 };
 
 var randosum = [
-  110,111,112,113,114,115,116,117,126,127,128,130,131,132,137,138,310,311,312,313,315,316,317,320,321,410,411,412,413,416,417,418,419,424,425,
-  110,111,112,113,114,117,118,119,120,124,210,211,212,213,214,215,218,219,220,221,110,111,112,115,116,117,118,119,120,123,124,
-  210,211,215,216,217,218,221,222,225,226
-]
+  110, 111, 112, 113, 114, 115, 116, 117, 126, 127, 128, 130, 131, 132, 137,
+  138, 310, 311, 312, 313, 315, 316, 317, 320, 321, 410, 411, 412, 413, 416,
+  417, 418, 419, 424, 425, 110, 111, 112, 113, 114, 117, 118, 119, 120, 124,
+  210, 211, 212, 213, 214, 215, 218, 219, 220, 221, 110, 111, 112, 115, 116,
+  117, 118, 119, 120, 123, 124, 210, 211, 215, 216, 217, 218, 221, 222, 225,
+  226, 310, 311, 312, 315, 316, 317, 318, 319, 320, 410, 411, 413, 414, 415,
+  416, 417, 420, 421, 424, 425, 426, 427, 428, 510, 513, 514, 516, 519, 110,
+  111, 114, 115, 116, 117, 121, 122, 123, 124, 127, 128,
+];
 
 function SomeChart() {
   var groupLabel = numberRange(10, 50);
@@ -31,20 +34,25 @@ function SomeChart() {
   // console.log(text);
 
   var randoObject = groupLabel.reduce(function (acc, curr) {
-    return acc[curr] ? ++acc[curr] : acc[curr] = 0, acc
+    return acc[curr] ? ++acc[curr] : (acc[curr] = 0), acc;
   }, {});
-  
+
   // occurrences
   randosum.reduce(function (acc, curr) {
     curr = curr.toString().substring(1);
-    return randoObject[curr] ? ++randoObject[curr] : randoObject[curr] = 1, acc
+    return (
+      randoObject[curr] ? ++randoObject[curr] : (randoObject[curr] = 1), acc
+    );
   }, {});
 
-  var someResult = Object.keys(randoObject).map((key) => [Number(key), randoObject[key]]);
+  var someResult = Object.keys(randoObject).map((key) => [
+    Number(key),
+    randoObject[key],
+  ]);
 
   var weeks = randoObject[10];
-  someResult.forEach(function(value, index, array){
-    if(!isNaN(value[0])){
+  someResult.forEach(function (value, index, array) {
+    if (!isNaN(value[0])) {
       // [ the pattern, the count ]
       var percentage = (value[1] / weeks) * 100;
       var this_value = [value[0], Math.round(percentage)];
@@ -54,27 +62,18 @@ function SomeChart() {
 
   return (
     <div>
-      <Chart
-        chartType="ColumnChart"
-        data={someData}
-        options={someOptions}
-      />
+      <Chart chartType="ColumnChart" data={someData} options={someOptions} />
       <hr></hr>
-      
+
       <div className="row">
         <div className="column">
-          <Chart
-          chartType="Table"
-          data={someData}
-        />
+          <Chart chartType="Table" data={someData} />
         </div>
       </div>
-
     </div>
-
   );
 }
-function numberRange (start, end) {
-  return new Array(end+1 - start).fill().map((d, i) => i + start);
+function numberRange(start, end) {
+  return new Array(end + 1 - start).fill().map((d, i) => i + start);
 }
 export default SomeChart;
