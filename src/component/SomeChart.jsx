@@ -1,6 +1,6 @@
 import React from "react";
 import { Chart } from "react-google-charts";
-//import textFile from "../assets/data.txt";
+import randomdata from "../assets/data.json";
 
 var someData = [["Element", "Percentage"]];
 
@@ -12,16 +12,7 @@ var someOptions = {
   legend: { position: "none" },
 };
 
-var randosum = [
-  110, 111, 112, 113, 114, 115, 116, 117, 126, 127, 128, 130, 131, 132, 137,
-  138, 310, 311, 312, 313, 315, 316, 317, 320, 321, 410, 411, 412, 413, 416,
-  417, 418, 419, 424, 425, 110, 111, 112, 113, 114, 117, 118, 119, 120, 124,
-  210, 211, 212, 213, 214, 215, 218, 219, 220, 221, 110, 111, 112, 115, 116,
-  117, 118, 119, 120, 123, 124, 210, 211, 215, 216, 217, 218, 221, 222, 225,
-  226, 310, 311, 312, 315, 316, 317, 318, 319, 320, 410, 411, 413, 414, 415,
-  416, 417, 420, 421, 424, 425, 426, 427, 428, 510, 513, 514, 516, 519, 110,
-  111, 114, 115, 116, 117, 121, 122, 123, 124, 127, 128,
-];
+var randosum = randomdata;
 
 function SomeChart() {
   var groupLabel = numberRange(10, 50);
