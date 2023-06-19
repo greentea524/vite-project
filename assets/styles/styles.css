@@ -315,3 +315,14 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 40px;
 
 }
+
+.row {
+	display: flex;
+	margin-left:-5px;
+	margin-right:-5px;
+  }
+  
+  .column {
+	flex: 50%;
+	padding: 5px;
+  }
