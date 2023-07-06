@@ -8,6 +8,7 @@ import MyChart from "./MyChart.jsx";
 import MyDataTable from "./datatables/MyDataTable.jsx";
 import { Minesweeper, newMineGame } from "./Minesweeper.jsx";
 import SomeChart from "./SomeChart";
+import TestProject from "./TestProject";
 
 class ReactTabHeader extends Component {
   componentDidMount() {
@@ -27,6 +28,9 @@ class ReactTabHeader extends Component {
         </Tab>
         <Tab eventKey="profile" title="About">
           <About />
+        </Tab>
+        <Tab eventKey="testproject" title="TestProject">
+          <TestProject />
         </Tab>
         <Tab eventKey="chart" title="Chart">
           <div>

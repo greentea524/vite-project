@@ -1,16 +1,17 @@
 import React from "react";
-import { NameFunc } from "./NameFunc";
-import { TodoListClass } from "./TodoListClass";
-import { TodoListItem } from "./TodoListItem";
-import { User } from "./User.jsx";
-import { UserCard } from "./UserCard.jsx";
-import { UserCardClass } from "./UserCardClass.jsx";
+import { NameFunc } from "./exercise/NameFunc";
+import { TodoListClass } from "./exercise/TodoListClass";
+import { TodoListItem } from "./exercise/TodoListItem";
+import { User } from "./exercise/User.jsx";
+import { UserCard } from "./exercise/UserCard.jsx";
+import { UserCardClass } from "./exercise/UserCardClass.jsx";
 import user from "../assets/user.json";
 import "../user.css";
-import { StateThis } from "./StateThis.jsx";
-import { StateThisClass } from "./StateThisClass.jsx";
-import { Counter } from "./Counter.jsx";
-import { CounterClass } from "./CounterClass.jsx";
+import { StateThis } from "./exercise/StateThis.jsx";
+import { StateThisClass } from "./exercise/StateThisClass.jsx";
+import { Counter } from "./exercise/Counter.jsx";
+import { CounterClass } from "./exercise/CounterClass.jsx";
+import { InputFunc } from "./exercise/InputFunc.jsx";
 
 function About() {
   return (
@@ -30,7 +31,7 @@ function About() {
       <hr></hr>
       <StateThis />
       <hr></hr>
-      <StateThisClass />
+      {/* <StateThisClass />
       <hr></hr>
       <TodoListClass isComplete={true}> Item 1</TodoListClass>
       <TodoListItem> Item 2</TodoListItem>
@@ -38,12 +39,14 @@ function About() {
         <span></span>
       </NameFunc>
       <NameFunc name="User2" isProgrammer={true} />
-      <User name="Index" age="30"></User>
+      <User name="Index" age="30"></User> */}
+
       <Counter />
       <hr></hr>
       {"18 - State In Class"}
       <CounterClass />
       <hr></hr>
+      <InputFunc />
     </div>
   );
 }
