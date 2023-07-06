@@ -7,10 +7,12 @@ import { UserCard } from "./UserCard.jsx";
 import { UserCardClass } from "./UserCardClass.jsx";
 import user from "../assets/user.json";
 import "../user.css";
+import { StateThis } from "./StateThis.jsx";
+import { StateThisClass } from "./StateThisClass.jsx";
+import { Counter } from "./Counter.jsx";
+import { CounterClass } from "./CounterClass.jsx";
 
 function About() {
-  const myCustomLabel = <label htmlFor="inputId">Input: </label>;
-
   return (
     <div className="container">
       <UserCard
@@ -26,10 +28,10 @@ function About() {
         address={user[1].address}
       />
       <hr></hr>
-      <div className="large" id="largeDiv">
-        {myCustomLabel}
-        <input id="inputId" type="number" defaultValue={3}></input>
-      </div>
+      <StateThis />
+      <hr></hr>
+      <StateThisClass />
+      <hr></hr>
       <TodoListClass isComplete={true}> Item 1</TodoListClass>
       <TodoListItem> Item 2</TodoListItem>
       <NameFunc name="User1" age={20} isProgrammer>
@@ -37,6 +39,11 @@ function About() {
       </NameFunc>
       <NameFunc name="User2" isProgrammer={true} />
       <User name="Index" age="30"></User>
+      <Counter />
+      <hr></hr>
+      {"18 - State In Class"}
+      <CounterClass />
+      <hr></hr>
     </div>
   );
 }

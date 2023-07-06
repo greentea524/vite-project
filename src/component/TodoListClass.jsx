@@ -4,7 +4,7 @@ export class TodoListClass extends React.Component {
   render() {
     return (
       <label>
-        <input type="checkbox" checked={this.props.isComplete}></input>
+        <input type="checkbox" defaultChecked={this.props.isComplete}></input>
         {this.props.children}
       </label>
     );
