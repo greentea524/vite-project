@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+// WDS 20
 const INIT_VALUE = ["A", "B", "C"];
 
 function ArrayStateProject() {
