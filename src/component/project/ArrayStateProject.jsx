@@ -66,9 +66,9 @@ function ArrayStateProject() {
       </button>
       <button onClick={() => addLetterToStart("B")}>Add To Start</button>
       <button onClick={() => addLetterToEnd("B")}>Add To End</button>
-      <br></br>
       <button onClick={() => updateBtoLetter("H")}>Update B to H</button>
       <button onClick={() => addLetterAtIndex("C", 2)}>Update C at 2</button>
+      <br></br>
       <input
         type="text"
         value={value}

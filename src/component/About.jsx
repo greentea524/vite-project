@@ -1,4 +1,4 @@
-import React from "react";
+import { React } from "react";
 import { NameFunc } from "./exercise/NameFunc";
 import { TodoListClass } from "./exercise/TodoListClass";
 import { TodoListItem } from "./exercise/TodoListItem";
@@ -29,9 +29,9 @@ function About() {
         address={user[1].address}
       />
       <hr></hr>
-      <StateThis />
+      {/* <StateThis />
       <hr></hr>
-      {/* <StateThisClass />
+      <StateThisClass />
       <hr></hr>
       <TodoListClass isComplete={true}> Item 1</TodoListClass>
       <TodoListItem> Item 2</TodoListItem>
@@ -39,14 +39,13 @@ function About() {
         <span></span>
       </NameFunc>
       <NameFunc name="User2" isProgrammer={true} />
-      <User name="Index" age="30"></User> */}
-
+      <User name="Index" age="30"></User>
       <Counter />
       <hr></hr>
       {"18 - State In Class"}
       <CounterClass />
       <hr></hr>
-      <InputFunc />
+      <InputFunc /> */}
     </div>
   );
 }
