@@ -6,16 +6,36 @@ function CounterNameComponent() {
   const [age, setAge] = useState(0);
   const person = { name, age };
   useEffect(() => {
-    const handler = () => {
-      console.log(name, age);
-    };
-    document.addEventListener("click", handler);
-    console.log("inside effect");
-    return () => {
-      console.log("cleanup effect");
-      document.removeEventListener("click", handler);
-    };
+    console.log("I am " + age + " years old.");
+    // const handler = () => {
+    //   console.log("My Name is " + name + " and I am " + age + " years old.");
+    // };
+    // document.addEventListener("click", handler);
+
+    // return () => {
+    //   console.log("Bye");
+    //   document.removeEventListener("click", handler);
+    // };
   }, [name, age]);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log("My Name is " + name);
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [name]);
+  useEffect(() => {
+    console.log("Hi");
+    return () => {
+      console.log("Bye");
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log("re-render");
+  });
 
   return (
     <div>

@@ -6,8 +6,8 @@ export class CounterNameClass extends React.Component {
     super(props);
 
     this.state = {
-      name: "Kyle",
-      age: 27,
+      name: "Bob",
+      age: 100,
     };
   }
   render() {
