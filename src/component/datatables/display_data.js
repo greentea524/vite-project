@@ -83,7 +83,7 @@ export function displayDataTablePost() {
       { data: "userId" },
       { data: "id" },
       { data: "title" },
-      // { data: "body" },
+      { data: "body", visible: false },
     ],
     responsive: true,
     dom: "Bfrtip",

@@ -54,7 +54,7 @@ function CounterNameComponent() {
       {age}
       <button onClick={() => setAge((currentAge) => currentAge + 1)}>+</button>
       <br></br>
-      My Name is {name} and I am {age} years old.
+      {name != "" && `My Name is ${name} and I am ${age} years old.`}
     </div>
   );
 }

@@ -69,7 +69,8 @@ export class CounterNameClass extends React.Component {
         {this.state.age}
         <button onClick={() => addCounter(1)}>+</button>
         <br></br>
-        My Name is {this.state.name} and I am {this.state.age} years old.
+        My Name is {this.state.name} and I am
+        {this.state.age > 100 ? ` too old.` : ` young.`}
       </div>
     );
   }

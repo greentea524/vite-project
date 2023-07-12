@@ -90,7 +90,7 @@ function MyDataTable() {
                       <th scope="col">Userid</th>
                       <th scope="col">Id</th>
                       <th scope="col">Title</th>
-                      {/* <th scope="col">Body</th> */}
+                      <th scope="col">Body</th>
                     </tr>
                   </thead>
                 </table>
