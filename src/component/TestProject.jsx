@@ -6,6 +6,7 @@ import { CounterNameClass } from "./project/CounterNameClass.jsx";
 function TestProject() {
   const [shown, setShown] = useState(true);
   const childComponent = shown ? <CounterNameComponent /> : null;
+  const childClass = shown ? <CounterNameClass /> : null;
   const [width, setWidth] = useState(window.innerWidth);
   const [height, setHeight] = useState(window.innerHeight);
   // empty [] = mount
@@ -26,7 +27,7 @@ function TestProject() {
         Show/Hide
       </button>
       {childComponent}
-      {/* <CounterNameClass /> */}
+      {childClass}
       <hr></hr>
       Width {width} x Height {height}
     </div>
