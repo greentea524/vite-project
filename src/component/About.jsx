@@ -16,7 +16,20 @@ import { InputFunc } from "./exercise/InputFunc.jsx";
 function About() {
   return (
     <div className="container">
-      <UserCard
+      <ul>
+        {user.map((u) => {
+          return (
+            <UserCard
+              key={u.id}
+              name={u.name}
+              company={u.company.name}
+              phone={u.phone}
+              username={u.username}
+            ></UserCard>
+          );
+        })}
+      </ul>
+      {/* <UserCard
         name={user[0].name}
         phoneNumber={user[0].phoneNumber}
         age={user[0].age}
@@ -27,7 +40,7 @@ function About() {
         phoneNumber={user[1].phoneNumber}
         age={user[1].age}
         address={user[1].address}
-      />
+      /> */}
       <hr></hr>
       {/* <StateThis />
       <hr></hr>
