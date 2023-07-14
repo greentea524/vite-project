@@ -2,6 +2,7 @@ import { useState, React, useEffect } from "react";
 import ArrayStateProject from "./project/ArrayStateProject.jsx";
 import CounterNameComponent from "./project/CounterNameComponent.jsx";
 import { CounterNameClass } from "./project/CounterNameClass.jsx";
+import TodoListProject from "./project/TodoListProject.jsx";
 
 function TestProject() {
   const [shown, setShown] = useState(true);
@@ -18,6 +19,8 @@ function TestProject() {
   }, []);
   return (
     <div className="container">
+      <TodoListProject />
+      <hr></hr>
       <ArrayStateProject />
       <hr></hr>
       <button

@@ -4,7 +4,7 @@ export function UserCard({ name, company, phone, username }) {
       <h2 className="name">{name}</h2>
       <div className="body">
         <div className="label">Company:</div>
-        <div>{company}</div>
+        <div>{company.name}</div>
         <div className="label">Phone:</div>
         <div>{phone}</div>
         <div className="label">Username:</div>

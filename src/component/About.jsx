@@ -1,7 +1,5 @@
 import { React } from "react";
 import { NameFunc } from "./exercise/NameFunc";
-import { TodoListClass } from "./exercise/TodoListClass";
-import { TodoListItem } from "./exercise/TodoListItem";
 import { User } from "./exercise/User.jsx";
 import { UserCard } from "./exercise/UserCard.jsx";
 import { UserCardClass } from "./exercise/UserCardClass.jsx";
@@ -18,36 +16,16 @@ function About() {
     <div className="container">
       <ul>
         {user.map((u) => {
-          return (
-            <UserCard
-              key={u.id}
-              name={u.name}
-              company={u.company.name}
-              phone={u.phone}
-              username={u.username}
-            ></UserCard>
-          );
+          return <UserCard key={u.id} {...u}></UserCard>;
         })}
       </ul>
-      {/* <UserCard
-        name={user[0].name}
-        phoneNumber={user[0].phoneNumber}
-        age={user[0].age}
-        address={user[0].address}
-      ></UserCard>
-      <UserCardClass
-        name={user[1].name}
-        phoneNumber={user[1].phoneNumber}
-        age={user[1].age}
-        address={user[1].address}
-      /> */}
+
       <hr></hr>
       {/* <StateThis />
       <hr></hr>
       <StateThisClass />
       <hr></hr>
-      <TodoListClass isComplete={true}> Item 1</TodoListClass>
-      <TodoListItem> Item 2</TodoListItem>
+
       <NameFunc name="User1" age={20} isProgrammer>
         <span></span>
       </NameFunc>
