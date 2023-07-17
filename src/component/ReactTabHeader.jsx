@@ -29,7 +29,7 @@ class ReactTabHeader extends Component {
         <Tab eventKey="profile" title="About">
           <About />
         </Tab>
-        <Tab eventKey="testproject" title="TestProject">
+        <Tab eventKey="testproject" title="Test">
           <TestProject />
         </Tab>
         <Tab eventKey="chart" title="Chart">

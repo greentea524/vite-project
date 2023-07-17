@@ -14,11 +14,14 @@ import { InputFunc } from "./exercise/InputFunc.jsx";
 function About() {
   return (
     <div className="container">
-      <ul>
-        {user.map((u) => {
-          return <UserCard key={u.id} {...u}></UserCard>;
-        })}
-      </ul>
+      <center>
+        {" "}
+        <ul>
+          {user.map((u) => {
+            return <UserCard key={u.id} {...u}></UserCard>;
+          })}
+        </ul>
+      </center>
 
       <hr></hr>
       {/* <StateThis />
