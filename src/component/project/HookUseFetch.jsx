@@ -22,7 +22,7 @@ const URLS = {
 //   },
 // };
 
-function CustomHook() {
+function HookUseFetch() {
   const [url, setUrl] = useState(URLS.USERS);
 
   const { data, isLoading, isError } = useFetch(url);
@@ -68,4 +68,4 @@ function CustomHook() {
   );
 }
 
-export default CustomHook;
+export default HookUseFetch;

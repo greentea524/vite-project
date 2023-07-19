@@ -3,7 +3,7 @@ import { useArray } from "./useArray";
 const INITIAL_ARRAY = [1, 2, 3];
 // const INITIAL_ARRAY = () => [1, 2, 3]
 
-function UseArrayCustom() {
+function HookUseArray() {
   const { array, set, push, replace, filter, remove, clear, reset } =
     useArray(INITIAL_ARRAY);
 
@@ -35,4 +35,4 @@ function UseArrayCustom() {
   );
 }
 
-export default UseArrayCustom;
+export default HookUseArray;

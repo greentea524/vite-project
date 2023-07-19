@@ -3,8 +3,9 @@ import ArrayStateProject from "./project/ArrayStateProject.jsx";
 import CounterNameComponent from "./project/CounterNameComponent.jsx";
 import { CounterNameClass } from "./project/CounterNameClass.jsx";
 import TodoListProject from "./project/TodoListProject.jsx";
-import CustomHook from "./project/CustomHook.jsx";
-import UseArrayCustom from "./project/UseArrayCustom.jsx";
+import HookUseFetch from "./project/HookUseFetch.jsx";
+import HookUseArray from "./project/HookUseArray.jsx";
+import HookLocalStorage from "./project/HookLocalStorage.jsx";
 
 function TestProject() {
   const [shown, setShown] = useState(true);
@@ -23,8 +24,10 @@ function TestProject() {
     <div className="container">
       <TodoListProject />
       <hr></hr>
-      {/* <CustomHook /> */}
-      <UseArrayCustom />
+      {/* <HookUseFetch /> */}
+      <HookUseArray />
+      <hr></hr>
+      <HookLocalStorage />
       <hr></hr>
       <button
         style={{ display: "block", marginBottom: "1rem" }}
