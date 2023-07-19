@@ -1,21 +1,32 @@
-import { useState, useEffect } from "react";
-// WDS 21 22
+import { useState, useEffect, useReducer } from "react";
 
+const ACTIONS = {
+  INCREMENT: "INCREMENT",
+  DECREMENT: "DECREMENT",
+  RESET: "RESET",
+  ADDFIVE: "ADDFIVE",
+};
+function reducer(age, action) {
+  switch (action.type) {
+    case ACTIONS.INCREMENT:
+      return age + 1;
+    case ACTIONS.DECREMENT:
+      return age - 1;
+    case ACTIONS.RESET:
+      return 0;
+    case ACTIONS.ADDFIVE:
+      return age + action.payload.value;
+    default:
+      return age;
+  }
+}
 function CounterNameComponent() {
   const [name, setName] = useState("");
-  const [age, setAge] = useState(0);
-  const person = { name, age };
+  //const [age, setAge] = useState(0);
+  const [age, dispatch] = useReducer(reducer, 0);
+
   useEffect(() => {
     console.log("I am " + age + " years old.");
-    // const handler = () => {
-    //   console.log("My Name is " + name + " and I am " + age + " years old.");
-    // };
-    // document.addEventListener("click", handler);
-
-    // return () => {
-    //   console.log("Bye");
-    //   document.removeEventListener("click", handler);
-    // };
   }, [name, age]);
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -44,15 +55,17 @@ function CounterNameComponent() {
         value={name}
         onChange={(e) => setName(e.target.value)}
       ></input>
+      <button onClick={() => dispatch({ type: ACTIONS.DECREMENT })}>-</button>
+      {age}
+      <button onClick={() => dispatch({ type: ACTIONS.INCREMENT })}>+</button>
       <button
         onClick={() =>
-          setAge((currentAge) => (currentAge - 1 > 0 ? currentAge - 1 : 0))
+          dispatch({ type: ACTIONS.ADDFIVE, payload: { value: 5 } })
         }
       >
-        -
+        +5
       </button>
-      {age}
-      <button onClick={() => setAge((currentAge) => currentAge + 1)}>+</button>
+      <button onClick={() => dispatch({ type: ACTIONS.RESET })}>Reset</button>
       <br></br>
       {name != "" && `My Name is ${name} and I am ${age} years old.`}
     </div>
