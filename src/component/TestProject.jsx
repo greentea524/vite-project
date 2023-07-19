@@ -4,6 +4,7 @@ import CounterNameComponent from "./project/CounterNameComponent.jsx";
 import { CounterNameClass } from "./project/CounterNameClass.jsx";
 import TodoListProject from "./project/TodoListProject.jsx";
 import CustomHook from "./project/CustomHook.jsx";
+import UseArrayCustom from "./project/UseArrayCustom.jsx";
 
 function TestProject() {
   const [shown, setShown] = useState(true);
@@ -22,7 +23,8 @@ function TestProject() {
     <div className="container">
       <TodoListProject />
       <hr></hr>
-      <ArrayStateProject />
+      {/* <CustomHook /> */}
+      <UseArrayCustom />
       <hr></hr>
       <button
         style={{ display: "block", marginBottom: "1rem" }}
@@ -33,7 +35,7 @@ function TestProject() {
       {childComponent}
       {childClass}
       <hr></hr>
-      <CustomHook />
+      <ArrayStateProject />
       <hr></hr>
       Width {width} x Height {height}
     </div>
