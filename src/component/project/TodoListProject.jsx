@@ -6,7 +6,8 @@ function TodoListProject() {
   const [newTodoName, setNewTodoName] = useState("");
   const [todos, setTodos] = useState([]);
 
-  function addNewTodo() {
+  function addNewTodo(e) {
+    e.preventDefault();
     if (newTodoName === "") return;
 
     setTodos((currentTodos) => {
@@ -36,7 +37,7 @@ function TodoListProject() {
 
   return (
     <>
-      <div id="new-todo-form">
+      <form onSubmit={addNewTodo} id="new-todo-form">
         <label htmlFor="todo-input">New Todo</label>
         <input
           type="text"
@@ -44,8 +45,8 @@ function TodoListProject() {
           value={newTodoName}
           onChange={(e) => setNewTodoName(e.target.value)}
         />
-        <button onClick={addNewTodo}>Add Todo</button>
-      </div>
+        <button>Add Todo</button>
+      </form>
       <ul id="list">
         {todos.map((todo) => {
           return (
