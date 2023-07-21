@@ -15,7 +15,7 @@ function About() {
   return (
     <div className="container">
       <center>
-        {" "}
+        {import.meta.env.VITE_TEXT}{" "}
         <ul>
           {user.map((u) => {
             return <UserCard key={u.id} {...u}></UserCard>;

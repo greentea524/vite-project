@@ -9,6 +9,9 @@ import MyDataTable from "./datatables/MyDataTable.jsx";
 import { Minesweeper, newMineGame } from "./Minesweeper.jsx";
 import SomeChart from "./SomeChart";
 import TestProject from "./TestProject";
+import StateForm from "./form/StateForm";
+import RefForm from "./form/RefForm";
+import "./form/form.css";
 
 class ReactTabHeader extends Component {
   componentDidMount() {
@@ -71,6 +74,11 @@ class ReactTabHeader extends Component {
         <Tab eventKey="datatable" title="DataTables">
           <div className="d-flex justify-content-center">
             <MyDataTable />
+          </div>
+        </Tab>
+        <Tab eventKey="stateform" title="Form">
+          <div className="d-flex justify-content-center">
+            <StateForm />
           </div>
         </Tab>
       </Tabs>

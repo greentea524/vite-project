@@ -45,7 +45,7 @@ function TodoListProject() {
           value={newTodoName}
           onChange={(e) => setNewTodoName(e.target.value)}
         />
-        <button>Add Todo</button>
+        <button className="my-button">Add Todo</button>
       </form>
       <ul id="list">
         {todos.map((todo) => {
