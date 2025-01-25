@@ -23,22 +23,10 @@ class Board extends React.Component {
 
   render() {
     return (
-      <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
+      <div className="tictacboard">
+        {Array(9)
+          .fill(null)
+          .map((_, i) => this.renderSquare(i))}
       </div>
     );
   }
@@ -55,6 +43,8 @@ export default class Game extends React.Component {
       ],
       stepNumber: 0,
       xIsNext: true,
+      xWins: 0,
+      oWins: 0,
     };
   }
 
@@ -84,6 +74,33 @@ export default class Game extends React.Component {
     });
   }
 
+  resetGame() {
+    this.setState({
+      history: [
+        {
+          squares: Array(9).fill(null),
+        },
+      ],
+      stepNumber: 0,
+      xIsNext: true,
+    });
+  }
+  componentDidUpdate(prevProps, prevState) {
+    const winner = calculateWinner(
+      this.state.history[this.state.stepNumber].squares
+    );
+    if (
+      winner &&
+      winner !==
+        calculateWinner(prevState.history[prevState.stepNumber].squares)
+    ) {
+      if (winner === "X") {
+        this.setState((state) => ({ xWins: state.xWins + 1 }));
+      } else if (winner === "O") {
+        this.setState((state) => ({ oWins: state.oWins + 1 }));
+      }
+    }
+  }
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
@@ -110,6 +127,7 @@ export default class Game extends React.Component {
     return (
       <>
         <div className="game">
+          <button onClick={() => this.resetGame()}>Reset Game</button>
           <div className="game-board">
             <Board
               squares={current.squares}
@@ -119,6 +137,8 @@ export default class Game extends React.Component {
           <div className="game-info">
             <div>{status}</div>
             <ol>{moves}</ol>
+            <div>X Wins: {this.state.xWins}</div>
+            <div>O Wins: {this.state.oWins}</div>
           </div>
         </div>
       </>

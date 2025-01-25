@@ -57,7 +57,7 @@ function SomeChart() {
   });
 
   return (
-    <div>
+    <div className="container mt-5">
       <Chart chartType="ColumnChart" data={someData} options={someOptions} />
       <hr></hr>
 

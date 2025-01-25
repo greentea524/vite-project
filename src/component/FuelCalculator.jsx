@@ -8,11 +8,19 @@ const FuelCalculator = () => {
   const [calculatedGallons, setCalculatedGallons] = useState("");
 
   const calculateRange = (gallons) => {
+    if (gallons === "") {
+      setCalculatedRange("");
+      return;
+    }
     const range = 29.39 * parseFloat(gallons);
     setCalculatedRange(`Range: ${range.toFixed(2)} miles`);
   };
 
   const calculateGallons = (range) => {
+    if (range === "") {
+      setCalculatedGallons("");
+      return;
+    }
     const gallons = parseFloat(range) / 29.39;
     setCalculatedGallons(`Gallons needed: ${gallons.toFixed(2)}`);
   };

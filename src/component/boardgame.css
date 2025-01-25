@@ -3,7 +3,8 @@ body {
   margin: 20px;
 }
 
-ol, ul {
+ol,
+ul {
   padding-left: 30px;
 }
 
@@ -17,19 +18,23 @@ ol, ul {
   margin-bottom: 10px;
 }
 
+.tictacboard {
+  display: grid;
+  grid-template-columns: repeat(3, 115px); /* 3 columns of 100px each */
+  grid-template-rows: repeat(3, 100px); /* 3 rows of 100px each */
+}
+
 .square {
+  width: 100px; /* Increase the width */
+  height: 100px; /* Increase the height */
   background: #fff;
   border: 1px solid #999;
-  float: left;
-  font-size: 24px;
+  display: flex; /* Use Flexbox */
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  font-size: 48px; /* Increase the font size */
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
-  margin-right: -1px;
-  margin-top: -1px;
-  padding: 0;
-  text-align: center;
-  width: 34px;
+  cursor: pointer;
 }
 
 .square:focus {
