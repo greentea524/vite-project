@@ -11,6 +11,11 @@ var someOptions = {
   //vAxis: { viewWindow: { max: 1 }},
   legend: { position: "none" },
 };
+const tableOptions = {
+  showRowNumber: true,
+  width: "100%",
+  height: "100%",
+};
 
 var randosum = randomdata;
 
@@ -57,8 +62,25 @@ function SomeChart() {
       <hr></hr>
 
       <div className="row">
-        <div className="column">
-          <Chart chartType="Table" data={someData} />
+        <div className="col-md-6">
+          <Chart
+            chartType="Table"
+            data={[
+              someData[0],
+              ...someData.slice(1, Math.ceil(someData.length / 2)),
+            ]} // Include header row
+            options={tableOptions}
+          />
+        </div>
+        <div className="col-md-6">
+          <Chart
+            chartType="Table"
+            data={[
+              someData[0],
+              ...someData.slice(Math.ceil(someData.length / 2)),
+            ]} // Include header row
+            options={tableOptions}
+          />
         </div>
       </div>
     </div>

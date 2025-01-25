@@ -36,9 +36,6 @@ class ReactTabHeader extends Component {
         <Tab eventKey="fuelcalculator" title="FuelCalculator">
           <FuelCalculator />
         </Tab>
-        <Tab eventKey="testproject" title="Test">
-          <TestProject />
-        </Tab>
         <Tab eventKey="chart" title="Chart">
           <div>
             {/* <MyChart /> */}
@@ -84,6 +81,9 @@ class ReactTabHeader extends Component {
           <div className="d-flex justify-content-center">
             <StateForm />
           </div>
+        </Tab>
+        <Tab eventKey="testproject" title="Test">
+          <TestProject />
         </Tab>
       </Tabs>
     );
