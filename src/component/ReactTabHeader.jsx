@@ -12,6 +12,7 @@ import TestProject from "./TestProject";
 import StateForm from "./form/StateForm";
 import RefForm from "./form/RefForm";
 import "./form/form.css";
+import FuelCalculator from "./FuelCalculator.jsx";
 
 class ReactTabHeader extends Component {
   componentDidMount() {
@@ -31,6 +32,9 @@ class ReactTabHeader extends Component {
         </Tab>
         <Tab eventKey="profile" title="About">
           <About />
+        </Tab>
+        <Tab eventKey="fuelcalculator" title="FuelCalculator">
+          <FuelCalculator />
         </Tab>
         <Tab eventKey="testproject" title="Test">
           <TestProject />
