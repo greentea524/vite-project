@@ -128,6 +128,8 @@ export default class Game extends React.Component {
       <>
         <div className="game">
           <button onClick={() => this.resetGame()}>Reset Game</button>
+          <div>X Wins: {this.state.xWins}</div>
+          <div>O Wins: {this.state.oWins}</div>
           <div className="game-board">
             <Board
               squares={current.squares}
@@ -137,8 +139,6 @@ export default class Game extends React.Component {
           <div className="game-info">
             <div>{status}</div>
             <ol>{moves}</ol>
-            <div>X Wins: {this.state.xWins}</div>
-            <div>O Wins: {this.state.oWins}</div>
           </div>
         </div>
       </>

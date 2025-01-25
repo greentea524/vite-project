@@ -47,9 +47,23 @@ ul {
 
 .game {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .game-info {
   margin-left: 12px;
+}
+
+.game-board {
+  margin-bottom: 20px; /* Add some space between the board and the info */
+}
+
+.game-info {
+  text-align: center;
+}
+
+button {
+  margin-top: 20px; /* Add some space above the reset button */
 }
