@@ -65,6 +65,14 @@ class ReactTabHeader extends Component {
                 <i className="fa fa-gamepad fa-2x"></i> Wordle
               </a>
             </div>
+            <div className="cta text-center">
+              <a
+                className="my-button cta-button"
+                href="https://greentea524.github.io/game/js-alien-invasion/"
+              >
+                <i className="fa fa-gamepad fa-2x"></i> Invasion
+              </a>
+            </div>
           </div>
         </Tab>
         <Tab eventKey="minesweeper" title="Minesweeper">

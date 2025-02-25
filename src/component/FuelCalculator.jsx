@@ -1,6 +1,35 @@
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+/*
+17.2 gal
+Fuel & MPG
+Range in miles (city/hwy)	447.2/602.0 mi.
+Fuel tank capacity	17.2 gal.
 
+First Fillup:
+Gallons: 10.8
+Gauge range: 396 - 84 = 312
+312/10.8 = 28.89 mi/gal
+
+Second Fillup:
+Gallons: 10.1
+Gauge range: 406 - 98 = 308
+Third Fillup:
+Gallons: 9.5
+Gauge range: 394 - 110 = 284
+Fourth Fillup:
+Gallons: 9.5
+Gauge range: 387 - 116 = 271
+Fifth Fillup:
+Gallons: 10.9
+Gauge range: 401 - 83 = 318
+Sixth Fillup:
+Gallons: 10.5
+Gauge range: 373 - 86 = 287
+
+excluding 6th ratio. range 29.39 average
+
+*/
 const FuelCalculator = () => {
   const [gallons, setGallons] = useState("0");
   const [range, setRange] = useState("0");
