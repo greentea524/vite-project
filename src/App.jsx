@@ -31,6 +31,7 @@ function App() {
             <option value="98.css" selected>
               Windows 98
             </option>
+            <option value="7.css">Windows 7</option>
           </select>
         </section>
       </div>
