@@ -116,7 +116,11 @@ h6 {
 
 .nav-pills .nav-link.active {
   background-color: white !important;
-  color: black !important;
+  color: black;
+}
+
+.nav-link {
+  color: black;
 }
 
 #about i {
