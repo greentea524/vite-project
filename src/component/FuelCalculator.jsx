@@ -56,9 +56,16 @@ const FuelCalculator = () => {
 
   return (
     <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <h2 className="text-center mb-4">Fuel Fill-Up Calculator</h2>
+      <div className="row justify-content-center col-md-6 window">
+        <div className="title-bar">
+          <div className="title-bar-text">Fuel Fill-Up Calculator</div>
+          <div class="title-bar-controls">
+            <button aria-label="Minimize"></button>
+            <button aria-label="Maximize"></button>
+            <button aria-label="Close"></button>
+          </div>
+        </div>
+        <div className="window-body">
           <div className="form-group mb-3">
             <label>Gallons:</label>
             <input

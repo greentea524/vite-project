@@ -19,7 +19,8 @@
     "react-google-charts": "^4.0.0",
     "react-router-dom": "^6.4.3",
     "react-transition-group": "^4.4.5",
-    "rollup": ">=2.79.2"
+    "rollup": ">=2.79.2",
+    "98.css": "0.1.4"
   },
   "devDependencies": {
     "@types/react": "^18.0.24",
