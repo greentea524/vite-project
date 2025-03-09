@@ -30,9 +30,9 @@ class ReactTabHeader extends Component {
         <Tab eventKey="home" title="Home">
           <Home />
         </Tab>
-        <Tab eventKey="profile" title="About">
+        {/* <Tab eventKey="profile" title="About">
           <About />
-        </Tab>
+        </Tab> */}
         <Tab eventKey="fuelcalculator" title="FuelCalculator">
           <FuelCalculator />
         </Tab>
