@@ -31,26 +31,27 @@ excluding 6th ratio. range 29.39 average
 
 */
 const FuelCalculator = () => {
-  const [gallons, setGallons] = useState("0");
-  const [range, setRange] = useState("0");
+  const [gallons, setGallons] = useState("");
+  const [range, setRange] = useState("");
+  const [mpg, setMpg] = useState("29.39");
   const [calculatedRange, setCalculatedRange] = useState("");
   const [calculatedGallons, setCalculatedGallons] = useState("");
 
-  const calculateRange = (gallons) => {
+  const calculateRange = (gallons, mpg) => {
     if (gallons === "") {
-      setCalculatedRange("");
+      setCalculatedRange("Range: --");
       return;
     }
-    const range = 29.39 * parseFloat(gallons);
+    const range = parseFloat(mpg) * parseFloat(gallons);
     setCalculatedRange(`Range: ${range.toFixed(2)} miles`);
   };
 
-  const calculateGallons = (range) => {
+  const calculateGallons = (range, mpg) => {
     if (range === "") {
-      setCalculatedGallons("");
+      setCalculatedGallons("Gallons needed: --");
       return;
     }
-    const gallons = parseFloat(range) / 29.39;
+    const gallons = parseFloat(range) / parseFloat(mpg);
     setCalculatedGallons(`Gallons needed: ${gallons.toFixed(2)}`);
   };
 
@@ -59,13 +60,29 @@ const FuelCalculator = () => {
       <div className="row justify-content-center col-md-6 window">
         <div className="title-bar">
           <div className="title-bar-text">Fuel Fill-Up Calculator</div>
-          <div class="title-bar-controls">
+          <div className="title-bar-controls">
             <button aria-label="Minimize"></button>
             <button aria-label="Maximize"></button>
             <button aria-label="Close"></button>
           </div>
         </div>
         <div className="window-body">
+          <div className="form-group mb-3">
+            <label>MPG:</label>
+            <input
+              type="number"
+              className="form-control"
+              value={mpg}
+              onChange={(e) => {
+                setMpg(e.target.value);
+                calculateRange(gallons, e.target.value);
+                calculateGallons(range, e.target.value);
+              }}
+              placeholder="Enter MPG"
+              min="0"
+              max="100"
+            />
+          </div>
           <div className="form-group mb-3">
             <label>Gallons:</label>
             <input
@@ -74,7 +91,7 @@ const FuelCalculator = () => {
               value={gallons}
               onChange={(e) => {
                 setGallons(e.target.value);
-                calculateRange(e.target.value);
+                calculateRange(e.target.value, mpg);
               }}
               placeholder="Enter gallons"
               min="0"
@@ -94,7 +111,7 @@ const FuelCalculator = () => {
               value={range}
               onChange={(e) => {
                 setRange(e.target.value);
-                calculateGallons(e.target.value);
+                calculateGallons(e.target.value, mpg);
               }}
               placeholder="Enter range increase"
               min="0"
