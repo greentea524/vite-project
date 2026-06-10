@@ -13,6 +13,7 @@ import StateForm from "./form/StateForm";
 import RefForm from "./form/RefForm";
 import "./form/form.css";
 import FuelCalculator from "./FuelCalculator.jsx";
+import DiceBlackjack from "./DiceBlackjack.jsx";
 
 class ReactTabHeader extends Component {
   componentDidMount() {
@@ -86,6 +87,11 @@ class ReactTabHeader extends Component {
         <Tab eventKey="minesweeper" title="Minesweeper">
           <div className="d-flex justify-content-center">
             <Minesweeper />
+          </div>
+        </Tab>
+        <Tab eventKey="dice21" title="Dice 21">
+          <div className="d-flex justify-content-center">
+            <DiceBlackjack />
           </div>
         </Tab>
         <Tab eventKey="datatable" title="DataTables">
