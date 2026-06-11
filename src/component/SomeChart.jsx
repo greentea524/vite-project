@@ -1,86 +1,130 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Chart } from "react-google-charts";
 import randomdata from "../assets/data.json";
 
-var someData = [["Element", "Percentage"]];
-
-var someOptions = {
-  title: "Company Performances",
-  width: 900,
-  hAxis: { gridlines: { count: 25 } },
-  //vAxis: { viewWindow: { max: 1 }},
-  legend: { position: "none" },
-};
 const tableOptions = {
   showRowNumber: true,
   width: "100%",
   height: "100%",
 };
 
-var randosum = randomdata;
-
 function SomeChart() {
-  var groupLabel = numberRange(10, 50);
-  // const [text, setText] = React.useState();
-  // fetch(textFile)
-  //   .then((response) => response.text())
-  //   .then((textContent) => {
-  //     setText(textContent);
-  //   });
-  // console.log(text);
-
-  var randoObject = groupLabel.reduce(function (acc, curr) {
-    return acc[curr] ? ++acc[curr] : (acc[curr] = 0), acc;
-  }, {});
-
-  // occurrences
-  randosum.reduce(function (acc, curr) {
-    curr = curr.toString().substring(1);
-    return (
-      randoObject[curr] ? ++randoObject[curr] : (randoObject[curr] = 1), acc
-    );
-  }, {});
-
-  var someResult = Object.keys(randoObject).map((key) => [
-    Number(key),
-    randoObject[key],
-  ]);
-
-  var weeks = randoObject[10];
-  someResult.forEach(function (value, index, array) {
-    if (!isNaN(value[0])) {
-      // [ the pattern, the count ]
-      var percentage = (value[1] / weeks) * 100;
-      var this_value = [value[0], Math.round(percentage)];
-      someData.push(this_value);
-    }
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth <= 768;
   });
 
-  return (
-    <div className="container mt-5">
-      <Chart chartType="ColumnChart" data={someData} options={someOptions} />
-      <hr></hr>
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-      <div className="row">
-        <div className="col-md-6">
+  const someData = useMemo(() => {
+    const baseData = [["Element", "Percentage"]];
+    const groupLabel = numberRange(10, 50);
+
+    const randoObject = groupLabel.reduce((acc, curr) => {
+      acc[curr] = 0;
+      return acc;
+    }, {});
+
+    randomdata.forEach((curr) => {
+      const key = curr.toString().substring(1);
+      if (randoObject[key] !== undefined) {
+        randoObject[key] += 1;
+      }
+    });
+
+    const someResult = Object.keys(randoObject).map((key) => [
+      Number(key),
+      randoObject[key],
+    ]);
+
+    const weeks = randoObject[10] || 1;
+    someResult.forEach((value) => {
+      if (!isNaN(value[0])) {
+        const percentage = (value[1] / weeks) * 100;
+        baseData.push([value[0], Math.round(percentage)]);
+      }
+    });
+
+    return baseData;
+  }, []);
+
+  const someOptions = useMemo(
+    () => ({
+      title: isMobile ? "Performance" : "Company Performances",
+      legend: { position: "none" },
+      chartArea: isMobile
+        ? {
+            left: 46,
+            right: 12,
+            top: 40,
+            bottom: 72,
+            width: "84%",
+            height: "66%",
+          }
+        : {
+            left: 60,
+            right: 20,
+            top: 50,
+            bottom: 70,
+            width: "86%",
+            height: "70%",
+          },
+      hAxis: {
+        gridlines: { count: isMobile ? 8 : 25 },
+        slantedText: isMobile,
+        slantedTextAngle: isMobile ? 35 : 0,
+        textStyle: { fontSize: isMobile ? 10 : 12 },
+      },
+      vAxis: {
+        textStyle: { fontSize: isMobile ? 10 : 12 },
+      },
+    }),
+    [isMobile],
+  );
+
+  const mid = Math.ceil(someData.length / 2);
+
+  return (
+    <div className="container mt-5 px-2 px-md-3">
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: isMobile ? "320px" : "auto" }}>
           <Chart
-            chartType="Table"
-            data={[
-              someData[0],
-              ...someData.slice(1, Math.ceil(someData.length / 2)),
-            ]} // Include header row
-            options={tableOptions}
+            chartType="ColumnChart"
+            data={someData}
+            options={someOptions}
+            width="100%"
+            height={isMobile ? "320px" : "420px"}
           />
         </div>
+      </div>
+      <hr></hr>
+
+      <div className="row g-3 g-md-0">
+        <div className="col-md-6 mb-2 mb-md-0">
+          <div style={{ overflowX: "auto" }}>
+            <Chart
+              chartType="Table"
+              data={[someData[0], ...someData.slice(1, mid)]}
+              options={tableOptions}
+              width="100%"
+              height={isMobile ? "280px" : "320px"}
+            />
+          </div>
+        </div>
         <div className="col-md-6">
-          <Chart
-            chartType="Table"
-            data={[
-              someData[0],
-              ...someData.slice(Math.ceil(someData.length / 2)),
-            ]} // Include header row
-            options={tableOptions}
-          />
+          <div style={{ overflowX: "auto" }}>
+            <Chart
+              chartType="Table"
+              data={[someData[0], ...someData.slice(mid)]}
+              options={tableOptions}
+              width="100%"
+              height={isMobile ? "280px" : "320px"}
+            />
+          </div>
         </div>
       </div>
     </div>

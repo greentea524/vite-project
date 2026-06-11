@@ -37,12 +37,12 @@ function MyChart() {
       title: isMobile ? "Performance" : options.title,
       chartArea: isMobile
         ? {
-            left: 40,
-            right: 10,
-            top: 40,
-            bottom: 60,
-            width: "80%",
-            height: "60%",
+            left: 46,
+            right: 12,
+            top: 36,
+            bottom: 72,
+            width: "84%",
+            height: "68%",
           }
         : {
             left: 60,
@@ -58,6 +58,8 @@ function MyChart() {
         textStyle: { fontSize: isMobile ? 11 : 13 },
       },
       hAxis: {
+        slantedText: isMobile,
+        slantedTextAngle: isMobile ? 35 : 0,
         textStyle: { fontSize: isMobile ? 10 : 12 },
       },
       vAxis: {
@@ -74,17 +76,20 @@ function MyChart() {
         width: "100%",
         maxWidth: "960px",
         margin: "0 auto",
-        padding: "0 0.75rem",
+        padding: isMobile ? "0 0.25rem" : "0 0.75rem",
+        overflowX: "auto",
       }}
     >
-      <Chart
-        chartType="ScatterChart"
-        data={data}
-        options={chartOptions}
-        width="100%"
-        height={isMobile ? "280px" : "420px"}
-        loader={<div>Loading chart...</div>}
-      />
+      <div style={{ minWidth: isMobile ? "320px" : "auto" }}>
+        <Chart
+          chartType="LineChart"
+          data={data}
+          options={chartOptions}
+          width="100%"
+          height={isMobile ? "300px" : "420px"}
+          loader={<div>Loading chart...</div>}
+        />
+      </div>
     </div>
   );
 }
