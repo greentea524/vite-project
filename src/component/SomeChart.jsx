@@ -8,11 +8,12 @@ const tableOptions = {
   height: "100%",
 };
 
-function SomeChart() {
+function SomeChart({ theme }) {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth <= 768;
   });
+  const isWindows7Theme = theme === "7.css";
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -70,8 +71,8 @@ function SomeChart() {
             right: 20,
             top: 50,
             bottom: 70,
-            width: "90%",
-            height: "76%",
+            width: "92%",
+            height: isWindows7Theme ? "70%" : "74%",
           },
       hAxis: {
         gridlines: { count: isMobile ? 8 : 25 },
@@ -83,11 +84,14 @@ function SomeChart() {
         textStyle: { fontSize: isMobile ? 10 : 12 },
       },
     }),
-    [isMobile],
+    [isMobile, isWindows7Theme],
   );
 
   return (
-    <div className="container mt-5 px-2 px-md-3">
+    <div
+      className="container-fluid mt-2 px-2 px-md-4"
+      style={{ maxWidth: "1200px" }}
+    >
       <div style={{ overflowX: "auto" }}>
         <div style={{ minWidth: isMobile ? "320px" : "auto" }}>
           <Chart
@@ -95,7 +99,7 @@ function SomeChart() {
             data={someData}
             options={someOptions}
             width="100%"
-            height={isMobile ? "320px" : "540px"}
+            height={isMobile ? "320px" : isWindows7Theme ? "460px" : "520px"}
           />
         </div>
       </div>
@@ -109,7 +113,7 @@ function SomeChart() {
               data={someData}
               options={tableOptions}
               width="100%"
-              height={isMobile ? "320px" : "360px"}
+              height={isMobile ? "320px" : isWindows7Theme ? "250px" : "300px"}
             />
           </div>
         </div>

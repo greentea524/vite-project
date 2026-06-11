@@ -53,6 +53,20 @@ div.navbrand {
   padding: 0 10px;
 }
 
+.theme-switcher {
+  display: flex;
+  justify-content: flex-start;
+  text-align: left;
+  margin-bottom: 0.5rem;
+}
+
+.theme-switcher .field-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
 /* App.css */
 .hidden {
   display: none;
@@ -112,4 +126,68 @@ div.navbrand {
   text-overflow: clip !important;
   padding: 0.45rem 0.6rem !important;
   vertical-align: top;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  width: min(860px, 100%);
+  margin: 0 auto;
+}
+
+.game-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border: 2px solid #0d6efd;
+  border-radius: 999px;
+  color: #0d6efd;
+  text-decoration: none;
+  font-weight: 700;
+  background: #fff;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.game-link:hover,
+.game-link:focus {
+  background: #0d6efd;
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.game-link span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.tabs-shell > .tab-content {
+  min-height: 620px;
+  width: 100%;
+}
+
+.tabs-shell > .tab-content > .tab-pane {
+  width: 100%;
+}
+
+@media (max-width: 576px) {
+  .tabs-shell > .tab-content {
+    min-height: 480px;
+  }
+
+  .games-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-link {
+    border-radius: 14px;
+    width: 100%;
+  }
 }

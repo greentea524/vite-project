@@ -23,7 +23,7 @@ function reducer(state, action) {
 
 function App() {
   const [state, dispatch] = useReducer(reducer, {
-    theme: "7.css",
+    theme: "xp.css",
     loading: false,
     hidden: false,
   });
@@ -58,16 +58,18 @@ function App() {
           <div className="loading-spinner"></div>
         </div>
       )}
-      <div className="App" hidden={state.hidden}>
+      <div className="App" hidden={state.hidden} data-theme={state.theme}>
         <div className="theme-switcher">
           <section className="field-row">
             <label htmlFor="theme-switcher-select">Select a theme</label>
-            <select id="theme-switcher-select" onChange={handleThemeChange}>
+            <select
+              id="theme-switcher-select"
+              onChange={handleThemeChange}
+              value={state.theme}
+            >
               <option value="98.css">Windows 98</option>
               <option value="xp.css">Windows XP</option>
-              <option value="7.css" selected>
-                Windows 7
-              </option>
+              <option value="7.css">Windows 7</option>
             </select>
           </section>
         </div>
@@ -83,7 +85,7 @@ function App() {
             </div>
           </div>
           <div className="window-body">
-            <ReactTabHeader />
+            <ReactTabHeader theme={state.theme} />
           </div>
         </div>
       </div>

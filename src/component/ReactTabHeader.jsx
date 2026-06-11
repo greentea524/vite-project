@@ -22,93 +22,111 @@ class ReactTabHeader extends Component {
   }
   render() {
     return (
-      <Tabs
-        defaultActiveKey="home"
-        id="fill-tab"
-        className="mb-3 px-3"
-        variant="pills"
-        fill
-      >
-        <Tab eventKey="home" title="Home">
-          <Home />
-        </Tab>
-        {/* <Tab eventKey="profile" title="About">
-          <About />
-        </Tab> */}
-        <Tab eventKey="fuelcalculator" title="FuelCalculator">
-          <FuelCalculator />
-        </Tab>
-        <Tab eventKey="chart" title="Chart">
-          <div>
-            {/* <MyChart /> */}
-            <SomeChart />
-          </div>
-        </Tab>
-        <Tab eventKey="tictactoe" title="TicTacToe">
-          <div className="d-flex justify-content-center">
-            <TicTacToe />
-          </div>
-        </Tab>
-        <Tab eventKey="othergames" title="Games">
-          <div className="d-flex justify-content-center">
-            <div className="cta text-center">
+      <div className="tabs-shell">
+        <Tabs
+          defaultActiveKey="home"
+          id="fill-tab"
+          className="mb-3 px-3"
+          variant="pills"
+          fill
+        >
+          <Tab eventKey="home" title="Home">
+            <Home />
+          </Tab>
+          {/* <Tab eventKey="profile" title="About">
+            <About />
+          </Tab> */}
+          <Tab eventKey="fuelcalculator" title="FuelCalculator">
+            <FuelCalculator />
+          </Tab>
+          <Tab eventKey="chart" title="Chart">
+            <div>
+              {/* <MyChart /> */}
+              <SomeChart theme={this.props.theme} />
+            </div>
+          </Tab>
+          <Tab eventKey="tictactoe" title="TicTacToe">
+            <div className="d-flex justify-content-center">
+              <TicTacToe />
+            </div>
+          </Tab>
+          <Tab eventKey="othergames" title="Games">
+            <div className="games-grid">
               <a
-                className="my-button cta-button"
+                className="game-link"
                 href="https://greentea524.github.io/game/js-2048-main/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="2048 (opens in a new tab)"
               >
-                <i className="fa fa-gamepad fa-2x"></i> 2048
+                <span>
+                  <i className="fa fa-gamepad" aria-hidden="true"></i> 2048
+                </span>
+                <i className="fa fa-external-link" aria-hidden="true"></i>
               </a>
-            </div>
-            <div className="cta text-center">
               <a
-                className="my-button cta-button"
+                className="game-link"
                 href="https://greentea524.github.io/game/wordle-clone-main/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Wordle (opens in a new tab)"
               >
-                <i className="fa fa-gamepad fa-2x"></i> Wordle
+                <span>
+                  <i className="fa fa-gamepad" aria-hidden="true"></i> Wordle
+                </span>
+                <i className="fa fa-external-link" aria-hidden="true"></i>
               </a>
-            </div>
-            <div className="cta text-center">
               <a
-                className="my-button cta-button"
+                className="game-link"
                 href="https://greentea524.github.io/game/js-alien-invasion/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Invasion (opens in a new tab)"
               >
-                <i className="fa fa-gamepad fa-2x"></i> Invasion
+                <span>
+                  <i className="fa fa-gamepad" aria-hidden="true"></i> Invasion
+                </span>
+                <i className="fa fa-external-link" aria-hidden="true"></i>
               </a>
-            </div>
-            <div className="cta text-center">
               <a
-                className="my-button cta-button"
+                className="game-link"
                 href="https://greentea524.github.io/game/js-pacman/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Pacman (opens in a new tab)"
               >
-                <i className="fa fa-gamepad fa-2x"></i> Pacman
+                <span>
+                  <i className="fa fa-gamepad" aria-hidden="true"></i> Pacman
+                </span>
+                <i className="fa fa-external-link" aria-hidden="true"></i>
               </a>
             </div>
-          </div>
-        </Tab>
-        <Tab eventKey="minesweeper" title="Minesweeper">
-          <div className="d-flex justify-content-center">
-            <Minesweeper />
-          </div>
-        </Tab>
-        <Tab eventKey="dice21" title="Dice 21">
-          <div className="d-flex justify-content-center">
-            <DiceBlackjack />
-          </div>
-        </Tab>
-        <Tab eventKey="datatable" title="DataTables">
-          <div className="d-flex justify-content-center">
-            <MyDataTable />
-          </div>
-        </Tab>
-        <Tab eventKey="stateform" title="Form">
-          <div className="d-flex justify-content-center">
-            <StateForm />
-          </div>
-        </Tab>
-        <Tab eventKey="testproject" title="Test">
-          <TestProject />
-        </Tab>
-      </Tabs>
+          </Tab>
+          <Tab eventKey="minesweeper" title="Minesweeper">
+            <div className="d-flex justify-content-center">
+              <Minesweeper />
+            </div>
+          </Tab>
+          <Tab eventKey="dice21" title="Dice 21">
+            <div className="d-flex justify-content-center">
+              <DiceBlackjack />
+            </div>
+          </Tab>
+          <Tab eventKey="datatable" title="DataTables">
+            <div className="d-flex justify-content-center">
+              <MyDataTable />
+            </div>
+          </Tab>
+          <Tab eventKey="stateform" title="Form">
+            <div className="d-flex justify-content-center">
+              <StateForm />
+            </div>
+          </Tab>
+          <Tab eventKey="testproject" title="Test">
+            <TestProject />
+          </Tab>
+        </Tabs>
+      </div>
     );
   }
 }
