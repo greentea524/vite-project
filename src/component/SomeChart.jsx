@@ -103,8 +103,8 @@ function SomeChart() {
       </div>
       <hr></hr>
 
-      <div className="row g-3 g-md-0">
-        <div className="col-md-6 mb-2 mb-md-0">
+      <div className="row">
+        <div className="col-md-6">
           <div style={{ overflowX: "auto" }}>
             <Chart
               chartType="Table"
