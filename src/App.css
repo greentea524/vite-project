@@ -130,7 +130,12 @@ div.navbrand {
 
 @media (max-width: 768px) {
   .datatable-panel table.dataTable {
-    min-width: 560px;
+    min-width: 100%;
+  }
+
+  .datatable-panel table.dataTable th,
+  .datatable-panel table.dataTable td {
+    word-break: break-word;
   }
 
   .datatable-panel .dataTables_wrapper .dataTables_length,
@@ -218,6 +223,11 @@ div.navbrand {
 
   .datatable-panel {
     font-size: 0.9rem;
+  }
+
+  .datatable-panel table.dataTable th,
+  .datatable-panel table.dataTable td {
+    padding: 0.35rem 0.45rem !important;
   }
 
   .datatable-panel .dataTables_wrapper .dataTables_paginate .paginate_button {

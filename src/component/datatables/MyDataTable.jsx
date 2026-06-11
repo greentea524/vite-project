@@ -4,7 +4,7 @@ function MyDataTable() {
   useEffect(() => {
     displayDataTableUser();
     //displayDataTablePost();
-  });
+  }, []);
   return (
     <>
       <div className="small-12 datatable-panel">
@@ -43,20 +43,14 @@ function MyDataTable() {
         <hr></hr>
         <div className="row">
           <div className="small-12">
-            <div
-              className="tab-content d-flex justify-content-center"
-              id="pills-tabContent"
-            >
+            <div className="tab-content" id="pills-tabContent">
               <div
                 className="tab-pane fade show active"
                 id="pills-home"
                 role="tabpanel"
                 aria-labelledby="pills-home-tab"
               >
-                <table
-                  id="myTableOne"
-                  className="table nowrap display responsive"
-                >
+                <table id="myTableOne" className="table display responsive">
                   <thead className="thead-light">
                     <tr>
                       <th scope="col">Id</th>
@@ -68,10 +62,18 @@ function MyDataTable() {
                   </thead>
                 </table>
                 <hr></hr>
-                <a href="https://datatables.net/" target="_blank">
+                <a
+                  href="https://datatables.net/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <i className="fa fa-table fa-2x"></i>DataTable
                 </a>
-                <a href="https://jsonplaceholder.typicode.com/" target="_blank">
+                <a
+                  href="https://jsonplaceholder.typicode.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <i className="fa fa-database fa-2x"></i>JSONPlaceHolder
                 </a>
               </div>
@@ -81,10 +83,7 @@ function MyDataTable() {
                 role="tabpanel"
                 aria-labelledby="pills-post-tab"
               >
-                <table
-                  id="myTableTwo"
-                  className="table nowrap display responsive"
-                >
+                <table id="myTableTwo" className="table display responsive">
                   <thead className="thead-light">
                     <tr>
                       <th scope="col">Userid</th>
@@ -95,10 +94,18 @@ function MyDataTable() {
                   </thead>
                 </table>
                 <hr></hr>
-                <a href="https://datatables.net/" target="_blank">
+                <a
+                  href="https://datatables.net/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <i className="fa fa-table fa-2x"></i>DataTable
                 </a>
-                <a href="https://jsonplaceholder.typicode.com/" target="_blank">
+                <a
+                  href="https://jsonplaceholder.typicode.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <i className="fa fa-database fa-2x"></i>JSONPlaceHolder
                 </a>
               </div>
