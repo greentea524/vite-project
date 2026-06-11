@@ -15,10 +15,15 @@ function TestProject() {
   const [height, setHeight] = useState(window.innerHeight);
   // empty [] = mount
   useEffect(() => {
-    window.addEventListener("resize", () => {
+    const handleResize = () => {
       setWidth(window.innerWidth);
       setHeight(window.innerHeight);
-    });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
   return (
     <div className="container">
@@ -30,6 +35,7 @@ function TestProject() {
       <HookLocalStorage />
       <hr></hr>
       <button
+        type="button"
         style={{ display: "block", marginBottom: "1rem" }}
         onClick={() => setShown((s) => !s)}
       >

@@ -42,13 +42,13 @@ export function markTile(board, { x, y }) {
     return replaceTile(
       board,
       { x, y },
-      { ...tile, status: TILE_STATUSES.HIDDEN }
+      { ...tile, status: TILE_STATUSES.HIDDEN },
     );
   } else {
     return replaceTile(
       board,
       { x, y },
-      { ...tile, status: TILE_STATUSES.MARKED }
+      { ...tile, status: TILE_STATUSES.MARKED },
     );
   }
 }
@@ -75,7 +75,7 @@ export function revealTile(board, { x, y }) {
     return replaceTile(
       board,
       { x, y },
-      { ...tile, status: TILE_STATUSES.MINE }
+      { ...tile, status: TILE_STATUSES.MINE },
     );
   }
 
@@ -84,7 +84,7 @@ export function revealTile(board, { x, y }) {
   const newBoard = replaceTile(
     board,
     { x, y },
-    { ...tile, status: TILE_STATUSES.NUMBER, adjacentMinesCount: mines.length }
+    { ...tile, status: TILE_STATUSES.NUMBER, adjacentMinesCount: mines.length },
   );
   if (mines.length === 0) {
     return adjacentTiles.reduce((b, t) => {
@@ -121,12 +121,16 @@ export function positionMatch(a, b) {
 
 function nearbyTiles(board, { x, y }) {
   const offsets = range(-1, 2);
+  const tiles = [];
 
-  return offsets
-    .flatMap((xOffset) => {
-      return offsets.map((yOffset) => {
-        return board[x + xOffset]?.[y + yOffset];
-      });
-    })
-    .filter((tile) => tile != null);
+  for (const xOffset of offsets) {
+    for (const yOffset of offsets) {
+      const tile = board[x + xOffset]?.[y + yOffset];
+      if (tile != null) {
+        tiles.push(tile);
+      }
+    }
+  }
+
+  return tiles;
 }

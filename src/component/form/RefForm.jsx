@@ -4,13 +4,13 @@ import { checkEmail, checkPassword } from "./validators";
 function RefForm() {
   const emailRef = useRef();
   const passwordRef = useRef();
+  const isAfterFirstSubmitRef = useRef(false);
   const [emailErrors, setEmailErrors] = useState([]);
   const [passwordErrors, setPasswordErrors] = useState([]);
-  const [isAfterFirstSubmit, setIsAfterFirstSubmit] = useState(false);
 
   function onSubmit(e) {
     e.preventDefault();
-    setIsAfterFirstSubmit(true);
+    isAfterFirstSubmitRef.current = true;
     const emailResults = checkEmail(emailRef.current.value);
     const passwordResults = checkPassword(passwordRef.current.value);
 
@@ -32,11 +32,10 @@ function RefForm() {
           type="email"
           id="email"
           ref={emailRef}
-          onChange={
-            isAfterFirstSubmit
-              ? (e) => setEmailErrors(checkEmail(e.target.value))
-              : undefined
-          }
+          onChange={(e) => {
+            if (!isAfterFirstSubmitRef.current) return;
+            setEmailErrors(checkEmail(e.target.value));
+          }}
         />
         {emailErrors.length > 0 && (
           <div className="msg">{emailErrors.join(", ")}</div>
@@ -49,12 +48,12 @@ function RefForm() {
         <input
           className="input"
           type="password"
+          id="password"
           ref={passwordRef}
-          onChange={
-            isAfterFirstSubmit
-              ? (e) => setPasswordErrors(checkPassword(e.target.value))
-              : undefined
-          }
+          onChange={(e) => {
+            if (!isAfterFirstSubmitRef.current) return;
+            setPasswordErrors(checkPassword(e.target.value));
+          }}
         ></input>
         {passwordErrors.length > 0 && (
           <div className="msg">{passwordErrors.join(", ")}</div>

@@ -1,8 +1,9 @@
-import { useEffect, useReducer, useState, createContext } from "react";
+import { useEffect, useReducer, useState, useMemo, useCallback } from "react";
 import "./todo.css";
 import { NewTodoForm } from "./NewTodoForm";
 import { TodoList } from "./TodoList";
 import { TodoFilteredForm } from "./TodoFilteredForm";
+import { TodoContext } from "./TodoContext";
 
 const LOCAL_STORAGE_KEY = "TODOS";
 const ACTIONS = {
@@ -40,8 +41,6 @@ function reducer(todos, { type, payload }) {
   return state;
 }
 
-export const TodoContext = createContext();
-
 function TodoListProject() {
   const [filterName, setFilterName] = useState("");
   const [hideCompletedFilter, setHideCompletedFilter] = useState("");
@@ -58,32 +57,35 @@ function TodoListProject() {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(todos));
   }, [todos]);
 
-  function addNewTodo(name) {
+  const addNewTodo = useCallback((name) => {
     dispatch({ type: ACTIONS.ADD, payload: { name } });
-  }
+  }, []);
 
-  function toggleTodo(todoId, completed) {
+  const toggleTodo = useCallback((todoId, completed) => {
     dispatch({ type: ACTIONS.TOGGLE, payload: { id: todoId, completed } });
-  }
+  }, []);
 
-  function deleteTodo(todoId) {
+  const deleteTodo = useCallback((todoId) => {
     dispatch({ type: ACTIONS.DELETE, payload: { id: todoId } });
-  }
+  }, []);
 
-  function updateTodoName(id, name) {
+  const updateTodoName = useCallback((id, name) => {
     dispatch({ type: ACTIONS.UPDATE, payload: { id, name } });
-  }
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      todos: filteredTodos,
+      addNewTodo,
+      toggleTodo,
+      deleteTodo,
+      updateTodoName,
+    }),
+    [filteredTodos, addNewTodo, toggleTodo, deleteTodo, updateTodoName],
+  );
 
   return (
-    <TodoContext.Provider
-      value={{
-        todos: filteredTodos,
-        addNewTodo,
-        toggleTodo,
-        deleteTodo,
-        updateTodoName,
-      }}
-    >
+    <TodoContext.Provider value={contextValue}>
       <TodoFilteredForm
         name={filterName}
         setName={setFilterName}

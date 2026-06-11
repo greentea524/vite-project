@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useReducer, useRef } from "react";
 
 const MAX_SCORE = 21;
 const ROLL_ANIMATION_MS = 700;
@@ -34,93 +34,195 @@ function sleep(ms) {
   });
 }
 
+function createRollId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function runDealerTurn({ getState, dispatch, maxScore, pauseMs }) {
+  const current = getState();
+  if (
+    !(
+      current.dealerTotal < current.playerTotal &&
+      current.dealerTotal <= maxScore
+    )
+  ) {
+    return;
+  }
+
+  const roll = await runRollAnimation((dice) => {
+    dispatch({ type: ACTIONS.SET_DEALER_DISPLAY, payload: { dice } });
+  });
+  dispatch({ type: ACTIONS.DEALER_ROLL_DONE, payload: { roll } });
+
+  const afterRoll = getState().dealerTotal + roll.total;
+  if (afterRoll > maxScore) {
+    return;
+  }
+
+  await sleep(pauseMs);
+  await runDealerTurn({ getState, dispatch, maxScore, pauseMs });
+}
+
+function runRollAnimation(updateDisplayDice) {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+
+    const timer = setInterval(() => {
+      updateDisplayDice([getRandomDieValue(), getRandomDieValue()]);
+
+      if (Date.now() - startedAt >= ROLL_ANIMATION_MS) {
+        clearInterval(timer);
+        const finalRoll = rollTwoDice();
+        updateDisplayDice(finalRoll.dice);
+        resolve(finalRoll);
+      }
+    }, ROLL_FRAME_MS);
+  });
+}
+
+const ACTIONS = {
+  PLAYER_ROLL_START: "PLAYER_ROLL_START",
+  PLAYER_ROLL_DONE: "PLAYER_ROLL_DONE",
+  DEALER_START: "DEALER_START",
+  DEALER_ROLL_DONE: "DEALER_ROLL_DONE",
+  DEALER_END: "DEALER_END",
+  SET_PLAYER_DISPLAY: "SET_PLAYER_DISPLAY",
+  SET_DEALER_DISPLAY: "SET_DEALER_DISPLAY",
+  RESET: "RESET",
+};
+
+const INITIAL_STATE = {
+  playerTotal: 0,
+  dealerTotal: 0,
+  playerRolls: [],
+  dealerRolls: [],
+  playerDisplayDice: [null, null],
+  dealerDisplayDice: [null, null],
+  isPlayerRolling: false,
+  isDealerRolling: false,
+  phase: "player",
+  result: "",
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case ACTIONS.PLAYER_ROLL_START:
+      return { ...state, isPlayerRolling: true };
+    case ACTIONS.PLAYER_ROLL_DONE: {
+      const nextTotal = state.playerTotal + action.payload.roll.total;
+      const nextState = {
+        ...state,
+        isPlayerRolling: false,
+        playerTotal: nextTotal,
+        playerRolls: [
+          ...state.playerRolls,
+          { ...action.payload.roll, id: createRollId() },
+        ],
+      };
+
+      if (nextTotal === MAX_SCORE) {
+        return {
+          ...nextState,
+          result: "Player hits 21. Auto win.",
+          phase: "finished",
+        };
+      }
+
+      if (nextTotal > MAX_SCORE) {
+        return {
+          ...nextState,
+          result: "Player busts over 21. Dealer wins.",
+          phase: "finished",
+        };
+      }
+
+      return nextState;
+    }
+    case ACTIONS.DEALER_START:
+      return {
+        ...state,
+        phase: "dealer",
+        isDealerRolling: true,
+        dealerTotal: 0,
+        dealerRolls: [],
+      };
+    case ACTIONS.DEALER_ROLL_DONE:
+      return {
+        ...state,
+        dealerTotal: state.dealerTotal + action.payload.roll.total,
+        dealerRolls: [
+          ...state.dealerRolls,
+          { ...action.payload.roll, id: createRollId() },
+        ],
+      };
+    case ACTIONS.DEALER_END:
+      return {
+        ...state,
+        isDealerRolling: false,
+        phase: "finished",
+        result: action.payload.result,
+      };
+    case ACTIONS.SET_PLAYER_DISPLAY:
+      return { ...state, playerDisplayDice: action.payload.dice };
+    case ACTIONS.SET_DEALER_DISPLAY:
+      return { ...state, dealerDisplayDice: action.payload.dice };
+    case ACTIONS.RESET:
+      return INITIAL_STATE;
+    default:
+      return state;
+  }
+}
+
 function DiceBlackjack() {
-  const [playerTotal, setPlayerTotal] = useState(0);
-  const [dealerTotal, setDealerTotal] = useState(0);
-  const [playerRolls, setPlayerRolls] = useState([]);
-  const [dealerRolls, setDealerRolls] = useState([]);
-  const [playerDisplayDice, setPlayerDisplayDice] = useState([null, null]);
-  const [dealerDisplayDice, setDealerDisplayDice] = useState([null, null]);
-  const [isPlayerRolling, setIsPlayerRolling] = useState(false);
-  const [isDealerRolling, setIsDealerRolling] = useState(false);
-  const [phase, setPhase] = useState("player");
-  const [result, setResult] = useState("");
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  const canPlayerRoll = phase === "player" && !result && !isPlayerRolling;
+  const canPlayerRoll =
+    state.phase === "player" && !state.result && !state.isPlayerRolling;
   const canStand =
-    phase === "player" &&
-    playerRolls.length > 0 &&
-    !result &&
-    !isPlayerRolling &&
-    !isDealerRolling;
-  const latestPlayerRoll = playerRolls[playerRolls.length - 1];
-  const latestDealerRoll = dealerRolls[dealerRolls.length - 1];
-
-  const runRollAnimation = (setDisplayDice) => {
-    return new Promise((resolve) => {
-      const startedAt = Date.now();
-
-      const timer = setInterval(() => {
-        setDisplayDice([getRandomDieValue(), getRandomDieValue()]);
-
-        if (Date.now() - startedAt >= ROLL_ANIMATION_MS) {
-          clearInterval(timer);
-          const finalRoll = rollTwoDice();
-          setDisplayDice(finalRoll.dice);
-          resolve(finalRoll);
-        }
-      }, ROLL_FRAME_MS);
-    });
-  };
+    state.phase === "player" &&
+    state.playerRolls.length > 0 &&
+    !state.result &&
+    !state.isPlayerRolling &&
+    !state.isDealerRolling;
+  const latestPlayerRoll = state.playerRolls[state.playerRolls.length - 1];
+  const latestDealerRoll = state.dealerRolls[state.dealerRolls.length - 1];
 
   const statusText = useMemo(() => {
-    if (result) {
-      return result;
+    if (state.result) {
+      return state.result;
     }
 
-    if (phase === "player") {
-      if (playerRolls.length === 0) {
+    if (state.phase === "player") {
+      if (state.playerRolls.length === 0) {
         return "Player turn: Roll 2 dice to start.";
       }
 
-      if (isPlayerRolling) {
+      if (state.isPlayerRolling) {
         return "Player is rolling...";
       }
 
       return "Player turn: Roll again or stand.";
     }
 
-    if (phase === "dealer") {
+    if (state.phase === "dealer") {
       return "Dealer is rolling...";
     }
 
     return "Dealer turn complete.";
-  }, [result, phase, playerRolls.length, isPlayerRolling]);
+  }, [state]);
 
   const handlePlayerRoll = async () => {
     if (!canPlayerRoll) {
       return;
     }
 
-    setIsPlayerRolling(true);
-    const roll = await runRollAnimation(setPlayerDisplayDice);
-    setIsPlayerRolling(false);
-
-    const nextTotal = playerTotal + roll.total;
-
-    setPlayerRolls((prev) => [...prev, roll]);
-    setPlayerTotal(nextTotal);
-
-    if (nextTotal === MAX_SCORE) {
-      setResult("Player hits 21. Auto win.");
-      setPhase("finished");
-      return;
-    }
-
-    if (nextTotal > MAX_SCORE) {
-      setResult("Player busts over 21. Dealer wins.");
-      setPhase("finished");
-    }
+    dispatch({ type: ACTIONS.PLAYER_ROLL_START });
+    const roll = await runRollAnimation((dice) => {
+      dispatch({ type: ACTIONS.SET_PLAYER_DISPLAY, payload: { dice } });
+    });
+    dispatch({ type: ACTIONS.PLAYER_ROLL_DONE, payload: { roll } });
   };
 
   const handleStand = async () => {
@@ -128,62 +230,47 @@ function DiceBlackjack() {
       return;
     }
 
-    setPhase("dealer");
-    setIsDealerRolling(true);
+    dispatch({ type: ACTIONS.DEALER_START });
 
-    let runningDealerTotal = 0;
-    const nextDealerRolls = [];
+    await runDealerTurn({
+      getState: () => stateRef.current,
+      dispatch,
+      maxScore: MAX_SCORE,
+      pauseMs: DEALER_ROLL_PAUSE_MS,
+    });
 
-    // Dealer keeps rolling until beating the player or busting.
-    while (
-      runningDealerTotal < playerTotal &&
-      runningDealerTotal <= MAX_SCORE
-    ) {
-      const roll = await runRollAnimation(setDealerDisplayDice);
-      runningDealerTotal += roll.total;
-      nextDealerRolls.push(roll);
-      setDealerRolls([...nextDealerRolls]);
-      setDealerTotal(runningDealerTotal);
+    const finalDealer = stateRef.current.dealerTotal;
+    const finalPlayer = stateRef.current.playerTotal;
 
-      if (runningDealerTotal > MAX_SCORE) {
-        break;
-      }
-
-      await sleep(DEALER_ROLL_PAUSE_MS);
-    }
-
-    setIsDealerRolling(false);
-    setPhase("finished");
-
-    if (runningDealerTotal > MAX_SCORE) {
-      setResult("Dealer busts over 21. Player wins.");
+    if (finalDealer > MAX_SCORE) {
+      dispatch({
+        type: ACTIONS.DEALER_END,
+        payload: { result: "Dealer busts over 21. Player wins." },
+      });
       return;
     }
 
-    if (runningDealerTotal > playerTotal) {
-      setResult("Dealer wins with a higher score.");
+    if (finalDealer > finalPlayer) {
+      dispatch({
+        type: ACTIONS.DEALER_END,
+        payload: { result: "Dealer wins with a higher score." },
+      });
       return;
     }
 
-    if (runningDealerTotal < playerTotal) {
-      setResult("Player wins with a higher score.");
+    if (finalDealer < finalPlayer) {
+      dispatch({
+        type: ACTIONS.DEALER_END,
+        payload: { result: "Player wins with a higher score." },
+      });
       return;
     }
 
-    setResult("Tie game.");
+    dispatch({ type: ACTIONS.DEALER_END, payload: { result: "Tie game." } });
   };
 
   const handleReset = () => {
-    setPlayerTotal(0);
-    setDealerTotal(0);
-    setPlayerRolls([]);
-    setDealerRolls([]);
-    setPlayerDisplayDice([null, null]);
-    setDealerDisplayDice([null, null]);
-    setIsPlayerRolling(false);
-    setIsDealerRolling(false);
-    setPhase("player");
-    setResult("");
+    dispatch({ type: ACTIONS.RESET });
   };
 
   return (
@@ -194,42 +281,56 @@ function DiceBlackjack() {
       <div className="d-flex gap-4 flex-wrap justify-content-center mb-3">
         <div className="text-center">
           <h5>Player</h5>
-          <div>Total: {playerTotal}</div>
-          <div>Rolls: {playerRolls.length}</div>
+          <div>Total: {state.playerTotal}</div>
+          <div>Rolls: {state.playerRolls.length}</div>
           <div style={{ fontSize: "2rem", lineHeight: 1.2 }}>
-            {getDieFace(playerDisplayDice[0] ?? latestPlayerRoll?.dice?.[0])}{" "}
-            {getDieFace(playerDisplayDice[1] ?? latestPlayerRoll?.dice?.[1])}
+            {getDieFace(
+              state.playerDisplayDice[0] ?? latestPlayerRoll?.dice?.[0],
+            )}{" "}
+            {getDieFace(
+              state.playerDisplayDice[1] ?? latestPlayerRoll?.dice?.[1],
+            )}
           </div>
         </div>
         <div className="text-center">
           <h5>Dealer</h5>
-          <div>Total: {dealerTotal}</div>
-          <div>Rolls: {dealerRolls.length}</div>
+          <div>Total: {state.dealerTotal}</div>
+          <div>Rolls: {state.dealerRolls.length}</div>
           <div style={{ fontSize: "2rem", lineHeight: 1.2 }}>
-            {getDieFace(dealerDisplayDice[0] ?? latestDealerRoll?.dice?.[0])}{" "}
-            {getDieFace(dealerDisplayDice[1] ?? latestDealerRoll?.dice?.[1])}
+            {getDieFace(
+              state.dealerDisplayDice[0] ?? latestDealerRoll?.dice?.[0],
+            )}{" "}
+            {getDieFace(
+              state.dealerDisplayDice[1] ?? latestDealerRoll?.dice?.[1],
+            )}
           </div>
         </div>
       </div>
 
       <div className="d-flex gap-2 flex-wrap justify-content-center mb-3">
-        <button onClick={handlePlayerRoll} disabled={!canPlayerRoll}>
+        <button
+          type="button"
+          onClick={handlePlayerRoll}
+          disabled={!canPlayerRoll}
+        >
           Roll Dice
         </button>
-        <button onClick={handleStand} disabled={!canStand}>
+        <button type="button" onClick={handleStand} disabled={!canStand}>
           Stand
         </button>
-        <button onClick={handleReset}>New Game</button>
+        <button type="button" onClick={handleReset}>
+          New Game
+        </button>
       </div>
 
       <div className="mb-3">
         <h6>Player Roll History</h6>
-        {playerRolls.length === 0 ? (
+        {state.playerRolls.length === 0 ? (
           <div>No rolls yet.</div>
         ) : (
           <ul className="list-unstyled ps-0 mb-0">
-            {playerRolls.map((roll, index) => (
-              <li key={`player-${index}`}>
+            {state.playerRolls.map((roll, index) => (
+              <li key={roll.id}>
                 Roll {index + 1}: [{roll.dice[0]}, {roll.dice[1]}] ={" "}
                 {roll.total}
               </li>
@@ -240,12 +341,12 @@ function DiceBlackjack() {
 
       <div>
         <h6>Dealer Roll History</h6>
-        {dealerRolls.length === 0 ? (
+        {state.dealerRolls.length === 0 ? (
           <div>No rolls yet.</div>
         ) : (
           <ul className="list-unstyled ps-0 mb-0">
-            {dealerRolls.map((roll, index) => (
-              <li key={`dealer-${index}`}>
+            {state.dealerRolls.map((roll, index) => (
+              <li key={roll.id}>
                 Roll {index + 1}: [{roll.dice[0]}, {roll.dice[1]}] ={" "}
                 {roll.total}
               </li>

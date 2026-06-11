@@ -52,20 +52,34 @@ function CounterNameComponent() {
     <div>
       <input
         type="text"
+        aria-label="Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
       ></input>
-      <button onClick={() => dispatch({ type: ACTIONS.DECREMENT })}>-</button>
-      {age}
-      <button onClick={() => dispatch({ type: ACTIONS.INCREMENT })}>+</button>
       <button
+        type="button"
+        onClick={() => dispatch({ type: ACTIONS.DECREMENT })}
+      >
+        -
+      </button>
+      {age}
+      <button
+        type="button"
+        onClick={() => dispatch({ type: ACTIONS.INCREMENT })}
+      >
+        +
+      </button>
+      <button
+        type="button"
         onClick={() =>
           dispatch({ type: ACTIONS.ADDFIVE, payload: { value: 5 } })
         }
       >
         +5
       </button>
-      <button onClick={() => dispatch({ type: ACTIONS.RESET })}>Reset</button>
+      <button type="button" onClick={() => dispatch({ type: ACTIONS.RESET })}>
+        Reset
+      </button>
       <br></br>
       {name != "" && `My Name is ${name} and I am ${age} years old.`}
     </div>

@@ -17,9 +17,9 @@ export class StateThisClass extends React.Component {
       });
     };
     return (
-      <h1 onClick={handleClick}>
+      <button type="button" onClick={handleClick}>
         Hi {this.state.name} {this.state.age}
-      </h1>
+      </button>
     );
   }
 }

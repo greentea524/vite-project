@@ -43,7 +43,7 @@ export class CounterNameClass extends React.Component {
           this.state.name +
           " and I am " +
           this.state.age +
-          " years old."
+          " years old.",
       );
     }
   }
@@ -62,12 +62,17 @@ export class CounterNameClass extends React.Component {
       <div>
         <input
           type="text"
+          aria-label="Name"
           defaultValue={this.state.name}
           onChange={(e) => updateName(e.target.value)}
         ></input>
-        <button onClick={() => addCounter(-1)}>-</button>
+        <button type="button" onClick={() => addCounter(-1)}>
+          -
+        </button>
         {this.state.age}
-        <button onClick={() => addCounter(1)}>+</button>
+        <button type="button" onClick={() => addCounter(1)}>
+          +
+        </button>
         <br></br>
         My Name is {this.state.name} and I am
         {this.state.age > 100 ? ` too old.` : ` young.`}

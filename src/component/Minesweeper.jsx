@@ -1,31 +1,30 @@
 import React from "react";
 import "./minesweeper/styles.css";
-import { newGame, setListeners } from "./minesweeper/script.js";
-
-export function newMineGame() {
-  newGame();
-  setListeners();
-}
-
-export function Minesweeper() {
+function Minesweeper() {
   return (
-    <div>
+    <div className="minesweeper-container">
       <div className="title">
         Points: <span className="scoreboard odometer"></span>
       </div>
       <div className="gamestatus"></div>
       <div className="subtext"></div>
       <div className="somediv">
-        <button className="newgame">
+        <button type="button" className="newgame">
           Level <span className="level odometer"></span>
         </button>
       </div>
 
-      <div className="board"></div>
+      <div className="board-wrapper">
+        <div className="board"></div>
+      </div>
       <div id="footertext">
         <p>
           Made by
-          <a href="https://github.com/WebDevSimplified" target="_blank">
+          <a
+            href="https://github.com/WebDevSimplified"
+            target="_blank"
+            rel="noreferrer"
+          >
             {" "}
             WebDevSimplified{" "}
           </a>

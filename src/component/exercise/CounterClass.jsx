@@ -14,6 +14,10 @@ export class CounterClass extends React.Component {
         return { counter: currentState.counter + 1 };
       });
     };
-    return <div onClick={handleClick}>Count {this.state.counter}</div>;
+    return (
+      <button type="button" onClick={handleClick}>
+        Count {this.state.counter}
+      </button>
+    );
   }
 }

@@ -18,7 +18,9 @@ export function StateThis() {
   }
   return (
     <div>
-      <button onClick={handleClick}>Click</button>
+      <button type="button" onClick={handleClick}>
+        Click
+      </button>
       <h1>
         Hello {name} {age}
       </h1>

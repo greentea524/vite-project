@@ -1,5 +1,5 @@
 import { useRef, useContext } from "react";
-import { TodoContext } from "./TodoListProject";
+import { TodoContext } from "./TodoContext";
 
 export function NewTodoForm() {
   const nameRef = useRef();
@@ -17,7 +17,9 @@ export function NewTodoForm() {
     <form onSubmit={handleSubmit} id="new-todo-form">
       <label htmlFor="todo-input">New Todo</label>
       <input type="text" id="todo-input" ref={nameRef} />
-      <button className="my-button">Add Todo</button>
+      <button type="submit" className="my-button">
+        Add Todo
+      </button>
     </form>
   );
 }

@@ -47,6 +47,7 @@ function StateForm() {
         <input
           className="input"
           type="password"
+          id="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         ></input>

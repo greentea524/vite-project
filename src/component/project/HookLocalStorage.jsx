@@ -24,8 +24,9 @@ function HookLocalStorage() {
           marginBottom: "1rem",
         }}
       >
-        <label>First Name</label>
+        <label htmlFor="local-first-name">First Name</label>
         <input
+          id="local-first-name"
           type="text"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
@@ -41,8 +42,9 @@ function HookLocalStorage() {
           marginBottom: "1rem",
         }}
       >
-        <label>Last Name</label>
+        <label htmlFor="local-last-name">Last Name</label>
         <input
+          id="local-last-name"
           type="text"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
@@ -52,6 +54,7 @@ function HookLocalStorage() {
       {/* Bonus: */}
       <div>{hobbies.join(", ")}</div>
       <button
+        type="button"
         onClick={() =>
           setHobbies((currentHobbies) => [...currentHobbies, "New Hobby"])
         }

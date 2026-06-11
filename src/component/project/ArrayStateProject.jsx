@@ -60,24 +60,41 @@ function ArrayStateProject() {
 
   return (
     <div>
-      <button onClick={removeFirstElement}>Remove First Element</button>
-      <button onClick={() => removeSpecificElement("B")}>
+      <button type="button" onClick={removeFirstElement}>
+        Remove First Element
+      </button>
+      <button type="button" onClick={() => removeSpecificElement("B")}>
         Remove B's Element
       </button>
-      <button onClick={() => addLetterToStart("B")}>Add To Start</button>
-      <button onClick={() => addLetterToEnd("B")}>Add To End</button>
-      <button onClick={() => updateBtoLetter("H")}>Update B to H</button>
-      <button onClick={() => addLetterAtIndex("C", 2)}>Update C at 2</button>
+      <button type="button" onClick={() => addLetterToStart("B")}>
+        Add To Start
+      </button>
+      <button type="button" onClick={() => addLetterToEnd("B")}>
+        Add To End
+      </button>
+      <button type="button" onClick={() => updateBtoLetter("H")}>
+        Update B to H
+      </button>
+      <button type="button" onClick={() => addLetterAtIndex("C", 2)}>
+        Update C at 2
+      </button>
       <br></br>
       <input
         type="text"
+        aria-label="Value"
         value={value}
         onChange={(e) => setInput(e.target.value)}
       ></input>
-      <button onClick={() => addInputToArray(value)}>Add Value</button>
+      <button type="button" onClick={() => addInputToArray(value)}>
+        Add Value
+      </button>
       <br></br>
-      <button onClick={clearTheArray}>Clear</button>
-      <button onClick={resetTheArray}>Reset</button>
+      <button type="button" onClick={clearTheArray}>
+        Clear
+      </button>
+      <button type="button" onClick={resetTheArray}>
+        Reset
+      </button>
       <br></br>
       {array.join(", ")}
     </div>

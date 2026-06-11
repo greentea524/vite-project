@@ -9,7 +9,9 @@ export function Counter() {
   }
   return (
     <div>
-      <button onClick={handleClick}>Increment</button>
+      <button type="button" onClick={handleClick}>
+        Increment
+      </button>
       <h1>{counter}</h1>
     </div>
   );

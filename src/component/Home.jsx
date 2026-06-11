@@ -14,9 +14,9 @@ function Home() {
   let loadContent;
   if (loading) {
     loadContent = (
-      <div className="spinner-border text-success" role="status">
+      <output className="spinner-border text-success" aria-live="polite">
         <span className="sr-only">Loading...</span>
-      </div>
+      </output>
     );
   } else {
     loadContent = <ProjectLinks />;
@@ -49,10 +49,18 @@ function Home() {
           <div className="small-12 column">
             {" "}
             <div className="my-arrow-div text-center">
-              <a href="https://github.com/greentea524" target="_blank">
+              <a
+                href="https://github.com/greentea524"
+                target="_blank"
+                aria-label="Visit GitHub profile"
+              >
                 <i className="fa fa-github-alt fa-2x"></i>
               </a>
-              <a href="https://www.twitter.com/davidphong_" target="_blank">
+              <a
+                href="https://www.twitter.com/davidphong_"
+                target="_blank"
+                aria-label="Visit Twitter profile"
+              >
                 <i className="fa fa-twitter fa-2x"></i>
               </a>
             </div>

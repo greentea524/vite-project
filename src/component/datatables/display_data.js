@@ -10,11 +10,8 @@ const PlayData = (function () {
 
       /* Toggle between hiding and showing the active panel */
       var panel = this.nextElementSibling;
-      if (panel.style.display === "block") {
-        panel.style.display = "none";
-      } else {
-        panel.style.display = "block";
-      }
+      var panelDisplay = panel.style.display;
+      panel.style.display = panelDisplay === "block" ? "none" : "block";
     });
   }
 

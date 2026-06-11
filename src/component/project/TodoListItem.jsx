@@ -1,10 +1,17 @@
-import { useContext, useState, useRef } from "react";
-import { TodoContext } from "./TodoListProject";
+import { useContext, useState, useRef, useEffect } from "react";
+import { TodoContext } from "./TodoContext";
 
 export function TodoListItem({ id, name, completed }) {
   const { toggleTodo, deleteTodo, updateTodoName } = useContext(TodoContext);
   const [isEditing, setIsEditing] = useState(false);
   const nameRef = useRef();
+
+  useEffect(() => {
+    if (isEditing && nameRef.current) {
+      nameRef.current.focus();
+    }
+  }, [isEditing]);
+
   function handleSubmit(e) {
     e.preventDefault();
     if (nameRef.current.value === "") return;
@@ -15,8 +22,15 @@ export function TodoListItem({ id, name, completed }) {
     <li className="list-item">
       {isEditing ? (
         <form onSubmit={handleSubmit}>
-          <input autoFocus type="text" defaultValue={name} ref={nameRef} />
-          <button data-button-edit>Save</button>
+          <input
+            type="text"
+            defaultValue={name}
+            ref={nameRef}
+            aria-label="Todo name"
+          />
+          <button type="submit" data-button-edit>
+            Save
+          </button>
         </form>
       ) : (
         <>
@@ -29,10 +43,18 @@ export function TodoListItem({ id, name, completed }) {
             />{" "}
             <span data-list-item-text>{name}</span>
           </label>
-          <button data-button-edit onClick={() => setIsEditing(true)}>
+          <button
+            type="button"
+            data-button-edit
+            onClick={() => setIsEditing(true)}
+          >
             Edit
           </button>
-          <button onClick={() => deleteTodo(id)} data-button-delete>
+          <button
+            type="button"
+            onClick={() => deleteTodo(id)}
+            data-button-delete
+          >
             Delete
           </button>
         </>

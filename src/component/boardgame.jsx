@@ -5,7 +5,7 @@ import ProjectLinks from "./ProjectLinks";
 
 function Square(props) {
   return (
-    <button className="square" onClick={props.onClick}>
+    <button type="button" className="square" onClick={props.onClick}>
       {props.value}
     </button>
   );
@@ -56,15 +56,19 @@ export default class Game extends React.Component {
       return;
     }
     squares[i] = this.state.xIsNext ? "X" : "O";
-    this.setState({
+    const winner = calculateWinner(squares);
+
+    this.setState((state) => ({
       history: history.concat([
         {
           squares: squares,
         },
       ]),
       stepNumber: history.length,
-      xIsNext: !this.state.xIsNext,
-    });
+      xIsNext: !state.xIsNext,
+      xWins: state.xWins + (winner === "X" ? 1 : 0),
+      oWins: state.oWins + (winner === "O" ? 1 : 0),
+    }));
   }
 
   jumpTo(step) {
@@ -85,22 +89,6 @@ export default class Game extends React.Component {
       xIsNext: true,
     });
   }
-  componentDidUpdate(prevProps, prevState) {
-    const winner = calculateWinner(
-      this.state.history[this.state.stepNumber].squares
-    );
-    if (
-      winner &&
-      winner !==
-        calculateWinner(prevState.history[prevState.stepNumber].squares)
-    ) {
-      if (winner === "X") {
-        this.setState((state) => ({ xWins: state.xWins + 1 }));
-      } else if (winner === "O") {
-        this.setState((state) => ({ oWins: state.oWins + 1 }));
-      }
-    }
-  }
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
@@ -110,9 +98,9 @@ export default class Game extends React.Component {
       const desc = move ? "Move #" + move : "Game start";
       return (
         <li key={move}>
-          <a href="#" onClick={() => this.jumpTo(move)}>
+          <button type="button" onClick={() => this.jumpTo(move)}>
             {desc}
-          </a>
+          </button>
         </li>
       );
     });
@@ -127,7 +115,9 @@ export default class Game extends React.Component {
     return (
       <>
         <div className="game">
-          <button onClick={() => this.resetGame()}>Reset Game</button>
+          <button type="button" onClick={() => this.resetGame()}>
+            Reset Game
+          </button>
           <div>X Wins: {this.state.xWins}</div>
           <div>O Wins: {this.state.oWins}</div>
           <div className="game-board">
