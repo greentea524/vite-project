@@ -7,7 +7,7 @@ function MyDataTable() {
   });
   return (
     <>
-      <div className="small-12">
+      <div className="small-12 datatable-panel">
         <ul
           className="nav nav-pills justify-content-center"
           id="pills-tab"
