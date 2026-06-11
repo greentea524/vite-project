@@ -70,8 +70,8 @@ function SomeChart() {
             right: 20,
             top: 50,
             bottom: 70,
-            width: "86%",
-            height: "70%",
+            width: "90%",
+            height: "76%",
           },
       hAxis: {
         gridlines: { count: isMobile ? 8 : 25 },
@@ -86,8 +86,6 @@ function SomeChart() {
     [isMobile],
   );
 
-  const mid = Math.ceil(someData.length / 2);
-
   return (
     <div className="container mt-5 px-2 px-md-3">
       <div style={{ overflowX: "auto" }}>
@@ -97,32 +95,21 @@ function SomeChart() {
             data={someData}
             options={someOptions}
             width="100%"
-            height={isMobile ? "320px" : "420px"}
+            height={isMobile ? "320px" : "540px"}
           />
         </div>
       </div>
       <hr></hr>
 
       <div className="row">
-        <div className="col-md-6">
+        <div className="col-12">
           <div style={{ overflowX: "auto" }}>
             <Chart
               chartType="Table"
-              data={[someData[0], ...someData.slice(1, mid)]}
+              data={someData}
               options={tableOptions}
               width="100%"
-              height={isMobile ? "280px" : "320px"}
-            />
-          </div>
-        </div>
-        <div className="col-md-6">
-          <div style={{ overflowX: "auto" }}>
-            <Chart
-              chartType="Table"
-              data={[someData[0], ...someData.slice(mid)]}
-              options={tableOptions}
-              width="100%"
-              height={isMobile ? "280px" : "320px"}
+              height={isMobile ? "320px" : "360px"}
             />
           </div>
         </div>
