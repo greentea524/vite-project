@@ -1,6 +1,10 @@
 import React, { useMemo, useReducer, useRef } from "react";
 
+const STARTING_BALANCE = 1000;
 const MAX_SCORE = 21;
+const MAX_BET = 100000;
+const REGULAR_WIN_RETURN_MULTIPLIER = 2;
+const HIT_21_RETURN_MULTIPLIER = 2.5;
 const ROLL_ANIMATION_MS = 700;
 const ROLL_FRAME_MS = 90;
 const DEALER_ROLL_PAUSE_MS = 250;
@@ -86,6 +90,10 @@ const ACTIONS = {
   DEALER_START: "DEALER_START",
   DEALER_ROLL_DONE: "DEALER_ROLL_DONE",
   DEALER_END: "DEALER_END",
+  UPDATE_BET_INPUT: "UPDATE_BET_INPUT",
+  PLACE_BET: "PLACE_BET",
+  CLEAR_BET: "CLEAR_BET",
+  REFILL_BALANCE: "REFILL_BALANCE",
   SET_PLAYER_DISPLAY: "SET_PLAYER_DISPLAY",
   SET_DEALER_DISPLAY: "SET_DEALER_DISPLAY",
   RESET: "RESET",
@@ -102,7 +110,48 @@ const INITIAL_STATE = {
   isDealerRolling: false,
   phase: "player",
   result: "",
+  playerWins: 0,
+  dealerWins: 0,
+  ties: 0,
+  balance: STARTING_BALANCE,
+  betInput: 50,
+  currentBet: 0,
 };
+
+function settleBet(state, outcome) {
+  if (state.currentBet <= 0) {
+    return {
+      balance: state.balance,
+      currentBet: 0,
+    };
+  }
+
+  if (outcome === "player21") {
+    return {
+      balance: state.balance + state.currentBet * HIT_21_RETURN_MULTIPLIER,
+      currentBet: 0,
+    };
+  }
+
+  if (outcome === "player") {
+    return {
+      balance: state.balance + state.currentBet * REGULAR_WIN_RETURN_MULTIPLIER,
+      currentBet: 0,
+    };
+  }
+
+  if (outcome === "tie") {
+    return {
+      balance: state.balance + state.currentBet,
+      currentBet: 0,
+    };
+  }
+
+  return {
+    balance: state.balance,
+    currentBet: 0,
+  };
+}
 
 function reducer(state, action) {
   switch (action.type) {
@@ -121,18 +170,24 @@ function reducer(state, action) {
       };
 
       if (nextTotal === MAX_SCORE) {
+        const settled = settleBet(state, "player21");
         return {
           ...nextState,
-          result: "Player hits 21. Auto win.",
+          result: "Player hits 21. Bonus payout win.",
           phase: "finished",
+          playerWins: state.playerWins + 1,
+          ...settled,
         };
       }
 
       if (nextTotal > MAX_SCORE) {
+        const settled = settleBet(state, "dealer");
         return {
           ...nextState,
           result: "Player busts over 21. Dealer wins.",
           phase: "finished",
+          dealerWins: state.dealerWins + 1,
+          ...settled,
         };
       }
 
@@ -155,19 +210,55 @@ function reducer(state, action) {
           { ...action.payload.roll, id: createRollId() },
         ],
       };
-    case ACTIONS.DEALER_END:
+    case ACTIONS.DEALER_END: {
+      const settled = settleBet(state, action.payload.winner);
       return {
         ...state,
         isDealerRolling: false,
         phase: "finished",
         result: action.payload.result,
+        playerWins:
+          state.playerWins + (action.payload.winner === "player" ? 1 : 0),
+        dealerWins:
+          state.dealerWins + (action.payload.winner === "dealer" ? 1 : 0),
+        ties: state.ties + (action.payload.winner === "tie" ? 1 : 0),
+        ...settled,
+      };
+    }
+    case ACTIONS.UPDATE_BET_INPUT:
+      return {
+        ...state,
+        betInput: action.payload.value,
+      };
+    case ACTIONS.PLACE_BET:
+      return {
+        ...state,
+        balance: state.balance - action.payload.amount,
+        currentBet: action.payload.amount,
+      };
+    case ACTIONS.CLEAR_BET:
+      return {
+        ...state,
+        balance: state.balance + state.currentBet,
+        currentBet: 0,
+      };
+    case ACTIONS.REFILL_BALANCE:
+      return {
+        ...state,
+        balance: STARTING_BALANCE,
       };
     case ACTIONS.SET_PLAYER_DISPLAY:
       return { ...state, playerDisplayDice: action.payload.dice };
     case ACTIONS.SET_DEALER_DISPLAY:
       return { ...state, dealerDisplayDice: action.payload.dice };
     case ACTIONS.RESET:
-      return INITIAL_STATE;
+      return {
+        ...INITIAL_STATE,
+        playerWins: state.playerWins,
+        dealerWins: state.dealerWins,
+        ties: state.ties,
+        balance: state.balance + state.currentBet,
+      };
     default:
       return state;
   }
@@ -179,7 +270,10 @@ function DiceBlackjack() {
   stateRef.current = state;
 
   const canPlayerRoll =
-    state.phase === "player" && !state.result && !state.isPlayerRolling;
+    state.phase === "player" &&
+    !state.result &&
+    !state.isPlayerRolling &&
+    state.currentBet > 0;
   const canStand =
     state.phase === "player" &&
     state.playerRolls.length > 0 &&
@@ -188,6 +282,30 @@ function DiceBlackjack() {
     !state.isDealerRolling;
   const latestPlayerRoll = state.playerRolls[state.playerRolls.length - 1];
   const latestDealerRoll = state.dealerRolls[state.dealerRolls.length - 1];
+  const canManageBet =
+    state.phase === "player" &&
+    state.playerRolls.length === 0 &&
+    !state.isPlayerRolling &&
+    !state.isDealerRolling &&
+    !state.result;
+  const normalizedBetInput = Number.isFinite(Number(state.betInput))
+    ? Math.min(MAX_BET, Math.floor(Number(state.betInput)))
+    : 0;
+  const canPlaceBet =
+    canManageBet &&
+    state.currentBet === 0 &&
+    normalizedBetInput > 0 &&
+    normalizedBetInput <= MAX_BET &&
+    normalizedBetInput <= state.balance;
+  const canClearBet = canManageBet && state.currentBet > 0;
+  const canRefill = state.balance <= 0 && state.currentBet === 0;
+  const activeBet =
+    state.currentBet > 0 ? state.currentBet : normalizedBetInput;
+  const regularProfit = activeBet > 0 ? activeBet : 0;
+  const regularReturn =
+    activeBet > 0 ? activeBet * REGULAR_WIN_RETURN_MULTIPLIER : 0;
+  const hit21Profit = activeBet > 0 ? activeBet * 1.5 : 0;
+  const hit21Return = activeBet > 0 ? activeBet * HIT_21_RETURN_MULTIPLIER : 0;
 
   const statusText = useMemo(() => {
     if (state.result) {
@@ -196,6 +314,12 @@ function DiceBlackjack() {
 
     if (state.phase === "player") {
       if (state.playerRolls.length === 0) {
+        if (state.currentBet <= 0) {
+          if (state.balance <= 0) {
+            return "No balance left. Refill to keep playing.";
+          }
+          return "Place your bet to start the round.";
+        }
         return "Player turn: Roll 2 dice to start.";
       }
 
@@ -225,6 +349,42 @@ function DiceBlackjack() {
     dispatch({ type: ACTIONS.PLAYER_ROLL_DONE, payload: { roll } });
   };
 
+  const handleBetInputChange = (e) => {
+    const rawValue = e.target.value;
+    const numericValue = Math.min(MAX_BET, Math.max(0, Number(rawValue) || 0));
+    dispatch({
+      type: ACTIONS.UPDATE_BET_INPUT,
+      payload: { value: numericValue },
+    });
+  };
+
+  const handlePlaceBet = () => {
+    if (!canPlaceBet) {
+      return;
+    }
+
+    dispatch({
+      type: ACTIONS.PLACE_BET,
+      payload: { amount: normalizedBetInput },
+    });
+  };
+
+  const handleClearBet = () => {
+    if (!canClearBet) {
+      return;
+    }
+
+    dispatch({ type: ACTIONS.CLEAR_BET });
+  };
+
+  const handleRefill = () => {
+    if (!canRefill) {
+      return;
+    }
+
+    dispatch({ type: ACTIONS.REFILL_BALANCE });
+  };
+
   const handleStand = async () => {
     if (!canStand) {
       return;
@@ -245,7 +405,10 @@ function DiceBlackjack() {
     if (finalDealer > MAX_SCORE) {
       dispatch({
         type: ACTIONS.DEALER_END,
-        payload: { result: "Dealer busts over 21. Player wins." },
+        payload: {
+          result: "Dealer busts over 21. Player wins.",
+          winner: "player",
+        },
       });
       return;
     }
@@ -253,7 +416,10 @@ function DiceBlackjack() {
     if (finalDealer > finalPlayer) {
       dispatch({
         type: ACTIONS.DEALER_END,
-        payload: { result: "Dealer wins with a higher score." },
+        payload: {
+          result: "Dealer wins with a higher score.",
+          winner: "dealer",
+        },
       });
       return;
     }
@@ -261,12 +427,18 @@ function DiceBlackjack() {
     if (finalDealer < finalPlayer) {
       dispatch({
         type: ACTIONS.DEALER_END,
-        payload: { result: "Player wins with a higher score." },
+        payload: {
+          result: "Player wins with a higher score.",
+          winner: "player",
+        },
       });
       return;
     }
 
-    dispatch({ type: ACTIONS.DEALER_END, payload: { result: "Tie game." } });
+    dispatch({
+      type: ACTIONS.DEALER_END,
+      payload: { result: "Tie game.", winner: "tie" },
+    });
   };
 
   const handleReset = () => {
@@ -277,13 +449,57 @@ function DiceBlackjack() {
     <div className="p-3" style={{ maxWidth: 760, width: "100%" }}>
       <h3>Dice 21: Player vs Dealer</h3>
       <p className="mb-2">{statusText}</p>
+      <div className="d-flex gap-3 flex-wrap justify-content-center align-items-center mb-3">
+        <div style={{ fontWeight: 700 }}>Balance: ${state.balance}</div>
+        <div style={{ fontWeight: 700 }}>Current Bet: ${state.currentBet}</div>
+        {canRefill && (
+          <button type="button" onClick={handleRefill}>
+            Refill $1000
+          </button>
+        )}
+      </div>
+      <div className="mb-3" style={{ fontWeight: 700 }}>
+        Win Odds: Regular 1:1 | Hit 21 Bonus 3:2
+        <br />
+        Regular win: +${regularProfit} (return ${regularReturn}) | Hit 21: +$
+        {hit21Profit} (return ${hit21Return})
+      </div>
+      <div className="d-flex gap-2 flex-wrap justify-content-center align-items-center mb-3">
+        <label htmlFor="bet-input" className="mb-0">
+          Bet Amount:
+        </label>
+        <input
+          id="bet-input"
+          type="number"
+          min="1"
+          max={MAX_BET}
+          step="1"
+          value={state.betInput}
+          onChange={handleBetInputChange}
+          style={{ width: 120 }}
+          disabled={!canManageBet || state.currentBet > 0}
+        />
+        <button type="button" onClick={handlePlaceBet} disabled={!canPlaceBet}>
+          Place Bet
+        </button>
+        <button type="button" onClick={handleClearBet} disabled={!canClearBet}>
+          Cancel Bet
+        </button>
+      </div>
+      <div className="d-flex gap-3 flex-wrap justify-content-center mb-3">
+        <div style={{ fontWeight: 700 }}>Player Wins: {state.playerWins}</div>
+        <div style={{ fontWeight: 700 }}>Dealer Wins: {state.dealerWins}</div>
+        <div style={{ fontWeight: 700 }}>Ties: {state.ties}</div>
+      </div>
 
       <div className="d-flex gap-4 flex-wrap justify-content-center mb-3">
         <div className="text-center">
           <h5>Player</h5>
-          <div>Total: {state.playerTotal}</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+            Total: {state.playerTotal}
+          </div>
           <div>Rolls: {state.playerRolls.length}</div>
-          <div style={{ fontSize: "2rem", lineHeight: 1.2 }}>
+          <div style={{ fontSize: "3.1rem", lineHeight: 1.1 }}>
             {getDieFace(
               state.playerDisplayDice[0] ?? latestPlayerRoll?.dice?.[0],
             )}{" "}
@@ -294,9 +510,11 @@ function DiceBlackjack() {
         </div>
         <div className="text-center">
           <h5>Dealer</h5>
-          <div>Total: {state.dealerTotal}</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+            Total: {state.dealerTotal}
+          </div>
           <div>Rolls: {state.dealerRolls.length}</div>
-          <div style={{ fontSize: "2rem", lineHeight: 1.2 }}>
+          <div style={{ fontSize: "3.1rem", lineHeight: 1.1 }}>
             {getDieFace(
               state.dealerDisplayDice[0] ?? latestDealerRoll?.dice?.[0],
             )}{" "}
