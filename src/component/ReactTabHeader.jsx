@@ -17,9 +17,38 @@ import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 
 class ReactTabHeader extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      apkPassword: "",
+      isApkUnlocked: false,
+      apkError: "",
+    };
+  }
+
   componentDidMount() {
     newMineGame();
   }
+
+  handleApkPasswordChange = (event) => {
+    this.setState({ apkPassword: event.target.value, apkError: "" });
+  };
+
+  unlockApkDownload = () => {
+    const expectedPassword =
+      import.meta.env.VITE_APK_PASSWORD || "apk-download-2026";
+
+    if (this.state.apkPassword === expectedPassword) {
+      this.setState({
+        isApkUnlocked: true,
+        apkError: "",
+      });
+      return;
+    }
+
+    this.setState({ apkError: "Incorrect password. Please try again." });
+  };
+
   render() {
     return (
       <div className="tabs-shell">
@@ -51,55 +80,110 @@ class ReactTabHeader extends Component {
             </div>
           </Tab>
           <Tab eventKey="othergames" title="Games">
-            <div className="games-grid">
-              <a
-                className="game-link"
-                href="https://greentea524.github.io/game/js-2048-main/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="2048 (opens in a new tab)"
-              >
-                <span>
-                  <i className="fa fa-gamepad" aria-hidden="true"></i> 2048
-                </span>
-                <i className="fa fa-external-link" aria-hidden="true"></i>
-              </a>
-              <a
-                className="game-link"
-                href="https://greentea524.github.io/game/wordle-clone-main/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Wordle (opens in a new tab)"
-              >
-                <span>
-                  <i className="fa fa-gamepad" aria-hidden="true"></i> Wordle
-                </span>
-                <i className="fa fa-external-link" aria-hidden="true"></i>
-              </a>
-              <a
-                className="game-link"
-                href="https://greentea524.github.io/game/js-alien-invasion/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Invasion (opens in a new tab)"
-              >
-                <span>
-                  <i className="fa fa-gamepad" aria-hidden="true"></i> Invasion
-                </span>
-                <i className="fa fa-external-link" aria-hidden="true"></i>
-              </a>
-              <a
-                className="game-link"
-                href="https://greentea524.github.io/game/js-pacman/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Pacman (opens in a new tab)"
-              >
-                <span>
-                  <i className="fa fa-gamepad" aria-hidden="true"></i> Pacman
-                </span>
-                <i className="fa fa-external-link" aria-hidden="true"></i>
-              </a>
+            <div className="games-layout">
+              <div className="games-section">
+                <h6 className="games-section-title">Android App</h6>
+                {!this.state.isApkUnlocked ? (
+                  <div className="apk-gate">
+                    <p className="apk-gate-text">
+                      Enter password to unlock APK download
+                    </p>
+                    <div className="apk-gate-controls">
+                      <input
+                        type="password"
+                        value={this.state.apkPassword}
+                        onChange={this.handleApkPasswordChange}
+                        placeholder="Password"
+                        className="apk-password-input"
+                        aria-label="APK password"
+                      />
+                      <button
+                        type="button"
+                        onClick={this.unlockApkDownload}
+                        className="apk-unlock-btn"
+                      >
+                        Unlock
+                      </button>
+                    </div>
+                    {this.state.apkError && (
+                      <div className="apk-error" role="alert">
+                        {this.state.apkError}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <a
+                    className="game-link apk-link"
+                    href="https://greentea524.github.io/file/app-release.apk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="APK download (opens in a new tab)"
+                  >
+                    <span>
+                      <i className="fa fa-android" aria-hidden="true"></i>
+                      Download APK
+                    </span>
+                    <i className="fa fa-external-link" aria-hidden="true"></i>
+                  </a>
+                )}
+              </div>
+
+              <div className="games-section">
+                <h6 className="games-section-title">Web Games</h6>
+                <div className="games-grid">
+                  <a
+                    className="game-link"
+                    href="https://greentea524.github.io/game/js-2048-main/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="2048 (opens in a new tab)"
+                  >
+                    <span>
+                      <i className="fa fa-gamepad" aria-hidden="true"></i> 2048
+                    </span>
+                    <i className="fa fa-external-link" aria-hidden="true"></i>
+                  </a>
+                  <a
+                    className="game-link"
+                    href="https://greentea524.github.io/game/wordle-clone-main/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Wordle (opens in a new tab)"
+                  >
+                    <span>
+                      <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                      Wordle
+                    </span>
+                    <i className="fa fa-external-link" aria-hidden="true"></i>
+                  </a>
+                  <a
+                    className="game-link"
+                    href="https://greentea524.github.io/game/js-alien-invasion/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Invasion (opens in a new tab)"
+                  >
+                    <span>
+                      <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                      Invasion
+                    </span>
+                    <i className="fa fa-external-link" aria-hidden="true"></i>
+                  </a>
+                  <a
+                    className="game-link"
+                    href="https://greentea524.github.io/game/js-pacman/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Pacman (opens in a new tab)"
+                  >
+                    <span>
+                      <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                      Pacman
+                    </span>
+                    <i className="fa fa-external-link" aria-hidden="true"></i>
+                  </a>
+                </div>
+              </div>
             </div>
           </Tab>
           <Tab eventKey="minesweeper" title="Minesweeper">

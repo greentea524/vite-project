@@ -13,6 +13,7 @@ function SomeChart({ theme }) {
     if (typeof window === "undefined") return false;
     return window.innerWidth <= 768;
   });
+  const [chartType, setChartType] = useState("LineChart");
   const isWindows7Theme = theme === "7.css";
 
   useEffect(() => {
@@ -57,6 +58,8 @@ function SomeChart({ theme }) {
     () => ({
       title: isMobile ? "Performance" : "Company Performances",
       legend: { position: "none" },
+      curveType: "function",
+      pointSize: isMobile ? 4 : 6,
       chartArea: isMobile
         ? {
             left: 46,
@@ -72,7 +75,7 @@ function SomeChart({ theme }) {
             top: 50,
             bottom: 70,
             width: "92%",
-            height: isWindows7Theme ? "70%" : "74%",
+            height: isWindows7Theme ? "75%" : "79%",
           },
       hAxis: {
         gridlines: { count: isMobile ? 8 : 25 },
@@ -87,19 +90,44 @@ function SomeChart({ theme }) {
     [isMobile, isWindows7Theme],
   );
 
+  const chartTypeOptions = [
+    { value: "LineChart", label: "Line" },
+    { value: "ColumnChart", label: "Column" },
+    { value: "AreaChart", label: "Area" },
+  ];
+
   return (
     <div
       className="container-fluid mt-2 px-2 px-md-4"
-      style={{ maxWidth: "1200px" }}
+      style={{ maxWidth: "1280px" }}
     >
+      <div
+        className="d-flex justify-content-end align-items-center mb-2"
+        style={{ gap: "0.5rem" }}
+      >
+        <label htmlFor="chart-type-select" style={{ marginBottom: 0 }}>
+          Chart Type:
+        </label>
+        <select
+          id="chart-type-select"
+          value={chartType}
+          onChange={(e) => setChartType(e.target.value)}
+        >
+          {chartTypeOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <div style={{ overflowX: "auto" }}>
         <div style={{ minWidth: isMobile ? "320px" : "auto" }}>
           <Chart
-            chartType="ColumnChart"
+            chartType={chartType}
             data={someData}
             options={someOptions}
             width="100%"
-            height={isMobile ? "320px" : isWindows7Theme ? "460px" : "520px"}
+            height={isMobile ? "320px" : isWindows7Theme ? "540px" : "620px"}
           />
         </div>
       </div>
