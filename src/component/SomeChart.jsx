@@ -13,7 +13,7 @@ function SomeChart({ theme }) {
     if (typeof window === "undefined") return false;
     return window.innerWidth <= 768;
   });
-  const [chartType, setChartType] = useState("LineChart");
+  const [chartType, setChartType] = useState("AreaChart");
   const isWindows7Theme = theme === "7.css";
 
   useEffect(() => {
