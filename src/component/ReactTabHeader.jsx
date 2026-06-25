@@ -201,6 +201,22 @@ class ReactTabHeader extends Component {
                           aria-hidden="true"
                         ></i>
                       </a>
+                      <a
+                        className="game-link"
+                        href="https://greentea524.github.io/game/js-boxing/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Boxing RPG (opens in a new tab)"
+                      >
+                        <span>
+                          <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                          Boxing RPG
+                        </span>
+                        <i
+                          className="fa fa-external-link"
+                          aria-hidden="true"
+                        ></i>
+                      </a>
                     </div>
                   </div>
                 </div>
