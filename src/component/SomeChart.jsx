@@ -8,6 +8,12 @@ const tableOptions = {
   height: "100%",
 };
 
+const CHART_TYPE_OPTIONS = [
+  { value: "LineChart", label: "Line" },
+  { value: "ColumnChart", label: "Column" },
+  { value: "AreaChart", label: "Area" },
+];
+
 function SomeChart({ theme }) {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -90,12 +96,6 @@ function SomeChart({ theme }) {
     [isMobile, isWindows7Theme],
   );
 
-  const chartTypeOptions = [
-    { value: "LineChart", label: "Line" },
-    { value: "ColumnChart", label: "Column" },
-    { value: "AreaChart", label: "Area" },
-  ];
-
   return (
     <div
       className="container-fluid mt-2 px-2 px-md-4"
@@ -113,7 +113,7 @@ function SomeChart({ theme }) {
           value={chartType}
           onChange={(e) => setChartType(e.target.value)}
         >
-          {chartTypeOptions.map((opt) => (
+          {CHART_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>

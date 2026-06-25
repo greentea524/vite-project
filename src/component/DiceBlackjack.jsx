@@ -118,6 +118,130 @@ const INITIAL_STATE = {
   currentBet: 0,
 };
 
+function BalanceAndPayout({
+  balance,
+  currentBet,
+  canRefill,
+  onRefill,
+  regularProfit,
+  regularReturn,
+  hit21Profit,
+  hit21Return,
+}) {
+  return (
+    <>
+      <div className="d-flex gap-3 flex-wrap justify-content-center align-items-center mb-3">
+        <div style={{ fontWeight: 700 }}>Balance: ${balance}</div>
+        <div style={{ fontWeight: 700 }}>Current Bet: ${currentBet}</div>
+        {canRefill && (
+          <button type="button" onClick={onRefill}>
+            Refill $1000
+          </button>
+        )}
+      </div>
+      <div className="mb-3" style={{ fontWeight: 700 }}>
+        Win Odds: Regular 1:1 | Hit 21 Bonus 3:2
+        <br />
+        Regular win: +${regularProfit} (return ${regularReturn}) | Hit 21: +$
+        {hit21Profit} (return ${hit21Return})
+      </div>
+    </>
+  );
+}
+
+function BetControls({
+  betInput,
+  canManageBet,
+  canPlaceBet,
+  canClearBet,
+  currentBet,
+  onBetInputChange,
+  onPlaceBet,
+  onClearBet,
+}) {
+  return (
+    <div className="d-flex gap-2 flex-wrap justify-content-center align-items-center mb-3">
+      <label htmlFor="bet-input" className="mb-0">
+        Bet Amount:
+      </label>
+      <input
+        id="bet-input"
+        type="number"
+        min="1"
+        max={MAX_BET}
+        step="1"
+        value={betInput}
+        onChange={onBetInputChange}
+        style={{ width: 120 }}
+        disabled={!canManageBet || currentBet > 0}
+      />
+      <button type="button" onClick={onPlaceBet} disabled={!canPlaceBet}>
+        Place Bet
+      </button>
+      <button type="button" onClick={onClearBet} disabled={!canClearBet}>
+        Cancel Bet
+      </button>
+    </div>
+  );
+}
+
+function MatchupPanel({
+  playerTotal,
+  dealerTotal,
+  playerRolls,
+  dealerRolls,
+  playerDisplayDice,
+  dealerDisplayDice,
+  latestPlayerRoll,
+  latestDealerRoll,
+}) {
+  return (
+    <div className="d-flex gap-4 flex-wrap justify-content-center mb-3">
+      <div className="text-center">
+        <h5>Player</h5>
+        <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+          Total: {playerTotal}
+        </div>
+        <div>Rolls: {playerRolls.length}</div>
+        <div style={{ fontSize: "3.1rem", lineHeight: 1.1 }}>
+          {getDieFace(playerDisplayDice[0] ?? latestPlayerRoll?.dice?.[0])}{" "}
+          {getDieFace(playerDisplayDice[1] ?? latestPlayerRoll?.dice?.[1])}
+        </div>
+      </div>
+      <div className="text-center">
+        <h5>Dealer</h5>
+        <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+          Total: {dealerTotal}
+        </div>
+        <div>Rolls: {dealerRolls.length}</div>
+        <div style={{ fontSize: "3.1rem", lineHeight: 1.1 }}>
+          {getDieFace(dealerDisplayDice[0] ?? latestDealerRoll?.dice?.[0])}{" "}
+          {getDieFace(dealerDisplayDice[1] ?? latestDealerRoll?.dice?.[1])}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RollHistory({ title, rolls }) {
+  return (
+    <div className="mb-3">
+      <h6>{title}</h6>
+      {rolls.length === 0 ? (
+        <div>No rolls yet.</div>
+      ) : (
+        <ul className="list-unstyled ps-0 mb-0">
+          {rolls.map((roll, index) => (
+            <li key={roll.id}>
+              Roll {index + 1}: [{roll.dice[0]}, {roll.dice[1]}] = {roll.total}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function settleBet(state, outcome) {
   if (state.currentBet <= 0) {
     return {
@@ -449,81 +573,41 @@ function DiceBlackjack() {
     <div className="p-3" style={{ maxWidth: 760, width: "100%" }}>
       <h3>Dice 21: Player vs Dealer</h3>
       <p className="mb-2">{statusText}</p>
-      <div className="d-flex gap-3 flex-wrap justify-content-center align-items-center mb-3">
-        <div style={{ fontWeight: 700 }}>Balance: ${state.balance}</div>
-        <div style={{ fontWeight: 700 }}>Current Bet: ${state.currentBet}</div>
-        {canRefill && (
-          <button type="button" onClick={handleRefill}>
-            Refill $1000
-          </button>
-        )}
-      </div>
-      <div className="mb-3" style={{ fontWeight: 700 }}>
-        Win Odds: Regular 1:1 | Hit 21 Bonus 3:2
-        <br />
-        Regular win: +${regularProfit} (return ${regularReturn}) | Hit 21: +$
-        {hit21Profit} (return ${hit21Return})
-      </div>
-      <div className="d-flex gap-2 flex-wrap justify-content-center align-items-center mb-3">
-        <label htmlFor="bet-input" className="mb-0">
-          Bet Amount:
-        </label>
-        <input
-          id="bet-input"
-          type="number"
-          min="1"
-          max={MAX_BET}
-          step="1"
-          value={state.betInput}
-          onChange={handleBetInputChange}
-          style={{ width: 120 }}
-          disabled={!canManageBet || state.currentBet > 0}
-        />
-        <button type="button" onClick={handlePlaceBet} disabled={!canPlaceBet}>
-          Place Bet
-        </button>
-        <button type="button" onClick={handleClearBet} disabled={!canClearBet}>
-          Cancel Bet
-        </button>
-      </div>
+      <BalanceAndPayout
+        balance={state.balance}
+        currentBet={state.currentBet}
+        canRefill={canRefill}
+        onRefill={handleRefill}
+        regularProfit={regularProfit}
+        regularReturn={regularReturn}
+        hit21Profit={hit21Profit}
+        hit21Return={hit21Return}
+      />
+      <BetControls
+        betInput={state.betInput}
+        canManageBet={canManageBet}
+        canPlaceBet={canPlaceBet}
+        canClearBet={canClearBet}
+        currentBet={state.currentBet}
+        onBetInputChange={handleBetInputChange}
+        onPlaceBet={handlePlaceBet}
+        onClearBet={handleClearBet}
+      />
       <div className="d-flex gap-3 flex-wrap justify-content-center mb-3">
         <div style={{ fontWeight: 700 }}>Player Wins: {state.playerWins}</div>
         <div style={{ fontWeight: 700 }}>Dealer Wins: {state.dealerWins}</div>
         <div style={{ fontWeight: 700 }}>Ties: {state.ties}</div>
       </div>
-
-      <div className="d-flex gap-4 flex-wrap justify-content-center mb-3">
-        <div className="text-center">
-          <h5>Player</h5>
-          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-            Total: {state.playerTotal}
-          </div>
-          <div>Rolls: {state.playerRolls.length}</div>
-          <div style={{ fontSize: "3.1rem", lineHeight: 1.1 }}>
-            {getDieFace(
-              state.playerDisplayDice[0] ?? latestPlayerRoll?.dice?.[0],
-            )}{" "}
-            {getDieFace(
-              state.playerDisplayDice[1] ?? latestPlayerRoll?.dice?.[1],
-            )}
-          </div>
-        </div>
-        <div className="text-center">
-          <h5>Dealer</h5>
-          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-            Total: {state.dealerTotal}
-          </div>
-          <div>Rolls: {state.dealerRolls.length}</div>
-          <div style={{ fontSize: "3.1rem", lineHeight: 1.1 }}>
-            {getDieFace(
-              state.dealerDisplayDice[0] ?? latestDealerRoll?.dice?.[0],
-            )}{" "}
-            {getDieFace(
-              state.dealerDisplayDice[1] ?? latestDealerRoll?.dice?.[1],
-            )}
-          </div>
-        </div>
-      </div>
+      <MatchupPanel
+        playerTotal={state.playerTotal}
+        dealerTotal={state.dealerTotal}
+        playerRolls={state.playerRolls}
+        dealerRolls={state.dealerRolls}
+        playerDisplayDice={state.playerDisplayDice}
+        dealerDisplayDice={state.dealerDisplayDice}
+        latestPlayerRoll={latestPlayerRoll}
+        latestDealerRoll={latestDealerRoll}
+      />
 
       <div className="d-flex gap-2 flex-wrap justify-content-center mb-3">
         <button
@@ -541,37 +625,8 @@ function DiceBlackjack() {
         </button>
       </div>
 
-      <div className="mb-3">
-        <h6>Player Roll History</h6>
-        {state.playerRolls.length === 0 ? (
-          <div>No rolls yet.</div>
-        ) : (
-          <ul className="list-unstyled ps-0 mb-0">
-            {state.playerRolls.map((roll, index) => (
-              <li key={roll.id}>
-                Roll {index + 1}: [{roll.dice[0]}, {roll.dice[1]}] ={" "}
-                {roll.total}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div>
-        <h6>Dealer Roll History</h6>
-        {state.dealerRolls.length === 0 ? (
-          <div>No rolls yet.</div>
-        ) : (
-          <ul className="list-unstyled ps-0 mb-0">
-            {state.dealerRolls.map((roll, index) => (
-              <li key={roll.id}>
-                Roll {index + 1}: [{roll.dice[0]}, {roll.dice[1]}] ={" "}
-                {roll.total}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <RollHistory title="Player Roll History" rolls={state.playerRolls} />
+      <RollHistory title="Dealer Roll History" rolls={state.dealerRolls} />
     </div>
   );
 }

@@ -20,7 +20,7 @@ class ReactTabHeader extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      apkPassword: "",
+      apkAccessCode: "",
       isApkUnlocked: false,
       apkError: "",
     };
@@ -30,15 +30,15 @@ class ReactTabHeader extends Component {
     newMineGame();
   }
 
-  handleApkPasswordChange = (event) => {
-    this.setState({ apkPassword: event.target.value, apkError: "" });
+  handleApkAccessCodeChange = (event) => {
+    this.setState({ apkAccessCode: event.target.value, apkError: "" });
   };
 
   unlockApkDownload = () => {
-    const expectedPassword =
-      import.meta.env.VITE_APK_PASSWORD || "apk-download-2026";
+    const expectedAccessCode =
+      import.meta.env.VITE_APK_ACCESS_CODE || "apk-download-2026";
 
-    if (this.state.apkPassword === expectedPassword) {
+    if (this.state.apkAccessCode === expectedAccessCode) {
       this.setState({
         isApkUnlocked: true,
         apkError: "",
@@ -94,11 +94,11 @@ class ReactTabHeader extends Component {
                         <div className="apk-gate-controls">
                           <input
                             type="password"
-                            value={this.state.apkPassword}
-                            onChange={this.handleApkPasswordChange}
-                            placeholder="Password"
+                            value={this.state.apkAccessCode}
+                            onChange={this.handleApkAccessCodeChange}
+                            placeholder="Access code"
                             className="apk-password-input"
-                            aria-label="APK password"
+                            aria-label="APK access code"
                           />
                           <button
                             type="button"
