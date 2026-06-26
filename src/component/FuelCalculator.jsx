@@ -29,6 +29,20 @@ const UNIT_SYSTEMS = {
 const METRIC_TO_IMPERIAL_DISTANCE = 0.621371;
 const LITRES_PER_GALLON = 3.785411784;
 const MPG_CONSTANT = 235.214583;
+const NUMBER_FORMATTERS = {
+  0: new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }),
+  1: new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }),
+  2: new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }),
+};
 
 const INITIAL_STATE = {
   unitSystem: "imperial",
@@ -45,10 +59,8 @@ function parsePositiveNumber(value) {
 }
 
 function formatNumber(value, digits = 2) {
-  return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: digits,
-  }).format(value);
+  const formatter = NUMBER_FORMATTERS[digits] || NUMBER_FORMATTERS[2];
+  return formatter.format(value);
 }
 
 function formatCurrency(value) {
@@ -93,9 +105,7 @@ function convertStateForUnitSystem(state, nextUnitSystem) {
         ? state.efficiency
         : formatNumber(MPG_CONSTANT / efficiency, 2),
     price:
-      price === null
-        ? state.price
-        : formatNumber(price / LITRES_PER_GALLON, 2),
+      price === null ? state.price : formatNumber(price / LITRES_PER_GALLON, 2),
   };
 }
 

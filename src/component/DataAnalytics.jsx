@@ -5,12 +5,20 @@ import randomdata from "../assets/data.json";
 const rowsPerPageOptions = [25, 50, 100];
 const GROUP_START = 10;
 const GROUP_END = 50;
+const NUMBER_FORMATTERS = {
+  0: new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }),
+  1: new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }),
+};
 
 function formatNumber(value, digits = 1) {
-  return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: digits,
-  }).format(value);
+  const formatter = NUMBER_FORMATTERS[digits] || NUMBER_FORMATTERS[1];
+  return formatter.format(value);
 }
 
 function DataAnalytics({ theme }) {
