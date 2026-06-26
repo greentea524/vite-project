@@ -3,10 +3,9 @@ import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
 import Home from "./Home";
 import TicTacToe from "./boardgame.jsx";
-import MyDataTable from "./datatables/MyDataTable.jsx";
 import Minesweeper from "./Minesweeper.jsx";
 import { newMineGame } from "./minesweeper/initGame.js";
-import SomeChart from "./SomeChart";
+import DataAnalytics from "./DataAnalytics.jsx";
 import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 
@@ -62,11 +61,8 @@ class ReactTabHeader extends Component {
           <Tab eventKey="fuelcalculator" title="FuelCalculator">
             <FuelCalculator />
           </Tab>
-          <Tab eventKey="chart" title="Chart">
-            <div>
-              {/* <MyChart /> */}
-              <SomeChart theme={this.props.theme} />
-            </div>
+          <Tab eventKey="data" title="Data">
+            <DataAnalytics theme={this.props.theme} />
           </Tab>
           <Tab eventKey="othergames" title="Games">
             <Tabs
@@ -261,11 +257,6 @@ class ReactTabHeader extends Component {
                 </div>
               </Tab>
             </Tabs>
-          </Tab>
-          <Tab eventKey="datatable" title="DataTables">
-            <div className="d-flex justify-content-center">
-              <MyDataTable />
-            </div>
           </Tab>
         </Tabs>
       </div>
