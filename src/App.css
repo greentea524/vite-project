@@ -175,6 +175,12 @@ div.navbrand {
   margin: 0 auto;
 }
 
+.game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .games-layout {
   width: min(900px, 100%);
   margin: 0 auto;
@@ -221,10 +227,20 @@ div.navbrand {
   transform: translateY(-1px);
 }
 
-.game-link span {
+.game-link-content {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+}
+
+.game-link-description {
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  opacity: 0.9;
+  margin: 0;
+  padding: 0 0.15rem;
 }
 
 .apk-link {
@@ -311,5 +327,9 @@ div.navbrand {
   .game-link {
     border-radius: 14px;
     width: 100%;
+  }
+
+  .game-link-description {
+    font-size: 0.84rem;
   }
 }

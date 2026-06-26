@@ -85,6 +85,119 @@ class ReactTabHeader extends Component {
               <Tab eventKey="game-links" title="Links">
                 <div className="games-layout">
                   <div className="games-section">
+                    <h6 className="games-section-title">Web Games</h6>
+                    <div className="games-grid">
+                      <div className="game-card">
+                        <a
+                          className="game-link"
+                          href="https://greentea524.github.io/game/js-2048-main/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="2048 (opens in a new tab)"
+                        >
+                          <span className="game-link-title-row">
+                            <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                            2048
+                          </span>
+                          <i
+                            className="fa fa-external-link"
+                            aria-hidden="true"
+                          ></i>
+                        </a>
+                        <p className="game-link-description">
+                          Slide numbered tiles to combine them and reach the
+                          2048 tile.
+                        </p>
+                      </div>
+                      <div className="game-card">
+                        <a
+                          className="game-link"
+                          href="https://greentea524.github.io/game/wordle-clone-main/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Wordle (opens in a new tab)"
+                        >
+                          <span className="game-link-title-row">
+                            <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                            Wordle
+                          </span>
+                          <i
+                            className="fa fa-external-link"
+                            aria-hidden="true"
+                          ></i>
+                        </a>
+                        <p className="game-link-description">
+                          Guess the hidden 5-letter word in 6 attempts.
+                        </p>
+                      </div>
+                      <div className="game-card">
+                        <a
+                          className="game-link"
+                          href="https://greentea524.github.io/game/js-alien-invasion/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Invasion (opens in a new tab)"
+                        >
+                          <span className="game-link-title-row">
+                            <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                            Invasion
+                          </span>
+                          <i
+                            className="fa fa-external-link"
+                            aria-hidden="true"
+                          ></i>
+                        </a>
+                        <p className="game-link-description">
+                          Defend against waves of alien invaders.
+                        </p>
+                      </div>
+                      <div className="game-card">
+                        <a
+                          className="game-link"
+                          href="https://greentea524.github.io/game/js-pacman/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Pacman (opens in a new tab)"
+                        >
+                          <span className="game-link-title-row">
+                            <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                            Pacman
+                          </span>
+                          <i
+                            className="fa fa-external-link"
+                            aria-hidden="true"
+                          ></i>
+                        </a>
+                        <p className="game-link-description">
+                          Navigate a maze, eat dots, and avoid ghosts.
+                        </p>
+                      </div>
+                      <div className="game-card">
+                        <a
+                          className="game-link"
+                          href="https://greentea524.github.io/game/js-boxing/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Boxing RPG (opens in a new tab)"
+                        >
+                          <span className="game-link-title-row">
+                            <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
+                            Boxing RPG
+                          </span>
+                          <i
+                            className="fa fa-external-link"
+                            aria-hidden="true"
+                          ></i>
+                        </a>
+                        <p className="game-link-description">
+                          A role-playing boxing game where you train and fight
+                          opponents.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="games-section">
                     <h6 className="games-section-title">Android App</h6>
                     {!this.state.isApkUnlocked ? (
                       <div className="apk-gate">
@@ -132,92 +245,6 @@ class ReactTabHeader extends Component {
                         ></i>
                       </a>
                     )}
-                  </div>
-
-                  <div className="games-section">
-                    <h6 className="games-section-title">Web Games</h6>
-                    <div className="games-grid">
-                      <a
-                        className="game-link"
-                        href="https://greentea524.github.io/game/js-2048-main/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="2048 (opens in a new tab)"
-                      >
-                        <span>
-                          <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
-                          2048
-                        </span>
-                        <i
-                          className="fa fa-external-link"
-                          aria-hidden="true"
-                        ></i>
-                      </a>
-                      <a
-                        className="game-link"
-                        href="https://greentea524.github.io/game/wordle-clone-main/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Wordle (opens in a new tab)"
-                      >
-                        <span>
-                          <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
-                          Wordle
-                        </span>
-                        <i
-                          className="fa fa-external-link"
-                          aria-hidden="true"
-                        ></i>
-                      </a>
-                      <a
-                        className="game-link"
-                        href="https://greentea524.github.io/game/js-alien-invasion/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Invasion (opens in a new tab)"
-                      >
-                        <span>
-                          <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
-                          Invasion
-                        </span>
-                        <i
-                          className="fa fa-external-link"
-                          aria-hidden="true"
-                        ></i>
-                      </a>
-                      <a
-                        className="game-link"
-                        href="https://greentea524.github.io/game/js-pacman/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Pacman (opens in a new tab)"
-                      >
-                        <span>
-                          <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
-                          Pacman
-                        </span>
-                        <i
-                          className="fa fa-external-link"
-                          aria-hidden="true"
-                        ></i>
-                      </a>
-                      <a
-                        className="game-link"
-                        href="https://greentea524.github.io/game/js-boxing/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Boxing RPG (opens in a new tab)"
-                      >
-                        <span>
-                          <i className="fa fa-gamepad" aria-hidden="true"></i>{" "}
-                          Boxing RPG
-                        </span>
-                        <i
-                          className="fa fa-external-link"
-                          aria-hidden="true"
-                        ></i>
-                      </a>
-                    </div>
                   </div>
                 </div>
               </Tab>
