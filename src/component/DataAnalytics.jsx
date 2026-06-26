@@ -21,41 +21,69 @@ function DataAnalytics({ theme }) {
   const [rowsPerPage, setRowsPerPage] = useState(8);
   const [page, setPage] = useState(1);
 
-  const groupedRows = useMemo(() => {
-    const prefixSets = new Map();
+  const groupedData = useMemo(() => {
+    const groupWeekCounts = new Map();
 
     for (let group = GROUP_START; group <= GROUP_END; group += 1) {
-      prefixSets.set(group, new Set());
+      groupWeekCounts.set(group, 0);
     }
+
+    let totalWeeks = 0;
+    let currentWeekPrefix = null;
+    let currentWeekGroups = new Set();
+
+    const flushWeek = () => {
+      if (currentWeekPrefix === null) {
+        return;
+      }
+
+      totalWeeks += 1;
+      currentWeekGroups.forEach((group) => {
+        groupWeekCounts.set(group, groupWeekCounts.get(group) + 1);
+      });
+    };
 
     randomdata.forEach((value) => {
       const text = String(value);
-      const prefix = text[0];
+      const weekPrefix = text[0];
       const group = Number(text.slice(1));
 
-      if (prefixSets.has(group)) {
-        prefixSets.get(group).add(prefix);
+      if (currentWeekPrefix === null) {
+        currentWeekPrefix = weekPrefix;
+      } else if (weekPrefix !== currentWeekPrefix) {
+        flushWeek();
+        currentWeekPrefix = weekPrefix;
+        currentWeekGroups = new Set();
+      }
+
+      if (groupWeekCounts.has(group)) {
+        currentWeekGroups.add(group);
       }
     });
 
-    const totalPrefixes = new Set(randomdata.map((value) => String(value)[0])).size;
+    flushWeek();
+
     let cumulative = 0;
 
-    return Array.from(prefixSets.entries()).map(([group, prefixes]) => {
-      const prefixCount = prefixes.size;
-      const probability =
-        totalPrefixes === 0 ? 0 : (prefixCount / totalPrefixes) * 100;
-      cumulative += probability;
+    return {
+      totalWeeks,
+      rows: Array.from(groupWeekCounts.entries()).map(([group, weekCount]) => {
+        const probability =
+          totalWeeks === 0 ? 0 : (weekCount / totalWeeks) * 100;
+        cumulative += probability;
 
-      return {
-        group,
-        prefixCount,
-        prefixes: Array.from(prefixes).sort().join(", "),
-        probability,
-        cumulativeProbability: cumulative,
-      };
-    });
+        return {
+          group,
+          weekCount,
+          probability,
+          cumulativeProbability: cumulative,
+        };
+      }),
+    };
   }, []);
+
+  const groupedRows = groupedData.rows;
+  const totalWeeks = groupedData.totalWeeks;
 
   const sortedRows = useMemo(() => {
     const rows = [...groupedRows];
@@ -142,7 +170,6 @@ function DataAnalytics({ theme }) {
     return sortConfig.direction === "asc" ? " ▲" : " ▼";
   };
 
-  const totalPrefixes = new Set(randomdata.map((value) => String(value)[0])).size;
   const mostLikelyGroup =
     groupedRows.reduce(
       (best, row) => (row.probability > best.probability ? row : best),
@@ -155,14 +182,14 @@ function DataAnalytics({ theme }) {
         <div>
           <h4 className="data-analytics-title">Group Number Probability</h4>
           <p className="data-analytics-copy">
-            Chance of a group being called in, based on how many distinct
-            first-digit subsets include it.
+            Chance of a group being called in, based on how many weeks it
+            appears in.
           </p>
         </div>
         <div className="data-analytics-summary">
           <div className="data-summary-card">
-            <span>First-digit subsets</span>
-            <strong>{formatNumber(totalPrefixes, 0)}</strong>
+            <span>Total weeks</span>
+            <strong>{formatNumber(totalWeeks, 0)}</strong>
           </div>
           <div className="data-summary-card">
             <span>Most likely group</span>
@@ -190,7 +217,7 @@ function DataAnalytics({ theme }) {
           <div>
             <h5 className="data-table-title">Probability table</h5>
             <p className="data-table-copy">
-              Sort the groups and page through the distribution.
+              Sort the groups and page through the week distribution.
             </p>
           </div>
           <label className="data-page-size">
@@ -215,8 +242,8 @@ function DataAnalytics({ theme }) {
                   </button>
                 </th>
                 <th>
-                  <button type="button" onClick={() => handleSort("prefixCount")}>
-                    Subsets{sortIndicator("prefixCount")}
+                  <button type="button" onClick={() => handleSort("weekCount")}>
+                    Weeks{sortIndicator("weekCount")}
                   </button>
                 </th>
                 <th>
@@ -232,23 +259,15 @@ function DataAnalytics({ theme }) {
                     Cumulative{sortIndicator("cumulativeProbability")}
                   </button>
                 </th>
-                <th>
-                  <button type="button" onClick={() => handleSort("prefixes")}>
-                    Prefixes{sortIndicator("prefixes")}
-                  </button>
-                </th>
               </tr>
             </thead>
             <tbody>
               {currentRows.map((row) => (
                 <tr key={row.group}>
                   <td>{row.group}</td>
-                  <td>
-                    {formatNumber(row.prefixCount, 0)} / {formatNumber(totalPrefixes, 0)}
-                  </td>
+                  <td>{formatNumber(row.weekCount, 0)}</td>
                   <td>{formatNumber(row.probability, 1)}%</td>
                   <td>{formatNumber(row.cumulativeProbability, 1)}%</td>
-                  <td>{row.prefixes || "--"}</td>
                 </tr>
               ))}
             </tbody>
