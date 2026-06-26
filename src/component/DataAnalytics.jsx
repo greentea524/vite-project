@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Chart } from "react-google-charts";
 import randomdata from "../assets/data.json";
 
-const rowsPerPageOptions = [8, 12, 16];
+const rowsPerPageOptions = [25, 50, 100];
 const GROUP_START = 10;
 const GROUP_END = 50;
 
@@ -18,7 +18,7 @@ function DataAnalytics({ theme }) {
     key: "group",
     direction: "asc",
   });
-  const [rowsPerPage, setRowsPerPage] = useState(8);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
   const [page, setPage] = useState(1);
 
   const groupedData = useMemo(() => {
@@ -63,20 +63,16 @@ function DataAnalytics({ theme }) {
 
     flushWeek();
 
-    let cumulative = 0;
-
     return {
       totalWeeks,
       rows: Array.from(groupWeekCounts.entries()).map(([group, weekCount]) => {
         const probability =
           totalWeeks === 0 ? 0 : (weekCount / totalWeeks) * 100;
-        cumulative += probability;
 
         return {
           group,
           weekCount,
           probability,
-          cumulativeProbability: cumulative,
         };
       }),
     };
@@ -108,7 +104,7 @@ function DataAnalytics({ theme }) {
 
   const chartData = useMemo(
     () => [
-      ["Group Number", "Probability (%)"],
+      ["Index", "Rate (%)"],
       ...groupedRows.map((row) => [
         String(row.group),
         Number(row.probability.toFixed(2)),
@@ -119,7 +115,7 @@ function DataAnalytics({ theme }) {
 
   const chartOptions = useMemo(
     () => ({
-      title: "Chance of Being Called In by Group",
+      title: "Weekly Pattern Overview",
       titleTextStyle: {
         fontSize: 18,
         bold: true,
@@ -135,12 +131,12 @@ function DataAnalytics({ theme }) {
         height: "72%",
       },
       hAxis: {
-        title: "Group Number",
+        title: "Index",
         slantedText: false,
         textStyle: { fontSize: 11 },
       },
       vAxis: {
-        title: "Probability (%)",
+        title: "Rate (%)",
         format: "0.0'%'",
         textStyle: { fontSize: 11 },
       },
@@ -180,7 +176,7 @@ function DataAnalytics({ theme }) {
     <div className="data-analytics">
       <div className="data-analytics-hero">
         <div>
-          <h4 className="data-analytics-title">Group Number Probability</h4>
+          <h4 className="data-analytics-title">Weekly Pattern Summary</h4>
           <p className="data-analytics-copy">
             Chance of a group being called in, based on how many weeks it
             appears in.
@@ -215,7 +211,7 @@ function DataAnalytics({ theme }) {
       <div className="data-table-panel">
         <div className="data-table-toolbar">
           <div>
-            <h5 className="data-table-title">Probability table</h5>
+            <h5 className="data-table-title">Pattern table</h5>
             <p className="data-table-copy">
               Sort the groups and page through the week distribution.
             </p>
@@ -238,7 +234,7 @@ function DataAnalytics({ theme }) {
               <tr>
                 <th>
                   <button type="button" onClick={() => handleSort("group")}>
-                    Group{sortIndicator("group")}
+                    Index{sortIndicator("group")}
                   </button>
                 </th>
                 <th>
@@ -248,15 +244,7 @@ function DataAnalytics({ theme }) {
                 </th>
                 <th>
                   <button type="button" onClick={() => handleSort("probability")}>
-                    Probability{sortIndicator("probability")}
-                  </button>
-                </th>
-                <th>
-                  <button
-                    type="button"
-                    onClick={() => handleSort("cumulativeProbability")}
-                  >
-                    Cumulative{sortIndicator("cumulativeProbability")}
+                    Rate{sortIndicator("probability")}
                   </button>
                 </th>
               </tr>
@@ -267,7 +255,6 @@ function DataAnalytics({ theme }) {
                   <td>{row.group}</td>
                   <td>{formatNumber(row.weekCount, 0)}</td>
                   <td>{formatNumber(row.probability, 1)}%</td>
-                  <td>{formatNumber(row.cumulativeProbability, 1)}%</td>
                 </tr>
               ))}
             </tbody>
