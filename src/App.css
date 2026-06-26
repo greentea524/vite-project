@@ -1,8 +1,9 @@
 #root {
-  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .logo {
@@ -282,6 +283,10 @@ div.navbrand {
   color: #c62828;
   font-size: 0.9rem;
   text-align: left;
+}
+
+.App > .window {
+  width: 100%;
 }
 
 .tabs-shell > .tab-content {
