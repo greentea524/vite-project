@@ -293,6 +293,115 @@ div.navbrand {
   width: 100%;
 }
 
+.fuel-calculator-window {
+  width: min(920px, 100%);
+  margin: 0 auto;
+}
+
+.fuel-calculator-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+  padding: 1rem;
+}
+
+.fuel-calculator-intro {
+  margin: 0;
+  color: #343a40;
+}
+
+.fuel-unit-toggle {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.fuel-unit-chip {
+  border: 1px solid #0d6efd;
+  border-radius: 999px;
+  background: #fff;
+  color: #0d6efd;
+  font-weight: 700;
+  padding: 0.45rem 0.9rem;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fuel-unit-chip:hover,
+.fuel-unit-chip:focus,
+.fuel-unit-chip.is-active {
+  background: #0d6efd;
+  color: #fff;
+}
+
+.fuel-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.fuel-form-grid .form-group {
+  margin: 0;
+}
+
+.fuel-form-grid label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 700;
+}
+
+.fuel-field-error {
+  margin-top: 0.35rem;
+  color: #c62828;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.fuel-results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fuel-result-card {
+  border: 1px solid rgba(13, 110, 253, 0.35);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fuel-result-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #495057;
+}
+
+.fuel-result-value {
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.fuel-calculator-note {
+  margin: 0;
+  color: #495057;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 768px) {
+  .fuel-form-grid,
+  .fuel-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 576px) {
   .tabs-shell > .tab-content {
     min-height: 480px;
@@ -331,5 +440,14 @@ div.navbrand {
 
   .game-link-description {
     font-size: 0.84rem;
+  }
+
+  .fuel-form-grid,
+  .fuel-results {
+    grid-template-columns: 1fr;
+  }
+
+  .fuel-calculator-body {
+    padding: 0.85rem;
   }
 }

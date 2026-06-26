@@ -1,170 +1,316 @@
-import React, { useReducer } from "react";
+import React, { useMemo, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-/*
-17.2 gal
-Fuel & MPG
-Range in miles (city/hwy)	447.2/602.0 mi.
-Fuel tank capacity	17.2 gal.
 
-First Fillup:
-Gallons: 10.8
-Gauge range: 396 - 84 = 312
-312/10.8 = 28.89 mi/gal
-
-Second Fillup:
-Gallons: 10.1
-Gauge range: 406 - 98 = 308
-Third Fillup:
-Gallons: 9.5
-Gauge range: 394 - 110 = 284
-Fourth Fillup:
-Gallons: 9.5
-Gauge range: 387 - 116 = 271
-Fifth Fillup:
-Gallons: 10.9
-Gauge range: 401 - 83 = 318
-Sixth Fillup:
-Gallons: 10.5
-Gauge range: 373 - 86 = 287
-
-excluding 6th ratio. range 29.39 average
-
-*/
-const ACTIONS = {
-  SET_MPG: "SET_MPG",
-  SET_GALLONS: "SET_GALLONS",
-  SET_RANGE: "SET_RANGE",
+const UNIT_SYSTEMS = {
+  metric: {
+    label: "Metric",
+    distanceLabel: "Distance",
+    distanceUnit: "km",
+    efficiencyLabel: "Fuel efficiency",
+    efficiencyUnit: "L/100km",
+    priceLabel: "Fuel price",
+    priceUnit: "per litre",
+    fuelUnit: "litres",
+    distancePerCostUnit: "km",
+  },
+  imperial: {
+    label: "Imperial",
+    distanceLabel: "Distance",
+    distanceUnit: "miles",
+    efficiencyLabel: "Fuel efficiency",
+    efficiencyUnit: "MPG",
+    priceLabel: "Fuel price",
+    priceUnit: "per gallon",
+    fuelUnit: "gallons",
+    distancePerCostUnit: "mile",
+  },
 };
+
+const METRIC_TO_IMPERIAL_DISTANCE = 0.621371;
+const LITRES_PER_GALLON = 3.785411784;
+const MPG_CONSTANT = 235.214583;
 
 const INITIAL_STATE = {
-  gallons: "",
-  range: "",
-  mpg: "29.39",
-  calculatedRange: "",
-  calculatedGallons: "",
+  unitSystem: "imperial",
+  distance: "",
+  efficiency: "",
+  price: "",
 };
 
-function getCalculatedRange(gallons, mpg) {
-  if (gallons === "") return "Range: --";
-  const range = parseFloat(mpg) * parseFloat(gallons);
-  return `Range: ${range.toFixed(2)} miles`;
+function parsePositiveNumber(value) {
+  if (value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
 }
 
-function getCalculatedGallons(range, mpg) {
-  if (range === "") return "Gallons needed: --";
-  const gallons = parseFloat(range) / parseFloat(mpg);
-  return `Gallons needed: ${gallons.toFixed(2)}`;
+function formatNumber(value, digits = 2) {
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits,
+  }).format(value);
 }
 
-function reducer(state, action) {
-  switch (action.type) {
-    case ACTIONS.SET_MPG: {
-      const mpg = action.payload.value;
-      return {
-        ...state,
-        mpg,
-        calculatedRange: getCalculatedRange(state.gallons, mpg),
-        calculatedGallons: getCalculatedGallons(state.range, mpg),
-      };
-    }
-    case ACTIONS.SET_GALLONS: {
-      const gallons = action.payload.value;
-      return {
-        ...state,
-        gallons,
-        calculatedRange: getCalculatedRange(gallons, state.mpg),
-      };
-    }
-    case ACTIONS.SET_RANGE: {
-      const range = action.payload.value;
-      return {
-        ...state,
-        range,
-        calculatedGallons: getCalculatedGallons(range, state.mpg),
-      };
-    }
-    default:
-      return state;
+function formatCurrency(value) {
+  return `$${formatNumber(value, 2)}`;
+}
+
+function convertStateForUnitSystem(state, nextUnitSystem) {
+  if (state.unitSystem === nextUnitSystem) {
+    return state;
   }
+
+  const distance = parsePositiveNumber(state.distance);
+  const efficiency = parsePositiveNumber(state.efficiency);
+  const price = parsePositiveNumber(state.price);
+
+  if (state.unitSystem === "metric" && nextUnitSystem === "imperial") {
+    return {
+      unitSystem: nextUnitSystem,
+      distance:
+        distance === null
+          ? state.distance
+          : formatNumber(distance * METRIC_TO_IMPERIAL_DISTANCE, 2),
+      efficiency:
+        efficiency === null
+          ? state.efficiency
+          : formatNumber(MPG_CONSTANT / efficiency, 2),
+      price:
+        price === null
+          ? state.price
+          : formatNumber(price * LITRES_PER_GALLON, 2),
+    };
+  }
+
+  return {
+    unitSystem: nextUnitSystem,
+    distance:
+      distance === null
+        ? state.distance
+        : formatNumber(distance / METRIC_TO_IMPERIAL_DISTANCE, 2),
+    efficiency:
+      efficiency === null
+        ? state.efficiency
+        : formatNumber(MPG_CONSTANT / efficiency, 2),
+    price:
+      price === null
+        ? state.price
+        : formatNumber(price / LITRES_PER_GALLON, 2),
+  };
+}
+
+function getValidationErrors(state) {
+  const errors = {};
+  const distance = parsePositiveNumber(state.distance);
+  const efficiency = parsePositiveNumber(state.efficiency);
+  const price = parsePositiveNumber(state.price);
+
+  if (state.distance !== "" && distance === null) {
+    errors.distance = "Enter a distance greater than 0.";
+  }
+
+  if (state.efficiency !== "" && efficiency === null) {
+    errors.efficiency = "Enter a fuel efficiency greater than 0.";
+  }
+
+  if (state.price !== "" && price === null) {
+    errors.price = "Enter a fuel price greater than 0.";
+  }
+
+  return errors;
 }
 
 const FuelCalculator = () => {
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [state, setState] = useState(INITIAL_STATE);
+
+  const validationErrors = useMemo(() => getValidationErrors(state), [state]);
+  const hasErrors = Object.keys(validationErrors).length > 0;
+
+  const calculations = useMemo(() => {
+    const distance = parsePositiveNumber(state.distance);
+    const efficiency = parsePositiveNumber(state.efficiency);
+    const price = parsePositiveNumber(state.price);
+
+    if (distance === null || efficiency === null || price === null) {
+      return null;
+    }
+
+    if (state.unitSystem === "metric") {
+      const fuelNeeded = (distance * efficiency) / 100;
+      const totalCost = fuelNeeded * price;
+
+      return {
+        fuelNeeded,
+        totalCost,
+        costPerDistance: totalCost / distance,
+      };
+    }
+
+    const fuelNeeded = distance / efficiency;
+    const totalCost = fuelNeeded * price;
+
+    return {
+      fuelNeeded,
+      totalCost,
+      costPerDistance: totalCost / distance,
+    };
+  }, [state]);
+
+  const unitConfig = UNIT_SYSTEMS[state.unitSystem];
+
+  const handleUnitChange = (nextUnitSystem) => {
+    setState((current) => convertStateForUnitSystem(current, nextUnitSystem));
+  };
 
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center col-md-6 window">
+    <div className="container mt-4">
+      <div className="window fuel-calculator-window">
         <div className="title-bar">
-          <div className="title-bar-text">Fuel Fill-Up Calculator</div>
+          <div className="title-bar-text">Fuel Calculator</div>
           <div className="title-bar-controls">
             <button type="button" aria-label="Minimize"></button>
             <button type="button" aria-label="Maximize"></button>
             <button type="button" aria-label="Close"></button>
           </div>
         </div>
-        <div className="window-body">
-          <div className="form-group mb-3">
-            <label htmlFor="fuel-mpg">MPG:</label>
-            <input
-              id="fuel-mpg"
-              type="number"
-              className="form-control"
-              value={state.mpg}
-              onChange={(e) =>
-                dispatch({
-                  type: ACTIONS.SET_MPG,
-                  payload: { value: e.target.value },
-                })
-              }
-              placeholder="Enter MPG"
-              min="0"
-              max="100"
-            />
+        <div className="window-body fuel-calculator-body">
+          <p className="fuel-calculator-intro">
+            Estimate trip fuel consumption and cost with metric or imperial
+            units.
+          </p>
+
+          <div
+            className="fuel-unit-toggle"
+            role="radiogroup"
+            aria-label="Unit system"
+          >
+            {Object.entries(UNIT_SYSTEMS).map(([key, config]) => (
+              <button
+                key={key}
+                type="button"
+                className={`fuel-unit-chip ${
+                  state.unitSystem === key ? "is-active" : ""
+                }`}
+                onClick={() => handleUnitChange(key)}
+                aria-pressed={state.unitSystem === key}
+              >
+                {config.label}
+              </button>
+            ))}
           </div>
-          <div className="form-group mb-3">
-            <label htmlFor="fuel-gallons">Gallons:</label>
-            <input
-              id="fuel-gallons"
-              type="number"
-              className="form-control"
-              value={state.gallons}
-              onChange={(e) =>
-                dispatch({
-                  type: ACTIONS.SET_GALLONS,
-                  payload: { value: e.target.value },
-                })
-              }
-              placeholder="Enter gallons"
-              min="0"
-              max="100"
-            />
+
+          <div className="fuel-form-grid">
+            <div className="form-group">
+              <label htmlFor="fuel-distance">
+                {unitConfig.distanceLabel} ({unitConfig.distanceUnit})
+              </label>
+              <input
+                id="fuel-distance"
+                type="number"
+                className="form-control"
+                value={state.distance}
+                onChange={(event) =>
+                  setState((current) => ({
+                    ...current,
+                    distance: event.target.value,
+                  }))
+                }
+                min="0"
+                step="any"
+                placeholder={`Enter distance in ${unitConfig.distanceUnit}`}
+              />
+              {validationErrors.distance && (
+                <div className="fuel-field-error" role="alert">
+                  {validationErrors.distance}
+                </div>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="fuel-efficiency">
+                {unitConfig.efficiencyLabel} ({unitConfig.efficiencyUnit})
+              </label>
+              <input
+                id="fuel-efficiency"
+                type="number"
+                className="form-control"
+                value={state.efficiency}
+                onChange={(event) =>
+                  setState((current) => ({
+                    ...current,
+                    efficiency: event.target.value,
+                  }))
+                }
+                min="0"
+                step="any"
+                placeholder={
+                  state.unitSystem === "metric" ? "e.g. 7.5" : "e.g. 32.1"
+                }
+              />
+              {validationErrors.efficiency && (
+                <div className="fuel-field-error" role="alert">
+                  {validationErrors.efficiency}
+                </div>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="fuel-price">
+                {unitConfig.priceLabel} ({unitConfig.priceUnit})
+              </label>
+              <input
+                id="fuel-price"
+                type="number"
+                className="form-control"
+                value={state.price}
+                onChange={(event) =>
+                  setState((current) => ({
+                    ...current,
+                    price: event.target.value,
+                  }))
+                }
+                min="0"
+                step="any"
+                placeholder={`Enter price ${unitConfig.priceUnit}`}
+              />
+              {validationErrors.price && (
+                <div className="fuel-field-error" role="alert">
+                  {validationErrors.price}
+                </div>
+              )}
+            </div>
           </div>
-          {state.calculatedRange && (
-            <p className="text-center">
-              <strong>{state.calculatedRange}</strong>
-            </p>
-          )}
-          <div className="form-group mb-3">
-            <label htmlFor="fuel-range">Range Increase:</label>
-            <input
-              id="fuel-range"
-              type="number"
-              className="form-control"
-              value={state.range}
-              onChange={(e) =>
-                dispatch({
-                  type: ACTIONS.SET_RANGE,
-                  payload: { value: e.target.value },
-                })
-              }
-              placeholder="Enter range increase"
-              min="0"
-              max="3000"
-            />
+
+          <div className="fuel-results">
+            <div className="fuel-result-card">
+              <span className="fuel-result-label">Estimated fuel needed</span>
+              <strong className="fuel-result-value">
+                {calculations
+                  ? `${formatNumber(calculations.fuelNeeded, 2)} ${unitConfig.fuelUnit}`
+                  : "--"}
+              </strong>
+            </div>
+            <div className="fuel-result-card">
+              <span className="fuel-result-label">Total cost</span>
+              <strong className="fuel-result-value">
+                {calculations ? formatCurrency(calculations.totalCost) : "--"}
+              </strong>
+            </div>
+            <div className="fuel-result-card">
+              <span className="fuel-result-label">
+                Cost per {unitConfig.distancePerCostUnit}
+              </span>
+              <strong className="fuel-result-value">
+                {calculations
+                  ? `${formatCurrency(calculations.costPerDistance)}/${unitConfig.distancePerCostUnit}`
+                  : "--"}
+              </strong>
+            </div>
           </div>
-          {state.calculatedGallons && (
-            <p className="text-center">
-              <strong>{state.calculatedGallons}</strong>
+
+          {hasErrors && (
+            <p className="fuel-calculator-note" role="status">
+              Fix the highlighted fields to see an updated estimate.
             </p>
           )}
         </div>

@@ -1,18 +1,12 @@
 import React, { Component } from "react";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
-import About from "./About";
 import Home from "./Home";
 import TicTacToe from "./boardgame.jsx";
-import MyChart from "./MyChart.jsx";
 import MyDataTable from "./datatables/MyDataTable.jsx";
 import Minesweeper from "./Minesweeper.jsx";
 import { newMineGame } from "./minesweeper/initGame.js";
 import SomeChart from "./SomeChart";
-import TestProject from "./TestProject";
-import StateForm from "./form/StateForm";
-import RefForm from "./form/RefForm";
-import "./form/form.css";
 import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 
@@ -272,14 +266,6 @@ class ReactTabHeader extends Component {
             <div className="d-flex justify-content-center">
               <MyDataTable />
             </div>
-          </Tab>
-          <Tab eventKey="stateform" title="Form">
-            <div className="d-flex justify-content-center">
-              <StateForm />
-            </div>
-          </Tab>
-          <Tab eventKey="testproject" title="Test">
-            <TestProject />
           </Tab>
         </Tabs>
       </div>
