@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import reactLogo from "../assets/react.svg";
 import viteLogo from "../assets/vite.svg";
 import ProjectLinks from "./ProjectLinks.jsx";
+
 function Home() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -11,62 +12,36 @@ function Home() {
     };
   }, []);
 
-  let loadContent;
-  if (loading) {
-    loadContent = (
-      <output className="spinner-border text-success" aria-live="polite">
-        <span className="sr-only">Loading...</span>
-      </output>
-    );
-  } else {
-    loadContent = <ProjectLinks />;
-  }
-
   return (
-    <div>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
+    <div className="home">
+      <div className="home-logos">
+        <a href="https://vite.dev" target="_blank" rel="noreferrer">
           <img src={viteLogo} className="logo" alt="Vite logo" />
         </a>
-        <a href="https://reactjs.org" target="_blank">
+        <a href="https://react.dev" target="_blank" rel="noreferrer">
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
+
       <h1>Vite + React</h1>
-      <br></br>
 
-      {loadContent}
-
-      <div className="footer-div">
-        <p className={"footer-text"}>
-          Experimental page using React
-          <br></br>
-          <a href="https://greentea524.github.io/">
-            https://greentea524.github.io/
-          </a>
+      <div className="home-intro">
+        <p className="home-tagline">A test project built with Vite + React.</p>
+        <p className="home-description">
+          This is a personal sandbox for experimenting with React — a place to
+          try out components, UI ideas, and small browser apps. Browse the tabs
+          above to explore a fuel calculator, data analytics charts, and a few
+          mini-games like TicTacToe, Minesweeper, and Dice 21.
         </p>
-        <div className="row">
-          <div className="small-12 column">
-            {" "}
-            <div className="my-arrow-div text-center">
-              <a
-                href="https://github.com/greentea524"
-                target="_blank"
-                aria-label="Visit GitHub profile"
-              >
-                <i className="fa fa-github-alt fa-2x"></i>
-              </a>
-              <a
-                href="https://www.twitter.com/davidphong_"
-                target="_blank"
-                aria-label="Visit Twitter profile"
-              >
-                <i className="fa fa-twitter fa-2x"></i>
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
+
+      {loading ? (
+        <output className="spinner-border text-success" aria-live="polite">
+          <span className="sr-only">Loading...</span>
+        </output>
+      ) : (
+        <ProjectLinks />
+      )}
     </div>
   );
 }
