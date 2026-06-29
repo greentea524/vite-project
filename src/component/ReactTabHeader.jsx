@@ -102,11 +102,21 @@ class ReactTabHeader extends Component {
           {/* <Tab eventKey="profile" title="About">
             <About />
           </Tab> */}
-          <Tab eventKey="fuelcalculator" title="FuelCalculator">
-            <FuelCalculator />
-          </Tab>
           <Tab eventKey="data" title="Data">
-            <DataAnalytics theme={this.props.theme} />
+            <Tabs
+              defaultActiveKey="fuelcalculator"
+              id="data-subtab"
+              className="mb-3"
+              variant="tabs"
+              justify
+            >
+              <Tab eventKey="fuelcalculator" title="FuelCalculator">
+                <FuelCalculator />
+              </Tab>
+              <Tab eventKey="analytics" title="Analytics">
+                <DataAnalytics theme={this.props.theme} />
+              </Tab>
+            </Tabs>
           </Tab>
           <Tab eventKey="othergames" title="Games">
             {this.state.selectedGame ? (
