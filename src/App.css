@@ -276,47 +276,6 @@ button.game-link {
   padding: 0 0.15rem;
 }
 
-.apk-link {
-  width: 100%;
-  border-style: dashed;
-}
-
-.apk-gate {
-  width: 100%;
-  border: 1px dashed #6c757d;
-  border-radius: 12px;
-  padding: 0.85rem;
-  background: #fff;
-}
-
-.apk-gate-text {
-  margin: 0 0 0.6rem;
-  font-weight: 600;
-  text-align: left;
-}
-
-.apk-gate-controls {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.apk-password-input {
-  flex: 1;
-  min-width: 0;
-}
-
-.apk-unlock-btn {
-  white-space: nowrap;
-}
-
-.apk-error {
-  margin-top: 0.45rem;
-  color: #c62828;
-  font-size: 0.9rem;
-  text-align: left;
-}
-
 .App > .window {
   width: 100%;
 }
@@ -630,11 +589,6 @@ button.game-link {
 
   .games-section-title {
     text-align: center;
-  }
-
-  .apk-gate-controls {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .game-link {
