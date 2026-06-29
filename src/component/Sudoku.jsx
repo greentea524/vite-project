@@ -80,8 +80,10 @@ function countSolutions(grid, limit) {
 
 // Build a fresh puzzle: start from a full solution, then remove cells one at a
 // time, keeping a removal only if the puzzle still has a unique solution.
+// Returns both the dug-out puzzle and the full solution (used for hints).
 function generatePuzzle(targetClues) {
-  const puzzle = generateSolvedGrid();
+  const solution = generateSolvedGrid();
+  const puzzle = solution.slice();
   let clues = CELL_COUNT;
   for (const index of shuffle([...Array(CELL_COUNT).keys()])) {
     if (clues <= targetClues) break;
@@ -93,7 +95,7 @@ function generatePuzzle(targetClues) {
       puzzle[index] = backup; // removal made the solution ambiguous; keep it
     }
   }
-  return puzzle;
+  return { puzzle, solution };
 }
 
 // Turn a numeric puzzle grid (0 = empty) into the cell objects used by the UI.
@@ -102,6 +104,14 @@ function buildCells(grid) {
     value: value === 0 ? "" : String(value),
     given: value !== 0,
   }));
+}
+
+// Create a fresh game: cells to display plus the matching solution. Returned as
+// one object so the two always stay paired (important under StrictMode, which
+// double-invokes state initializers).
+function createGame(level) {
+  const { puzzle, solution } = generatePuzzle(DIFFICULTIES[level]);
+  return { cells: buildCells(puzzle), solution };
 }
 
 // Returns a Set of cell indices that conflict with another cell sharing the
@@ -143,14 +153,51 @@ function findConflicts(cells) {
   return conflicts;
 }
 
+// Returns a Set of cell indices belonging to a row, column, or 3×3 box that is
+// fully filled and correct (its nine cells contain 1–9 with no repeats).
+function findCompletedCells(cells) {
+  const completed = new Set();
+
+  const markIfComplete = (group) => {
+    const values = new Set();
+    for (const idx of group) {
+      const value = cells[idx].value;
+      if (!value) return; // not fully filled
+      values.add(value);
+    }
+    if (values.size === SIZE) {
+      for (const idx of group) completed.add(idx);
+    }
+  };
+
+  for (let i = 0; i < SIZE; i++) {
+    const row = [];
+    const col = [];
+    const box = [];
+    for (let j = 0; j < SIZE; j++) {
+      row.push(i * SIZE + j);
+      col.push(j * SIZE + i);
+      const r = Math.floor(i / BOX) * BOX + Math.floor(j / BOX);
+      const c = (i % BOX) * BOX + (j % BOX);
+      box.push(r * SIZE + c);
+    }
+    markIfComplete(row);
+    markIfComplete(col);
+    markIfComplete(box);
+  }
+
+  return completed;
+}
+
 function Sudoku() {
   const [difficulty, setDifficulty] = useState("medium");
-  const [cells, setCells] = useState(() =>
-    buildCells(generatePuzzle(DIFFICULTIES.medium))
-  );
+  // cells + solution kept together so they're always from the same puzzle.
+  const [game, setGame] = useState(() => createGame("medium"));
+  const { cells } = game;
   const [selected, setSelected] = useState(null);
 
   const conflicts = useMemo(() => findConflicts(cells), [cells]);
+  const completed = useMemo(() => findCompletedCells(cells), [cells]);
 
   const isComplete = useMemo(
     () => cells.every((cell) => cell.value !== ""),
@@ -159,12 +206,12 @@ function Sudoku() {
   const hasWon = isComplete && conflicts.size === 0;
 
   const setCellValue = useCallback((index, value) => {
-    setCells((prev) => {
-      if (prev[index].given) return prev;
-      if (prev[index].value === value) return prev;
-      const next = prev.slice();
+    setGame((prev) => {
+      if (prev.cells[index].given) return prev;
+      if (prev.cells[index].value === value) return prev;
+      const next = prev.cells.slice();
       next[index] = { ...next[index], value };
-      return next;
+      return { ...prev, cells: next };
     });
   }, []);
 
@@ -202,12 +249,32 @@ function Sudoku() {
   };
 
   const startNewGame = useCallback((level) => {
-    setCells(buildCells(generatePuzzle(DIFFICULTIES[level])));
+    setGame(createGame(level));
     setSelected(null);
   }, []);
 
   const handleNewGame = () => {
     startNewGame(difficulty);
+  };
+
+  // Fill one randomly chosen empty-or-incorrect cell with its solution value.
+  const handleHint = () => {
+    setGame((prev) => {
+      const candidates = [];
+      for (let i = 0; i < prev.cells.length; i++) {
+        if (
+          !prev.cells[i].given &&
+          prev.cells[i].value !== String(prev.solution[i])
+        ) {
+          candidates.push(i);
+        }
+      }
+      if (candidates.length === 0) return prev;
+      const index = candidates[Math.floor(Math.random() * candidates.length)];
+      const next = prev.cells.slice();
+      next[index] = { ...next[index], value: String(prev.solution[index]) };
+      return { ...prev, cells: next };
+    });
   };
 
   const handleDifficultyChange = (event) => {
@@ -248,6 +315,7 @@ function Sudoku() {
             `box-${boxIndex(row, col)}`,
             cell.given ? "given" : "",
             selected === index ? "selected" : "",
+            completed.has(index) && !conflicts.has(index) ? "correct" : "",
             conflicts.has(index) ? "conflict" : "",
             col % BOX === 0 ? "box-left" : "",
             row % BOX === 0 ? "box-top" : "",
@@ -303,9 +371,23 @@ function Sudoku() {
         </div>
       )}
 
-      <button type="button" className="sudoku-new-game" onClick={handleNewGame}>
-        New Game
-      </button>
+      <div className="sudoku-actions">
+        <button
+          type="button"
+          className="sudoku-hint"
+          onClick={handleHint}
+          disabled={hasWon}
+        >
+          Hint
+        </button>
+        <button
+          type="button"
+          className="sudoku-new-game"
+          onClick={handleNewGame}
+        >
+          New Game
+        </button>
+      </div>
     </div>
   );
 }

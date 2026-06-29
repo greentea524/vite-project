@@ -83,6 +83,13 @@
   z-index: 1;
 }
 
+/* Green text for cells in a fully-completed, correct row / column / box.
+   Declared before .conflict so a conflicting cell still shows red. */
+.sudoku-cell.correct {
+  color: #15803d;
+  font-weight: 700;
+}
+
 .sudoku-cell.conflict {
   background: #ef4444;
   color: #fff;
@@ -150,7 +157,9 @@
   100% { background-position: 300% 50%; }
 }
 
-.sudoku-new-game {
+.sudoku-actions {
+  display: flex;
+  gap: 0.5rem;
   margin-top: 0.25rem;
 }
 
