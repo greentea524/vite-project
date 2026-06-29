@@ -1,6 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "./minesweeper/styles.css";
+import { newMineGame } from "./minesweeper/initGame.js";
+
 function Minesweeper() {
+  useEffect(() => {
+    newMineGame();
+  }, []);
+
   return (
     <div className="minesweeper-container">
       <div className="title">
