@@ -10,14 +10,6 @@ function ProjectLinks() {
         >
           <i className="fa fa-folder"></i> Portfolio
         </a>
-        <a
-          className="my-button cta-button"
-          href="https://greentea524.github.io/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <i className="fa fa-external-link"></i> Live Site
-        </a>
       </div>
 
       <div className="home-social">
