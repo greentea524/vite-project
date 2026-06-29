@@ -97,6 +97,16 @@
   cursor: default;
 }
 
+.sudoku-difficulty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sudoku-difficulty label {
+  font-weight: 600;
+}
+
 .sudoku-pad {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

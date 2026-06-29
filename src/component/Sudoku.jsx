@@ -1,33 +1,107 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./sudoku.css";
 
-// Valid pre-generated puzzles. Each is 81 chars, row-major, "0" = empty cell.
-// A completed grid with no row/column/box conflicts is, by definition, solved,
-// so win detection does not need a stored solution.
-const PUZZLES = [
-  "530070000600195000098000060800060003400803001700020006060000280000419005000080079",
-  "200080300060070084030500209000105408000000000402706000301007040720040060004010003",
-  "000000907000420180000705026100904000050000040000507009920108000034059000507000000",
-  "100489006730000040000001295007120600500703008006095700914600000020000037800512004",
-];
-
 const SIZE = 9;
 const BOX = 3;
+const CELL_COUNT = SIZE * SIZE;
+
+// Difficulty -> number of clues to keep in the generated puzzle. Fewer clues
+// is harder. The digger may stop short of the target if going further would
+// break the puzzle's unique solution.
+const DIFFICULTIES = {
+  easy: 40,
+  medium: 32,
+  hard: 26,
+};
 
 function boxIndex(row, col) {
   return Math.floor(row / BOX) * BOX + Math.floor(col / BOX);
 }
 
-// Parse an 81-char puzzle string into an array of cell objects.
-function parsePuzzle(puzzle) {
-  return puzzle.split("").map((ch) => {
-    const value = ch === "0" ? "" : ch;
-    return { value, given: value !== "" };
-  });
+// Fisher–Yates in-place shuffle.
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
-function pickRandomPuzzle() {
-  return PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
+// Can `value` (1–9) be placed at flat `index` without violating Sudoku rules?
+function canPlace(grid, index, value) {
+  const r = Math.floor(index / SIZE);
+  const c = index % SIZE;
+  for (let k = 0; k < SIZE; k++) {
+    if (grid[r * SIZE + k] === value) return false;
+    if (grid[k * SIZE + c] === value) return false;
+    const br = Math.floor(r / BOX) * BOX + Math.floor(k / BOX);
+    const bc = Math.floor(c / BOX) * BOX + (k % BOX);
+    if (grid[br * SIZE + bc] === value) return false;
+  }
+  return true;
+}
+
+// Fill empty cells (0) with a complete valid solution using randomized
+// backtracking. Mutates and returns true on success.
+function fillGrid(grid) {
+  const index = grid.indexOf(0);
+  if (index === -1) return true;
+  for (const value of shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])) {
+    if (canPlace(grid, index, value)) {
+      grid[index] = value;
+      if (fillGrid(grid)) return true;
+      grid[index] = 0;
+    }
+  }
+  return false;
+}
+
+function generateSolvedGrid() {
+  const grid = new Array(CELL_COUNT).fill(0);
+  fillGrid(grid);
+  return grid;
+}
+
+// Count solutions of `grid`, stopping early once `limit` is reached. Used to
+// confirm a dug-out puzzle still has exactly one solution.
+function countSolutions(grid, limit) {
+  const index = grid.indexOf(0);
+  if (index === -1) return 1;
+  let count = 0;
+  for (let value = 1; value <= 9 && count < limit; value++) {
+    if (canPlace(grid, index, value)) {
+      grid[index] = value;
+      count += countSolutions(grid, limit - count);
+      grid[index] = 0;
+    }
+  }
+  return count;
+}
+
+// Build a fresh puzzle: start from a full solution, then remove cells one at a
+// time, keeping a removal only if the puzzle still has a unique solution.
+function generatePuzzle(targetClues) {
+  const puzzle = generateSolvedGrid();
+  let clues = CELL_COUNT;
+  for (const index of shuffle([...Array(CELL_COUNT).keys()])) {
+    if (clues <= targetClues) break;
+    const backup = puzzle[index];
+    puzzle[index] = 0;
+    if (countSolutions(puzzle.slice(), 2) === 1) {
+      clues--;
+    } else {
+      puzzle[index] = backup; // removal made the solution ambiguous; keep it
+    }
+  }
+  return puzzle;
+}
+
+// Turn a numeric puzzle grid (0 = empty) into the cell objects used by the UI.
+function buildCells(grid) {
+  return grid.map((value) => ({
+    value: value === 0 ? "" : String(value),
+    given: value !== 0,
+  }));
 }
 
 // Returns a Set of cell indices that conflict with another cell sharing the
@@ -70,7 +144,10 @@ function findConflicts(cells) {
 }
 
 function Sudoku() {
-  const [cells, setCells] = useState(() => parsePuzzle(pickRandomPuzzle()));
+  const [difficulty, setDifficulty] = useState("medium");
+  const [cells, setCells] = useState(() =>
+    buildCells(generatePuzzle(DIFFICULTIES.medium))
+  );
   const [selected, setSelected] = useState(null);
 
   const conflicts = useMemo(() => findConflicts(cells), [cells]);
@@ -124,9 +201,19 @@ function Sudoku() {
     setCellValue(selected, value);
   };
 
-  const handleNewGame = () => {
-    setCells(parsePuzzle(pickRandomPuzzle()));
+  const startNewGame = useCallback((level) => {
+    setCells(buildCells(generatePuzzle(DIFFICULTIES[level])));
     setSelected(null);
+  }, []);
+
+  const handleNewGame = () => {
+    startNewGame(difficulty);
+  };
+
+  const handleDifficultyChange = (event) => {
+    const level = event.target.value;
+    setDifficulty(level);
+    startNewGame(level);
   };
 
   const padDisabled =
@@ -138,6 +225,19 @@ function Sudoku() {
       <p className="sudoku-instructions">
         Click a cell, then type 1–9. Press Backspace or Delete to clear.
       </p>
+
+      <div className="sudoku-difficulty">
+        <label htmlFor="sudoku-difficulty-select">Difficulty</label>
+        <select
+          id="sudoku-difficulty-select"
+          value={difficulty}
+          onChange={handleDifficultyChange}
+        >
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
 
       <div className="sudoku-board" role="grid" aria-label="Sudoku board">
         {cells.map((cell, index) => {
