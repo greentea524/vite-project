@@ -61,9 +61,6 @@ class ReactTabHeader extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      apkAccessCode: "",
-      isApkUnlocked: false,
-      apkError: "",
       selectedGame: null,
     };
   }
@@ -88,25 +85,6 @@ class ReactTabHeader extends Component {
         return null;
     }
   }
-
-  handleApkAccessCodeChange = (event) => {
-    this.setState({ apkAccessCode: event.target.value, apkError: "" });
-  };
-
-  unlockApkDownload = () => {
-    const expectedAccessCode =
-      import.meta.env.VITE_APK_ACCESS_CODE || "apk-download-2026";
-
-    if (this.state.apkAccessCode === expectedAccessCode) {
-      this.setState({
-        isApkUnlocked: true,
-        apkError: "",
-      });
-      return;
-    }
-
-    this.setState({ apkError: "Incorrect password. Please try again." });
-  };
 
   render() {
     return (
@@ -202,53 +180,6 @@ class ReactTabHeader extends Component {
                       </div>
                     ))}
                   </div>
-                </div>
-
-                <div className="games-section">
-                  <h6 className="games-section-title">Android App</h6>
-                  {!this.state.isApkUnlocked ? (
-                    <div className="apk-gate">
-                      <p className="apk-gate-text">
-                        Enter password to unlock APK download
-                      </p>
-                      <div className="apk-gate-controls">
-                        <input
-                          type="password"
-                          value={this.state.apkAccessCode}
-                          onChange={this.handleApkAccessCodeChange}
-                          placeholder="Access code"
-                          className="apk-password-input"
-                          aria-label="APK access code"
-                        />
-                        <button
-                          type="button"
-                          onClick={this.unlockApkDownload}
-                          className="apk-unlock-btn"
-                        >
-                          Unlock
-                        </button>
-                      </div>
-                      {this.state.apkError && (
-                        <div className="apk-error" role="alert">
-                          {this.state.apkError}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <a
-                      className="game-link apk-link"
-                      href="https://greentea524.github.io/file/app-release.apk"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="APK download (opens in a new tab)"
-                    >
-                      <span>
-                        <i className="fa fa-android" aria-hidden="true"></i>
-                        Download APK
-                      </span>
-                      <i className="fa fa-external-link" aria-hidden="true"></i>
-                    </a>
-                  )}
                 </div>
               </div>
             )}
