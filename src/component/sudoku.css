@@ -1,0 +1,152 @@
+.sudoku {
+  --cell-size: clamp(32px, 9.5vw, 52px);
+  width: min(100%, 520px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.sudoku-title {
+  margin: 0;
+}
+
+.sudoku-instructions {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.sudoku-board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  /* Fluid: never wider than the container, capped at the ideal size so the
+     board always fits on small/mobile screens. Square via aspect-ratio. */
+  width: min(100%, calc(var(--cell-size) * 9));
+  aspect-ratio: 1 / 1;
+  border: 3px solid #1f2937;
+  background: #1f2937;
+}
+
+.sudoku-cell {
+  width: 100%;
+  height: 100%;
+  /* Override Windows theme button defaults (min-width/padding) that would
+     stretch cells into non-square rectangles and offset the digits. */
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: clamp(1rem, 4.5vw, 1.6rem);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(31, 41, 55, 0.25);
+  color: #1f2937;
+  transition: background-color 0.12s ease, transform 0.05s ease;
+}
+
+/* Distinct bold accent color per 3×3 box */
+.sudoku-cell.box-0 { background: #fde2e4; }
+.sudoku-cell.box-1 { background: #e2f0cb; }
+.sudoku-cell.box-2 { background: #cde7ff; }
+.sudoku-cell.box-3 { background: #fff1c1; }
+.sudoku-cell.box-4 { background: #e7d6ff; }
+.sudoku-cell.box-5 { background: #d0f4f0; }
+.sudoku-cell.box-6 { background: #ffe0c7; }
+.sudoku-cell.box-7 { background: #fcd5e5; }
+.sudoku-cell.box-8 { background: #d7f9e3; }
+
+/* Thicker borders to delineate the nine 3×3 boxes */
+.sudoku-cell.box-left { border-left: 2px solid #1f2937; }
+.sudoku-cell.box-top { border-top: 2px solid #1f2937; }
+.sudoku-cell.board-right { border-right: 2px solid #1f2937; }
+.sudoku-cell.board-bottom { border-bottom: 2px solid #1f2937; }
+
+.sudoku-cell.given {
+  font-weight: 800;
+  color: #0f172a;
+  cursor: default;
+}
+
+.sudoku-cell.selected {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+  z-index: 1;
+}
+
+.sudoku-cell.conflict {
+  background: #ef4444;
+  color: #fff;
+}
+
+.sudoku-cell:focus {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+}
+
+.sudoku-cell:disabled {
+  cursor: default;
+}
+
+.sudoku-pad {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+  width: min(100%, calc(var(--cell-size) * 9));
+}
+
+.sudoku-pad-btn {
+  min-width: 0;
+  padding: 0.5rem 0;
+  font-size: clamp(1.1rem, 4.5vw, 1.5rem);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sudoku-pad-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.sudoku-pad-erase {
+  grid-column: span 1;
+}
+
+.sudoku-win {
+  font-size: clamp(1.4rem, 6vw, 2rem);
+  font-weight: 800;
+  text-align: center;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, #ff6b6b, #feca57, #1dd1a1, #54a0ff, #5f27cd);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sudoku-celebrate 2s linear infinite;
+}
+
+@keyframes sudoku-celebrate {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+.sudoku-new-game {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 576px) {
+  .sudoku {
+    --cell-size: clamp(30px, 10vw, 40px);
+    width: 100%;
+  }
+}

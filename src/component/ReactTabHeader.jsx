@@ -7,6 +7,7 @@ import Minesweeper from "./Minesweeper.jsx";
 import DataAnalytics from "./DataAnalytics.jsx";
 import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
+import Sudoku from "./Sudoku.jsx";
 
 const LOCAL_GAMES = [
   {
@@ -26,6 +27,12 @@ const LOCAL_GAMES = [
     title: "Dice 21",
     icon: "fa-cubes",
     description: "Roll toward 21 without busting in this dice blackjack.",
+  },
+  {
+    key: "sudoku",
+    title: "Sudoku",
+    icon: "fa-table",
+    description: "Fill the colorful 9×9 grid so every row, column, and box has 1–9.",
   },
 ];
 
@@ -81,6 +88,8 @@ class ReactTabHeader extends Component {
         return <Minesweeper />;
       case "dice21":
         return <DiceBlackjack />;
+      case "sudoku":
+        return <Sudoku />;
       default:
         return null;
     }
