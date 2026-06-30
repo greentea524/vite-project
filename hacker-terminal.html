@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Terminal Feed</title>
+<style>
+  :root {
+    --green: #33ff66;
+    --green-dim: #1c8a39;
+    --amber: #ffcc33;
+    --red: #ff4d4d;
+    --bg: #000500;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Cascadia Code", "Fira Code", "Consolas", "Courier New", monospace;
+    color: var(--green);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    text-shadow: 0 0 4px rgba(51, 255, 102, 0.55);
+  }
+
+  /* faint CRT scanline overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.25) 3px,
+      rgba(0, 0, 0, 0) 4px
+    );
+    z-index: 5;
+  }
+
+  #feed {
+    flex: 1;
+    overflow: hidden;
+    padding: 16px 20px 8px;
+    font-size: 15px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .line { display: block; }
+  .dim   { color: var(--green-dim); }
+  .amber { color: var(--amber); text-shadow: 0 0 4px rgba(255, 204, 51, 0.55); }
+  .red   { color: var(--red);   text-shadow: 0 0 5px rgba(255, 77, 77, 0.6); }
+  .granted { color: var(--green); font-weight: bold; }
+  .bar { color: var(--green-dim); }
+
+  /* blinking cursor on the last line */
+  #cursor {
+    display: inline-block;
+    width: 9px;
+    height: 16px;
+    background: var(--green);
+    vertical-align: text-bottom;
+    margin-left: 2px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* control bar */
+  #controls {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(0, 20, 6, 0.85);
+    border-top: 1px solid var(--green-dim);
+    font-size: 13px;
+    z-index: 10;
+    transition: opacity 0.4s ease;
+  }
+  /* auto-hide controls when idle for clean recording */
+  body.idle #controls { opacity: 0; }
+
+  #controls button {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s, color 0.15s;
+  }
+  #controls button:hover { background: var(--green-dim); color: #000; }
+  #controls .spacer { flex: 1; }
+  #controls label { color: var(--green-dim); }
+  #speedVal { color: var(--green); min-width: 34px; display: inline-block; }
+  #controls input[type="range"] { accent-color: var(--green); cursor: pointer; }
+</style>
+</head>
+<body>
+  <div id="feed" aria-live="off"></div>
+
+  <div id="controls">
+    <button id="toggleBtn" title="Pause / resume (space)">⏸ Pause</button>
+    <label for="speed">speed</label>
+    <input id="speed" type="range" min="1" max="20" value="10" />
+    <span id="speedVal">1.0x</span>
+    <div class="spacer"></div>
+    <span class="dim" id="status">streaming</span>
+    <button id="fsBtn" title="Toggle fullscreen (f)">⛶ Fullscreen</button>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var feed = document.getElementById("feed");
+  var toggleBtn = document.getElementById("toggleBtn");
+  var speedInput = document.getElementById("speed");
+  var speedVal = document.getElementById("speedVal");
+  var statusEl = document.getElementById("status");
+  var fsBtn = document.getElementById("fsBtn");
+
+  var MAX_LINES = 200;     // cap DOM nodes so it can loop forever
+  var BASE_DELAY = 320;    // ms per line at 1.0x
+  var paused = false;
+  var timer = null;
+
+  // ----- helpers -----------------------------------------------------------
+  function rand(n) { return Math.floor(Math.random() * n); }
+  function pick(arr) { return arr[rand(arr.length)]; }
+  function pad(n, len) { n = String(n); while (n.length < len) n = "0" + n; return n; }
+
+  function hex(len) {
+    var s = "";
+    for (var i = 0; i < len; i++) s += "0123456789abcdef"[rand(16)];
+    return s;
+  }
+
+  function ip() {
+    return rand(256) + "." + rand(256) + "." + rand(256) + "." + rand(256);
+  }
+
+  function ts() {
+    var d = new Date();
+    return pad(d.getHours(), 2) + ":" + pad(d.getMinutes(), 2) + ":" +
+           pad(d.getSeconds(), 2) + "." + pad(d.getMilliseconds(), 3);
+  }
+
+  // ----- line generators ---------------------------------------------------
+  var HOSTS = ["node", "core", "relay", "vault", "gw", "edge", "proxy", "shard"];
+  var USERS = ["root", "admin", "svc_db", "operator", "deploy", "guest", "sysop"];
+  var SERVICES = ["sshd", "kernel", "nginx", "auth", "ftpd", "dns", "ids", "vpn"];
+  var PROTOS = ["TCP", "UDP", "TLS1.3", "SSH2", "HTTP/2", "ICMP"];
+  var FILES = [
+    "/etc/shadow", "/var/lib/secrets.db", "/boot/vmlinuz", "/root/.ssh/id_rsa",
+    "/opt/payload.bin", "/proc/kcore", "/dev/mem", "/usr/bin/portscan"
+  ];
+
+  function hexDump() {
+    var addr = "0x" + hex(8).toUpperCase();
+    var bytes = "";
+    for (var i = 0; i < 16; i++) bytes += hex(2) + " ";
+    var ascii = "";
+    for (var j = 0; j < 16; j++) {
+      var c = 33 + rand(94);
+      ascii += (c >= 33 && c <= 126) ? String.fromCharCode(c) : ".";
+    }
+    return { cls: "dim", html: addr + "  " + bytes + " |" + ascii + "|" };
+  }
+
+  function progressBar() {
+    var pct = rand(101);
+    var width = 28;
+    var filled = Math.round(pct / 100 * width);
+    var bar = "";
+    for (var i = 0; i < width; i++) bar += i < filled ? "█" : "░";
+    var label = pick([
+      "decrypting", "exfiltrating", "bruteforce", "uploading", "mapping subnet",
+      "cracking hash", "injecting", "scanning ports", "tunneling"
+    ]);
+    return { cls: "bar", html: "[" + bar + "] " + pad(pct, 3) + "%  " + label };
+  }
+
+  function access() {
+    var granted = Math.random() > 0.45;
+    if (granted) {
+      return {
+        cls: "granted",
+        html: "[" + ip() + "] " + pick(USERS) + "@" + pick(HOSTS) +
+              "  >>> ACCESS GRANTED  (token " + hex(12) + ")"
+      };
+    }
+    return {
+      cls: "red",
+      html: "[" + ip() + "] " + pick(USERS) + "@" + pick(HOSTS) +
+            "  !!! ACCESS DENIED  (retry " + (1 + rand(9)) + "/9)"
+    };
+  }
+
+  function netLine() {
+    return {
+      cls: "",
+      html: ip() + ":" + (1024 + rand(64000)) + " -> " + ip() + ":" + pick([22, 80, 443, 3306, 8080]) +
+            "  " + pick(PROTOS) + "  " + pick(["SYN", "ACK", "ESTABLISHED", "FIN", "RST"]) +
+            "  " + (rand(9000) + 40) + "b"
+    };
+  }
+
+  function sysLine() {
+    return {
+      cls: "dim",
+      html: pick(SERVICES) + "[" + (100 + rand(9000)) + "]: " + pick([
+        "session opened for user " + pick(USERS),
+        "connection from " + ip() + " port " + (1024 + rand(64000)),
+        "reading " + pick(FILES),
+        "key exchange complete, cipher aes256-gcm",
+        "firewall rule bypassed on chain INPUT",
+        "spawning shell pid=" + (1000 + rand(60000)),
+        "memory region " + "0x" + hex(8) + " mapped rwx",
+        "checksum " + hex(40)
+      ])
+    };
+  }
+
+  function alertLine() {
+    return {
+      cls: "amber",
+      html: "[WARN] " + pick([
+        "intrusion detection triggered on " + pick(HOSTS),
+        "anomalous traffic from " + ip(),
+        "privilege escalation attempt detected",
+        "tracing route... " + Array.from({ length: 4 }, ip).join(" -> "),
+        "encryption layer " + (1 + rand(7)) + " peeled"
+      ])
+    };
+  }
+
+  // weighted generator pool
+  var GENERATORS = [
+    hexDump, hexDump, sysLine, sysLine, netLine, netLine, netLine,
+    progressBar, progressBar, access, access, alertLine
+  ];
+
+  function buildLine() {
+    var g = pick(GENERATORS)();
+    var span = document.createElement("span");
+    span.className = "line" + (g.cls ? " " + g.cls : "");
+    span.textContent = ts() + "  " + g.html;
+    return span;
+  }
+
+  // blinking cursor that always sits at the bottom
+  var cursorLine = document.createElement("span");
+  cursorLine.className = "line";
+  cursorLine.innerHTML = '<span class="dim">root@localhost:~# </span><span id="cursor"></span>';
+
+  // ----- main loop ---------------------------------------------------------
+  function emit() {
+    feed.insertBefore(buildLine(), cursorLine);
+    while (feed.childNodes.length - 1 > MAX_LINES) {
+      feed.removeChild(feed.firstChild);
+    }
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function currentDelay() {
+    // speed 1..20 maps to multiplier 0.1x .. 2.0x
+    var mult = speedInput.value / 10;
+    return BASE_DELAY / mult;
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    if (paused) return;
+    // small jitter so the cadence feels organic
+    var jitter = 0.6 + Math.random() * 0.8;
+    timer = setTimeout(function () {
+      emit();
+      schedule();
+    }, currentDelay() * jitter);
+  }
+
+  // ----- controls ----------------------------------------------------------
+  function setPaused(p) {
+    paused = p;
+    toggleBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+    statusEl.textContent = paused ? "paused" : "streaming";
+    if (!paused) schedule();
+    else clearTimeout(timer);
+  }
+
+  toggleBtn.addEventListener("click", function () { setPaused(!paused); });
+
+  speedInput.addEventListener("input", function () {
+    speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+    if (!paused) schedule();
+  });
+
+  fsBtn.addEventListener("click", function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === "f" || e.key === "F") { fsBtn.click(); }
+    else if (e.key === "ArrowUp") { speedInput.value = Math.min(20, +speedInput.value + 1); speedInput.dispatchEvent(new Event("input")); }
+    else if (e.key === "ArrowDown") { speedInput.value = Math.max(1, +speedInput.value - 1); speedInput.dispatchEvent(new Event("input")); }
+  });
+
+  // auto-hide the control bar when the mouse is idle (clean recordings)
+  var idleTimer = null;
+  function poke() {
+    document.body.classList.remove("idle");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { document.body.classList.add("idle"); }, 2500);
+  }
+  document.addEventListener("mousemove", poke);
+  document.addEventListener("keydown", poke);
+
+  // ----- boot --------------------------------------------------------------
+  feed.appendChild(cursorLine);
+  speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  // seed a few lines so it doesn't start empty
+  for (var i = 0; i < 12; i++) emit();
+  schedule();
+  poke();
+})();
+</script>
+</body>
+</html>
