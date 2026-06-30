@@ -111,10 +111,10 @@ class ReactTabHeader extends Component {
           {/* <Tab eventKey="profile" title="About">
             <About />
           </Tab> */}
-          <Tab eventKey="data" title="Data">
+          <Tab eventKey="utility" title="Utility">
             <Tabs
               defaultActiveKey="fuelcalculator"
-              id="data-subtab"
+              id="utility-subtab"
               className="mb-3"
               variant="tabs"
               justify
@@ -124,6 +124,29 @@ class ReactTabHeader extends Component {
               </Tab>
               <Tab eventKey="analytics" title="Analytics">
                 <DataAnalytics theme={this.props.theme} />
+              </Tab>
+              <Tab eventKey="hackerterminal" title="Hacker Terminal">
+                <div className="utility-launch">
+                  <h6 className="utility-launch-title">
+                    <i className="fa fa-terminal" aria-hidden="true"></i> Hacker
+                    Terminal
+                  </h6>
+                  <p className="utility-launch-description">
+                    A fake green-on-black hacker terminal feed for
+                    screen-recordings and demos — auto-scrolling fake logs with
+                    pause/resume and speed controls. Opens in a new tab so you
+                    can run it fullscreen.
+                  </p>
+                  <a
+                    className="utility-launch-btn"
+                    href={`${import.meta.env.BASE_URL}hacker-terminal.html`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <i className="fa fa-play" aria-hidden="true"></i> Launch
+                    terminal
+                  </a>
+                </div>
               </Tab>
             </Tabs>
           </Tab>

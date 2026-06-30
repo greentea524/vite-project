@@ -342,6 +342,58 @@ button.game-link {
   padding: 0 0.15rem;
 }
 
+.utility-launch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 1.25rem 0.5rem;
+  text-align: left;
+}
+
+.utility-launch-title {
+  margin: 0;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.utility-launch-description {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+
+.utility-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border: 2px solid #0d6efd;
+  border-radius: 999px;
+  color: #0d6efd;
+  text-decoration: none;
+  font-weight: 700;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.utility-launch-btn:hover,
+.utility-launch-btn:focus {
+  background: #0d6efd;
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
 .App > .window {
   width: 100%;
 }
