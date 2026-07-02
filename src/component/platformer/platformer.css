@@ -3,11 +3,14 @@
   flex-direction: column;
   align-items: center;
   padding: 8px 0 16px;
+  /* The Games tab centers games in a flex row; without an explicit
+     width the shell collapses to the canvas's intrinsic 320px. */
+  width: 100%;
 }
 
 .plat-stage {
   position: relative;
-  width: min(640px, 100%);
+  width: 100%;
 }
 
 .plat-canvas {
@@ -38,7 +41,7 @@
 /* Touch controls live in a bar below the game view (PLAT-13), so
    they never cover gameplay. */
 .plat-touch-bar {
-  width: min(640px, 100%);
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
