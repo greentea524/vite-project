@@ -11,8 +11,20 @@ import { WORLDS } from "./levels.js";
 // capture guarantees the release fires even when the pointer slides
 // off the button.
 function TouchButton({ label, className, onPress, onRelease }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    // React registers touch handlers as passive, which cannot block
+    // the browser's long-press text-selection gesture — attach a
+    // non-passive touchstart directly (PLAT-17). Pointer events
+    // still fire; only the selection/callout default is cancelled.
+    const el = ref.current;
+    const block = (e) => e.preventDefault();
+    el.addEventListener("touchstart", block, { passive: false });
+    return () => el.removeEventListener("touchstart", block);
+  }, []);
   return (
     <button
+      ref={ref}
       type="button"
       className={`plat-touch-btn ${className}`}
       onPointerDown={(e) => {
@@ -92,6 +104,16 @@ function Platformer() {
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  const inGame = screen === "playing" || screen === "paused";
+
+  // While playing, holding a control must not start text selection
+  // anywhere on the page — the shell-level user-select only protects
+  // the game's own text (PLAT-17).
+  useEffect(() => {
+    document.body.classList.toggle("plat-no-select", inGame);
+    return () => document.body.classList.remove("plat-no-select");
+  }, [inGame]);
+
   const press = (action) => () => engineRef.current?.input.press(action);
   const release = (action) => () => engineRef.current?.input.release(action);
 
@@ -125,8 +147,6 @@ function Platformer() {
     state.selectedAvatar = i;
     setAvatar(i);
   };
-
-  const inGame = screen === "playing" || screen === "paused";
 
   return (
     <div className="plat-shell" ref={shellRef}>

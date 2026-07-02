@@ -73,11 +73,24 @@
   margin-top: 10px;
 }
 
+/* Page-wide selection guard while the game is being played — a held
+   control button must not long-press-select text anywhere (PLAT-17). */
+body.plat-no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .plat-touch-btn {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  /* The Windows theme stylesheets set button { min-width: 75px },
+     which blows up the controls and pushes them off screen (PLAT-17). */
+  min-width: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -104,6 +117,32 @@
 .plat-touch-center {
   display: flex;
   gap: 10px;
+}
+
+/* Portrait phones: fullscreen/landscape isn't available everywhere
+   (iPhone), so make the primary controls thumb-sized and stack the
+   small pause/fullscreen pair in the middle (PLAT-17). */
+@media (max-width: 520px) {
+  .plat-touch-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 24px;
+  }
+
+  .plat-touch-move {
+    gap: 10px;
+  }
+
+  .plat-touch-center {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .plat-touch-pause {
+    width: 40px;
+    height: 40px;
+    font-size: 12px;
+  }
 }
 
 .plat-touch-pause {
