@@ -8,6 +8,7 @@ import DataAnalytics from "./DataAnalytics.jsx";
 import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 import Sudoku from "./Sudoku.jsx";
+import Platformer from "./platformer/Platformer.jsx";
 
 const LOCAL_GAMES = [
   {
@@ -33,6 +34,12 @@ const LOCAL_GAMES = [
     title: "Sudoku",
     icon: "fa-table",
     description: "Fill the colorful 9×9 grid so every row, column, and box has 1–9.",
+  },
+  {
+    key: "platformer",
+    title: "Platformer",
+    icon: "fa-gamepad",
+    description: "Run, double-jump, and stomp through six levels across two worlds.",
   },
 ];
 
@@ -90,6 +97,8 @@ class ReactTabHeader extends Component {
         return <DiceBlackjack />;
       case "sudoku":
         return <Sudoku />;
+      case "platformer":
+        return <Platformer />;
       default:
         return null;
     }

@@ -1,0 +1,184 @@
+.plat-shell {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 16px;
+}
+
+.plat-stage {
+  position: relative;
+  width: min(640px, 100%);
+}
+
+.plat-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  border: 2px solid #333;
+  background: #6eb8e8;
+}
+
+.plat-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+.plat-touch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.plat-touch-btn {
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: rgba(20, 24, 40, 0.4);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.plat-touch-btn:active {
+  background: rgba(20, 24, 40, 0.7);
+}
+
+.plat-touch-move {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 12px;
+}
+
+.plat-touch-jump {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+}
+
+.plat-touch-pause {
+  position: absolute;
+  right: 10px;
+  top: 30px;
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
+}
+
+.plat-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(20, 24, 40, 0.85);
+  color: #fff;
+  text-align: center;
+  padding: 12px;
+}
+
+.plat-overlay-dim {
+  background: rgba(20, 24, 40, 0.6);
+}
+
+.plat-title {
+  margin: 0;
+  font-family: "Courier New", monospace;
+  letter-spacing: 1px;
+}
+
+.plat-text {
+  margin: 0;
+  font-size: 13px;
+  max-width: 90%;
+}
+
+.plat-btn {
+  min-width: 140px;
+}
+
+.plat-avatar-row {
+  display: flex;
+  gap: 8px;
+}
+
+.plat-avatar-btn {
+  padding: 6px;
+  line-height: 0;
+}
+
+.plat-avatar-selected {
+  outline: 2px solid #ffd54a;
+}
+
+.plat-icon {
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  image-rendering: pixelated;
+}
+
+.plat-icon-blank {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+}
+
+.plat-map {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plat-map-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.plat-map-world {
+  min-width: 70px;
+  text-align: right;
+  font-size: 13px;
+}
+
+.plat-map-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  min-width: 34px;
+}
+
+.plat-map-done {
+  color: #ffd95a;
+}
+
+.plat-map-locked {
+  color: #8a8a90;
+}

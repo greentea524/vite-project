@@ -9,6 +9,7 @@
     "build": "vite build --base=./",
     "preview": "vite preview",
     "deploy": "gh-pages -b master -d dist",
+    "test": "vitest run",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
-    "vite": "^8.0.13"
+    "vite": "^8.0.13",
+    "vitest": "^4.1.9"
   }
 }
