@@ -56,9 +56,11 @@ function SpriteIcon({ sheet, frames, size = 32, aspect = 1 }) {
 function Platformer() {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
+  const shellRef = useRef(null);
   const stateRef = useRef(null);
   if (!stateRef.current) stateRef.current = new GameState();
   const state = stateRef.current;
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
 
   const [screen, setScreen] = useState(state.screen);
@@ -84,8 +86,40 @@ function Platformer() {
     };
   }, [state]);
 
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
   const press = (action) => () => engineRef.current?.input.press(action);
   const release = (action) => () => engineRef.current?.input.release(action);
+
+  // Fullscreen + landscape for mobile play (PLAT-16). Orientation
+  // lock only works inside fullscreen and only on some platforms
+  // (Android Chrome yes, iOS Safari no) — every call is guarded so
+  // unsupported devices just no-op.
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await shellRef.current.requestFullscreen();
+        try {
+          await screen.orientation.lock("landscape");
+        } catch {
+          // orientation lock unsupported — fullscreen alone is fine
+        }
+      } else {
+        try {
+          screen.orientation.unlock();
+        } catch {
+          // ignore
+        }
+        await document.exitFullscreen();
+      }
+    } catch {
+      // Fullscreen API unavailable (e.g. iPhone Safari)
+    }
+  };
 
   const pickAvatar = (i) => {
     state.selectedAvatar = i;
@@ -95,9 +129,15 @@ function Platformer() {
   const inGame = screen === "playing" || screen === "paused";
 
   return (
-    <div className="plat-shell">
-      <div className="plat-stage" style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}>
-        <canvas ref={canvasRef} width={VIEW_W} height={VIEW_H} className="plat-canvas" />
+    <div className="plat-shell" ref={shellRef}>
+      <div className="plat-stage">
+        <canvas
+          ref={canvasRef}
+          width={VIEW_W}
+          height={VIEW_H}
+          className="plat-canvas"
+          style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}
+        />
 
         {inGame && (
           <div className="plat-hud">
@@ -250,13 +290,24 @@ function Platformer() {
               onRelease={release("move_right")}
             />
           </div>
-          <button
-            type="button"
-            className="plat-touch-btn plat-touch-pause"
-            onClick={() => (screen === "paused" ? state.resume() : state.pause())}
-          >
-            ❚❚
-          </button>
+          <div className="plat-touch-center">
+            <button
+              type="button"
+              className="plat-touch-btn plat-touch-pause"
+              onClick={() => (screen === "paused" ? state.resume() : state.pause())}
+            >
+              ❚❚
+            </button>
+            <button
+              type="button"
+              className="plat-touch-btn plat-touch-pause"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              onClick={toggleFullscreen}
+            >
+              ⛶
+            </button>
+          </div>
           <TouchButton
             label="▲"
             className="plat-touch-jump"
