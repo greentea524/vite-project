@@ -109,37 +109,6 @@ function Platformer() {
           </div>
         )}
 
-        {hasTouch && screen === "playing" && (
-          <div className="plat-touch">
-            <div className="plat-touch-move">
-              <TouchButton
-                label="◀"
-                className="plat-touch-left"
-                onPress={press("move_left")}
-                onRelease={release("move_left")}
-              />
-              <TouchButton
-                label="▶"
-                className="plat-touch-right"
-                onPress={press("move_right")}
-                onRelease={release("move_right")}
-              />
-            </div>
-            <TouchButton
-              label="▲"
-              className="plat-touch-jump"
-              onPress={press("jump")}
-              onRelease={release("jump")}
-            />
-            <button
-              type="button"
-              className="plat-touch-btn plat-touch-pause"
-              onClick={() => state.pause()}
-            >
-              ❚❚
-            </button>
-          </div>
-        )}
 
         {screen === "menu" && (
           <div className="plat-overlay">
@@ -249,6 +218,38 @@ function Platformer() {
           </div>
         )}
       </div>
+
+      {hasTouch && inGame && (
+        <div className="plat-touch-bar">
+          <div className="plat-touch-move">
+            <TouchButton
+              label="◀"
+              className="plat-touch-left"
+              onPress={press("move_left")}
+              onRelease={release("move_left")}
+            />
+            <TouchButton
+              label="▶"
+              className="plat-touch-right"
+              onPress={press("move_right")}
+              onRelease={release("move_right")}
+            />
+          </div>
+          <button
+            type="button"
+            className="plat-touch-btn plat-touch-pause"
+            onClick={() => (screen === "paused" ? state.resume() : state.pause())}
+          >
+            ❚❚
+          </button>
+          <TouchButton
+            label="▲"
+            className="plat-touch-jump"
+            onPress={press("jump")}
+            onRelease={release("jump")}
+          />
+        </div>
+      )}
     </div>
   );
 }
