@@ -5,10 +5,11 @@ import { Engine, VIEW_W, VIEW_H } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS } from "./levels.js";
 
-// On-screen control for touch play (PLAT-13). Pointer events feed the
-// engine's Input actions, so press-and-hold and release timing behave
-// exactly like keyboard keys. Pointer capture guarantees the release
-// fires even when the finger slides off the button.
+// On-screen control button (PLAT-13), usable with touch or mouse.
+// Pointer events feed the engine's Input actions, so press-and-hold
+// and release timing behave exactly like keyboard keys. Pointer
+// capture guarantees the release fires even when the pointer slides
+// off the button.
 function TouchButton({ label, className, onPress, onRelease }) {
   return (
     <button
@@ -32,16 +33,17 @@ function TouchButton({ label, className, onPress, onRelease }) {
   );
 }
 
-// Crops the first 16x16 frame out of a horizontal sprite sheet.
-function SpriteIcon({ sheet, frames, size = 32 }) {
+// Crops the first frame out of a horizontal sprite sheet. Frames are
+// 16px wide; `aspect` covers non-square art (the flag is 16x32).
+function SpriteIcon({ sheet, frames, size = 32, aspect = 1 }) {
   return (
     <span
       className="plat-icon"
       style={{
         width: size,
-        height: size,
+        height: size * aspect,
         backgroundImage: `url(${sheet})`,
-        backgroundSize: `${size * frames}px ${size}px`,
+        backgroundSize: `${size * frames}px ${size * aspect}px`,
       }}
     />
   );
@@ -58,10 +60,6 @@ function Platformer() {
   if (!stateRef.current) stateRef.current = new GameState();
   const state = stateRef.current;
 
-  // Show touch controls when the primary pointer is a touchscreen.
-  const [hasTouch] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
-  );
 
   const [screen, setScreen] = useState(state.screen);
   const [coins, setCoins] = useState(state.coins);
@@ -113,9 +111,26 @@ function Platformer() {
         {screen === "menu" && (
           <div className="plat-overlay">
             <h3 className="plat-title">Platform Game</h3>
-            <p className="plat-text">
-              Move: A/D or ◀▶ · Jump: Space (hold for higher, press again mid-air) · Pause: Esc
-            </p>
+            <div className="plat-help">
+              <p className="plat-text">
+                Reach the flag <SpriteIcon sheet={IMAGE_URLS.flag} frames={1} size={12} aspect={2} /> to
+                clear each level — six levels across two worlds.
+              </p>
+              <p className="plat-text">
+                Grab coins <SpriteIcon sheet={IMAGE_URLS.coin} frames={2} size={16} /> · stomp
+                enemies <SpriteIcon sheet={IMAGE_URLS.enemy} frames={2} size={16} /> by landing on
+                top · checkpoints <SpriteIcon sheet={IMAGE_URLS.checkpoint} frames={1} size={16} /> set
+                your respawn.
+              </p>
+              <p className="plat-text">
+                Avoid spikes <SpriteIcon sheet={IMAGE_URLS.spike} frames={1} size={16} /> and
+                falling into pits — you have 3 lives per run.
+              </p>
+              <p className="plat-text">
+                Move with A/D, ◀▶ keys, or the on-screen buttons · jump with Space or ▲ — hold
+                for a higher jump, press again mid-air to double jump · pause with Esc or ❚❚.
+              </p>
+            </div>
             <div className="plat-avatar-row">
               {AVATAR_SHEETS.map((sheet, i) => (
                 <button
@@ -219,7 +234,7 @@ function Platformer() {
         )}
       </div>
 
-      {hasTouch && inGame && (
+      {inGame && (
         <div className="plat-touch-bar">
           <div className="plat-touch-move">
             <TouchButton
