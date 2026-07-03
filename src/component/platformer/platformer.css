@@ -109,9 +109,32 @@ body.plat-no-select {
   background: rgba(20, 24, 40, 0.7);
 }
 
-.plat-touch-move {
+/* Joystick movement control (PLAT-18) */
+.plat-joystick {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: rgba(20, 24, 40, 0.4);
   display: flex;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.plat-joystick-knob {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  transition: transform 0.08s;
 }
 
 .plat-touch-center {
@@ -129,8 +152,14 @@ body.plat-no-select {
     font-size: 24px;
   }
 
-  .plat-touch-move {
-    gap: 10px;
+  .plat-joystick {
+    width: 104px;
+    height: 104px;
+  }
+
+  .plat-joystick-knob {
+    width: 48px;
+    height: 48px;
   }
 
   .plat-touch-center {
