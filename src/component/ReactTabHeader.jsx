@@ -9,6 +9,7 @@ import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 import Sudoku from "./Sudoku.jsx";
 import Platformer from "./platformer/Platformer.jsx";
+import RubiksCubeSolver from "./rubiks/RubiksCubeSolver.jsx";
 
 const LOCAL_GAMES = [
   {
@@ -120,10 +121,10 @@ class ReactTabHeader extends Component {
           {/* <Tab eventKey="profile" title="About">
             <About />
           </Tab> */}
-          <Tab eventKey="utility" title="Utility">
+          <Tab eventKey="utilities" title="Utilities">
             <Tabs
               defaultActiveKey="fuelcalculator"
-              id="utility-subtab"
+              id="utilities-subtab"
               className="mb-3"
               variant="tabs"
               justify
@@ -135,19 +136,19 @@ class ReactTabHeader extends Component {
                 <DataAnalytics theme={this.props.theme} />
               </Tab>
               <Tab eventKey="hackerterminal" title="Hacker Terminal">
-                <div className="utility-launch">
-                  <h6 className="utility-launch-title">
+                <div className="utilities-launch">
+                  <h6 className="utilities-launch-title">
                     <i className="fa fa-terminal" aria-hidden="true"></i> Hacker
                     Terminal
                   </h6>
-                  <p className="utility-launch-description">
+                  <p className="utilities-launch-description">
                     A fake green-on-black hacker terminal feed for
                     screen-recordings and demos — auto-scrolling fake logs with
                     pause/resume and speed controls. Opens in a new tab so you
                     can run it fullscreen.
                   </p>
                   <a
-                    className="utility-launch-btn"
+                    className="utilities-launch-btn"
                     href={`${import.meta.env.BASE_URL}hacker-terminal.html`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -156,6 +157,9 @@ class ReactTabHeader extends Component {
                     terminal
                   </a>
                 </div>
+              </Tab>
+              <Tab eventKey="rubikscube" title="Rubik's Cube">
+                <RubiksCubeSolver />
               </Tab>
             </Tabs>
           </Tab>
