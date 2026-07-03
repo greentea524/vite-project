@@ -4,7 +4,7 @@ import { GameState, AVATAR_NAMES, START_LIVES } from "./state.js";
 import { Engine, VIEW_W, VIEW_H } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS } from "./levels.js";
-import { Network } from "./network.js";
+import { Network, MAX_PLAYERS } from "./network.js";
 
 // mm:ss.d for the leaderboard/results (PLAT-24).
 function formatTime(ms) {
@@ -492,7 +492,9 @@ function Platformer() {
                 <p className="plat-text">
                   Room code: <span className="plat-code">{roomCode}</span>
                 </p>
-                <p className="plat-text">Players:</p>
+                <p className="plat-text">
+                  Players ({roster.length}/{MAX_PLAYERS}):
+                </p>
                 <ul className="plat-roster">
                   {roster.map((r) => (
                     <li key={r.id}>

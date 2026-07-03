@@ -11,6 +11,7 @@ import { Server } from "socket.io";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no easily-confused chars
 const CODE_LEN = 4;
+export const MAX_PLAYERS = 4; // per room (host + up to 3 others)
 
 function makeCode(taken) {
   let code;
@@ -102,6 +103,10 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       const room = rooms.get(code);
       if (!room) {
         ack?.({ ok: false, error: "Room not found" });
+        return;
+      }
+      if (room.players.size >= MAX_PLAYERS) {
+        ack?.({ ok: false, error: "Room is full" });
         return;
       }
       const player = join(socket, room, code, payload);

@@ -60,6 +60,32 @@ describe("relay server + network client", () => {
     guest.destroy();
   });
 
+  it("caps a room at 4 players and rejects a 5th", async () => {
+    const host = new Network();
+    await connected(host, url);
+    const { code } = await host.createRoom("Host", 0);
+
+    const guests = [];
+    // 3 more fill the room to 4.
+    for (let i = 0; i < 3; i++) {
+      const g = new Network();
+      await connected(g, url);
+      const res = await g.joinRoom(code, `G${i}`, 0);
+      expect(res.ok).toBe(true);
+      guests.push(g);
+    }
+
+    const fifth = new Network();
+    await connected(fifth, url);
+    const res = await fifth.joinRoom(code, "TooMany", 0);
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/full/i);
+
+    host.destroy();
+    fifth.destroy();
+    guests.forEach((g) => g.destroy());
+  });
+
   it("rejects joining an unknown room code", async () => {
     const c = new Network();
     await connected(c, url);

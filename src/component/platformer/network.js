@@ -13,6 +13,7 @@ export const MULTIPLAYER_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_MULTIPLAYER_URL) || "";
 
 export const SEND_INTERVAL_MS = 66; // ~15 Hz, decoupled from the 60 Hz sim
+export const MAX_PLAYERS = 4; // mirrors the server cap (relay.js enforces it)
 
 export class Network {
   constructor() {
