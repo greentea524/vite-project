@@ -342,7 +342,7 @@ button.game-link {
   padding: 0 0.15rem;
 }
 
-.utility-launch {
+.utilities-launch {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -353,7 +353,7 @@ button.game-link {
   text-align: left;
 }
 
-.utility-launch-title {
+.utilities-launch-title {
   margin: 0;
   font-weight: 700;
   display: inline-flex;
@@ -361,14 +361,14 @@ button.game-link {
   gap: 0.5rem;
 }
 
-.utility-launch-description {
+.utilities-launch-description {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.45;
   opacity: 0.9;
 }
 
-.utility-launch-btn {
+.utilities-launch-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -386,8 +386,8 @@ button.game-link {
     transform 0.2s ease;
 }
 
-.utility-launch-btn:hover,
-.utility-launch-btn:focus {
+.utilities-launch-btn:hover,
+.utilities-launch-btn:focus {
   background: #0d6efd;
   color: #fff;
   text-decoration: none;

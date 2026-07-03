@@ -1,0 +1,186 @@
+.rubiks {
+  --rk-cell: clamp(20px, 5.2vw, 34px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.75rem 0.25rem 1.25rem;
+}
+
+.rk-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rk-help {
+  width: 100%;
+  max-width: 34rem;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.rk-help summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rk-help ol {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.rk-help li + li {
+  margin-top: 0.35rem;
+}
+
+.rk-palette {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.rk-swatch {
+  width: calc(var(--rk-cell) * 1.1);
+  height: calc(var(--rk-cell) * 1.1);
+  min-width: 0;
+  padding: 0;
+  border: 2px solid rgba(15, 23, 42, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rk-swatch-active {
+  outline: 3px solid #2563eb;
+  outline-offset: 1px;
+}
+
+/* Unfolded cross: U on top, L F R B in the middle band, D below. */
+.rk-net {
+  display: grid;
+  grid-template-areas:
+    ". u . ."
+    "l f r b"
+    ". d . .";
+  gap: 8px;
+}
+
+.rk-face {
+  display: grid;
+  grid-template-columns: repeat(3, var(--rk-cell));
+  grid-template-rows: repeat(3, var(--rk-cell));
+  gap: 2px;
+  padding: 3px;
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+.rk-sticker {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  border: 1px solid rgba(15, 23, 42, 0.3);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.rk-sticker:disabled {
+  cursor: default;
+  opacity: 1; /* keep true colors when locked during playback */
+}
+
+.rk-center {
+  cursor: not-allowed;
+  box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.25);
+}
+
+/* Pulse the stickers affected by the latest playback step. */
+.rk-changed {
+  animation: rk-pulse 0.45s ease;
+}
+
+@keyframes rk-pulse {
+  0% {
+    transform: scale(0.55);
+    filter: brightness(1.6);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.rk-errors {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  max-width: 32rem;
+}
+
+.rk-status {
+  margin: 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.rk-won {
+  font-size: 1.15rem;
+  color: #15803d;
+}
+
+.rk-moves {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+  max-width: 34rem;
+  font-family: "Consolas", "Menlo", monospace;
+}
+
+.rk-move {
+  padding: 0.15rem 0.4rem;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.65);
+  font-weight: 700;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.rk-move-current {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.rk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 576px) {
+  .rubiks {
+    /* 12 cells across the L-F-R-B band + gaps must fit inside the themed
+       window, so size against viewport width with a conservative factor. */
+    --rk-cell: clamp(12px, 5.2vw, 24px);
+  }
+
+  .rk-net {
+    gap: 4px;
+  }
+
+  .rk-face {
+    padding: 2px;
+    gap: 1px;
+  }
+}
