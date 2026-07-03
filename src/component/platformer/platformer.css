@@ -234,7 +234,10 @@ body.plat-no-select {
 
 .plat-avatar-row {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
+  max-width: 320px;
 }
 
 .plat-avatar-btn {

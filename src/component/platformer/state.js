@@ -11,7 +11,7 @@ export const START_LIVES = 3;
 
 // Player avatars selectable from the main menu (PG-30). The choice
 // persists for the whole session, including level restarts.
-export const AVATAR_NAMES = ["Blue", "Green", "Orange"];
+export const AVATAR_NAMES = ["Blue", "Green", "Orange", "Yellow", "Purple", "Pink"];
 
 export class GameState {
   constructor() {

@@ -43,7 +43,7 @@ const CLOUD_LAYERS = [
 ];
 const CLOUD_Y_SCALE = 0.1; // vertical motion_scale
 
-const AVATAR_SHEET_NAMES = ["player", "player2", "player3"];
+const AVATAR_SHEET_NAMES = ["player", "player2", "player3", "player4", "player5", "player6"];
 const CHECKPOINT_TINT = [0.55, 1, 0.55];
 const DEATH_TINT = [1, 0.45, 0.45];
 

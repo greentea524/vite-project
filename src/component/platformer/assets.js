@@ -4,6 +4,9 @@
 import playerUrl from "./assets/player.png";
 import player2Url from "./assets/player2.png";
 import player3Url from "./assets/player3.png";
+import player4Url from "./assets/player4.png";
+import player5Url from "./assets/player5.png";
+import player6Url from "./assets/player6.png";
 import enemyUrl from "./assets/enemy.png";
 import coinUrl from "./assets/coin.png";
 import spikeUrl from "./assets/spike.png";
@@ -18,14 +21,20 @@ import coinWav from "./assets/sfx/coin.wav";
 import stompWav from "./assets/sfx/stomp.wav";
 import levelCompleteWav from "./assets/sfx/level_complete.wav";
 
-// The three avatar sheets share one frame layout, so switching
-// avatars is just an atlas swap (PG-30).
-export const AVATAR_SHEETS = [playerUrl, player2Url, player3Url];
+// The avatar sheets share one frame layout, so switching avatars is
+// just an atlas swap (PG-30). player4..6 are hue-shifted recolors of
+// the blue base (PLAT-26).
+export const AVATAR_SHEETS = [
+  playerUrl, player2Url, player3Url, player4Url, player5Url, player6Url,
+];
 
 export const IMAGE_URLS = {
   player: playerUrl,
   player2: player2Url,
   player3: player3Url,
+  player4: player4Url,
+  player5: player5Url,
+  player6: player6Url,
   enemy: enemyUrl,
   coin: coinUrl,
   spike: spikeUrl,
