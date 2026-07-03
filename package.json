@@ -8,14 +8,12 @@
     "dev": "vite",
     "build": "vite build --base=./",
     "preview": "vite preview",
-    "deploy": "gh-pages -b master -d dist",
     "test": "vitest run",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.0",
     "bootstrap": "^5.2.2",
-    "gh-pages": ">=5.0.0",
     "react": "^19.2.7",
     "react-bootstrap": "^2.6.0",
     "react-dom": "^19.2.7",
