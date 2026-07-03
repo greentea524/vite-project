@@ -6,11 +6,23 @@
 
 import { TILE, buildLevel } from "./physics.js";
 import { LEVELS } from "./levels.js";
-import { createPlayer, updatePlayer, killPlayer, respawnPlayer, playerFrame, RESPAWN_DELAY } from "./player.js";
+import {
+  createPlayer,
+  updatePlayer,
+  killPlayer,
+  respawnPlayer,
+  playerFrame,
+  RESPAWN_DELAY,
+} from "./player.js";
 import { createEnemy, updateEnemy, enemyFrame } from "./enemy.js";
 import {
-  createCoin, createSpikes, createCheckpoint, createFlag,
-  updateCoin, coinFrame, processInteractions,
+  createCoin,
+  createSpikes,
+  createCheckpoint,
+  createFlag,
+  updateCoin,
+  coinFrame,
+  processInteractions,
 } from "./entities.js";
 import { Input } from "./input.js";
 import { Sfx } from "./sfx.js";
@@ -35,7 +47,8 @@ const AVATAR_SHEET_NAMES = ["player", "player2", "player3"];
 const CHECKPOINT_TINT = [0.55, 1, 0.55];
 const DEATH_TINT = [1, 0.45, 0.45];
 
-const css = ([r, g, b]) => `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+const css = ([r, g, b]) =>
+  `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 const isWhite = ([r, g, b]) => r === 1 && g === 1 && b === 1;
 
 export class Engine {
@@ -109,7 +122,8 @@ export class Engine {
       if (s.type === "coin") this.coins.push(createCoin(s.x, s.y));
       else if (s.type === "enemy") this.enemies.push(createEnemy(s.x, s.y));
       else if (s.type === "spikes") this.spikes.push(createSpikes(s.x, s.y));
-      else if (s.type === "checkpoint") this.checkpoints.push(createCheckpoint(s.x, s.y));
+      else if (s.type === "checkpoint")
+        this.checkpoints.push(createCheckpoint(s.x, s.y));
       else if (s.type === "flag") this.flags.push(createFlag(s.x, s.y));
     }
 
@@ -127,8 +141,15 @@ export class Engine {
     for (const c of this.coins) if (!c.gone) updateCoin(c, dt);
 
     processInteractions(
-      { player: p, level: this.level, coins: this.coins, enemies: this.enemies,
-        spikes: this.spikes, checkpoints: this.checkpoints, flags: this.flags },
+      {
+        player: p,
+        level: this.level,
+        coins: this.coins,
+        enemies: this.enemies,
+        spikes: this.spikes,
+        checkpoints: this.checkpoints,
+        flags: this.flags,
+      },
       {
         onCoin: () => {
           this.state.addCoin();
@@ -139,6 +160,7 @@ export class Engine {
         onFlag: () => {
           // Jingle plays on goal contact, before the UI transition (PG-27).
           this.sfx.play("level_complete");
+          this.input.clear(); // Clear held input to prevent momentum on next level
           this.state.levelComplete();
         },
         onPlayerDeath: () => this.onPlayerDeath(),
@@ -159,6 +181,7 @@ export class Engine {
 
   onPlayerDeath() {
     if (!killPlayer(this.player)) return;
+    this.input.clear(); // Clear held input to prevent momentum during respawn
     if (this.state.loseLife()) {
       this._pending = { t: GAME_OVER_DELAY, fn: () => this.state.gameOver() };
     } else {
@@ -235,14 +258,25 @@ export class Engine {
     this.renderClouds(ctx, ox, oy);
     this.renderTiles(ctx, ox, oy);
 
-    for (const s of this.spikes) this.drawSprite(ctx, "spike", 0, s.x - ox, s.y - oy);
+    for (const s of this.spikes)
+      this.drawSprite(ctx, "spike", 0, s.x - ox, s.y - oy);
     for (const k of this.checkpoints) {
-      const img = k.activated ? this.tinted("checkpoint", CHECKPOINT_TINT) : this.images.checkpoint;
-      ctx.drawImage(img, Math.round(k.x - ox - img.width / 2), Math.round(k.y - oy - img.height / 2));
+      const img = k.activated
+        ? this.tinted("checkpoint", CHECKPOINT_TINT)
+        : this.images.checkpoint;
+      ctx.drawImage(
+        img,
+        Math.round(k.x - ox - img.width / 2),
+        Math.round(k.y - oy - img.height / 2),
+      );
     }
     for (const f of this.flags) {
       const img = this.images.flag;
-      ctx.drawImage(img, Math.round(f.x - ox - img.width / 2), Math.round(f.y - 8 - oy - img.height / 2));
+      ctx.drawImage(
+        img,
+        Math.round(f.x - ox - img.width / 2),
+        Math.round(f.y - 8 - oy - img.height / 2),
+      );
     }
     for (const c of this.coins) {
       if (c.gone) continue;
@@ -252,15 +286,24 @@ export class Engine {
     }
     for (const e of this.enemies) {
       if (e.gone) continue;
-      this.drawFrame(ctx, this.images.enemy, enemyFrame(e), e.x - ox, e.y - oy, {
-        flip: e.dir > 0,
-        scaleY: e.scaleY,
-      });
+      this.drawFrame(
+        ctx,
+        this.images.enemy,
+        enemyFrame(e),
+        e.x - ox,
+        e.y - oy,
+        {
+          flip: e.dir > 0,
+          scaleY: e.scaleY,
+        },
+      );
     }
 
     const p = this.player;
     const sheetName = AVATAR_SHEET_NAMES[this.state.selectedAvatar] ?? "player";
-    const sheet = p.tint ? this.tinted(sheetName, DEATH_TINT) : this.images[sheetName];
+    const sheet = p.tint
+      ? this.tinted(sheetName, DEATH_TINT)
+      : this.images[sheetName];
     ctx.globalAlpha = p.alpha;
     this.drawFrame(ctx, sheet, playerFrame(p), p.x - ox, p.y - oy, {
       flip: p.facing < 0,
@@ -294,20 +337,46 @@ export class Engine {
       for (let tx = tx0; tx <= tx1; tx++) {
         const id = this.level.tiles.get(`${tx},${ty}`);
         if (id === undefined) continue;
-        ctx.drawImage(tiles, id * TILE, 0, TILE, TILE,
-          Math.round(tx * TILE - ox), Math.round(ty * TILE - oy), TILE, TILE);
+        ctx.drawImage(
+          tiles,
+          id * TILE,
+          0,
+          TILE,
+          TILE,
+          Math.round(tx * TILE - ox),
+          Math.round(ty * TILE - oy),
+          TILE,
+          TILE,
+        );
       }
     }
   }
 
   // Draws one 16x16 frame from a horizontal sheet, centered at (x, y).
   drawSprite(ctx, name, frame, x, y) {
-    ctx.drawImage(this.images[name], frame * 16, 0, 16, 16, Math.round(x - 8), Math.round(y - 8), 16, 16);
+    ctx.drawImage(
+      this.images[name],
+      frame * 16,
+      0,
+      16,
+      16,
+      Math.round(x - 8),
+      Math.round(y - 8),
+      16,
+      16,
+    );
   }
 
   // Centered frame draw with optional flip and squash scaling, like
   // an AnimatedSprite2D with flip_h / scale.
-  drawFrame(ctx, sheet, frame, x, y, { flip = false, scaleX = 1, scaleY = 1 } = {}) {
+  drawFrame(
+    ctx,
+    sheet,
+    frame,
+    x,
+    y,
+    { flip = false, scaleX = 1, scaleY = 1 } = {},
+  ) {
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
     ctx.scale(flip ? -scaleX : scaleX, scaleY);
