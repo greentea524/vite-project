@@ -13,6 +13,8 @@ import {
   respawnPlayer,
   playerFrame,
   RESPAWN_DELAY,
+  SHEET_FRAMES,
+  SHEET_FPS,
 } from "./player.js";
 import { createEnemy, updateEnemy, enemyFrame } from "./enemy.js";
 import {
@@ -27,6 +29,7 @@ import {
 import { Input } from "./input.js";
 import { Sfx } from "./sfx.js";
 import { loadImages } from "./assets.js";
+import { createGhost, pushSnapshot, sampleGhost } from "./ghosts.js";
 
 export const VIEW_W = 320;
 export const VIEW_H = 180;
@@ -51,6 +54,14 @@ const css = ([r, g, b]) =>
   `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 const isWhite = ([r, g, b]) => r === 1 && g === 1 && b === 1;
 
+// Frame for a ghost given only its anim name (we don't track a remote
+// player's animation clock, so drive it from wall time).
+function animFrameFor(anim) {
+  const frames = SHEET_FRAMES[anim] ?? SHEET_FRAMES.idle;
+  const fps = SHEET_FPS[anim] ?? 4;
+  return frames[Math.floor((performance.now() / 1000) * fps) % frames.length];
+}
+
 export class Engine {
   constructor(canvas, state) {
     this.canvas = canvas;
@@ -66,6 +77,27 @@ export class Engine {
     this._raf = 0;
     this._unsubs = [];
     this._pending = null; // { t, fn } — delayed respawn / game over
+    // Multiplayer (PLAT-22): remote players rendered as ghosts.
+    this.network = null;
+    this.ghosts = new Map(); // id -> ghost (see ghosts.js)
+  }
+
+  // Wire in a Network so the engine broadcasts the local player and
+  // renders remote players as ghosts. Single-player leaves this unset.
+  attachNetwork(network) {
+    this.network = network;
+    this._unsubs.push(
+      network.on("remoteState", (snap) => {
+        let ghost = this.ghosts.get(snap.id);
+        if (!ghost) {
+          const meta = network.roster.find((r) => r.id === snap.id) ?? { id: snap.id };
+          ghost = createGhost(meta);
+          this.ghosts.set(snap.id, ghost);
+        }
+        pushSnapshot(ghost, snap, performance.now());
+      }),
+      network.on("playerLeft", ({ id }) => this.ghosts.delete(id)),
+    );
   }
 
   async start() {
@@ -174,6 +206,21 @@ export class Engine {
         this._pending = null;
         fn();
       }
+    }
+
+    // Multiplayer: accumulate the run timer (playing time only, so
+    // pauses don't count) and broadcast a throttled snapshot.
+    if (this.network && this.state.multiplayer) {
+      this.state.addRunTime(dt * 1000);
+      this.network.sendState({
+        x: p.x,
+        y: p.y,
+        vx: p.vx,
+        facing: p.facing,
+        anim: p.anim,
+        level: this.state.currentLevel,
+        runTimeMs: Math.round(this.state.runTimeMs),
+      });
     }
 
     this.updateCamera(dt);
@@ -299,6 +346,10 @@ export class Engine {
       );
     }
 
+    // Ghosts: remote players on this same level, drawn translucently
+    // behind the local player (PLAT-22).
+    if (this.ghosts.size) this.renderGhosts(ctx, ox, oy);
+
     const p = this.player;
     const sheetName = AVATAR_SHEET_NAMES[this.state.selectedAvatar] ?? "player";
     const sheet = p.tint
@@ -311,6 +362,26 @@ export class Engine {
       scaleY: p.scaleY,
     });
     ctx.globalAlpha = 1;
+  }
+
+  renderGhosts(ctx, ox, oy) {
+    const now = performance.now();
+    for (const ghost of this.ghosts.values()) {
+      const v = sampleGhost(ghost, now);
+      if (!v || v.level !== this.state.currentLevel) continue; // only same-level ghosts
+      const sheet = this.images[AVATAR_SHEET_NAMES[v.avatar] ?? "player"];
+      const gx = v.x - ox;
+      const gy = v.y - oy;
+      ctx.globalAlpha = 0.5;
+      this.drawFrame(ctx, sheet, animFrameFor(v.anim), gx, gy, { flip: v.facing < 0 });
+      ctx.globalAlpha = 1;
+      // Name label above the ghost.
+      ctx.font = "6px monospace";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.fillText(v.name, Math.round(gx), Math.round(gy - 12));
+      ctx.textAlign = "left";
+    }
   }
 
   renderClouds(ctx, ox, oy) {

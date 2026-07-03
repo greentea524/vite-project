@@ -4,6 +4,18 @@ import { GameState, AVATAR_NAMES, START_LIVES } from "./state.js";
 import { Engine, VIEW_W, VIEW_H } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS } from "./levels.js";
+import { Network } from "./network.js";
+
+// mm:ss.d for the leaderboard/results (PLAT-24).
+function formatTime(ms) {
+  const total = Math.max(0, Math.floor(ms));
+  const m = Math.floor(total / 60000);
+  const s = Math.floor((total % 60000) / 1000);
+  const d = Math.floor((total % 1000) / 100);
+  return `${m}:${String(s).padStart(2, "0")}.${d}`;
+}
+
+const LEVEL_LABEL = (i) => `${Math.floor(i / 3) + 1}-${(i % 3) + 1}`;
 
 // On-screen control button (PLAT-13), usable with touch or mouse.
 // Pointer events feed the engine's Input actions, so press-and-hold
@@ -151,14 +163,29 @@ function Platformer() {
   const stateRef = useRef(null);
   if (!stateRef.current) stateRef.current = new GameState();
   const state = stateRef.current;
+  const networkRef = useRef(null);
+  if (!networkRef.current && Network.isConfigured()) networkRef.current = new Network();
+  const network = networkRef.current;
+  // Live level/time for remote players, updated per message without
+  // re-rendering; the leaderboard samples it on a timer (PLAT-24).
+  const remoteLatestRef = useRef(new Map());
+  const sentFinishRef = useRef(false);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
-
-
   const [screen, setScreen] = useState(state.screen);
   const [coins, setCoins] = useState(state.coins);
   const [lives, setLives] = useState(state.lives);
   const [avatar, setAvatar] = useState(state.selectedAvatar);
   const [levelLabel, setLevelLabel] = useState("1-1");
+
+  // Multiplayer UI state (PLAT-23/24).
+  const [playerName, setPlayerName] = useState("");
+  const [lobbyMode, setLobbyMode] = useState("choose"); // choose | room
+  const [roomCode, setRoomCode] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const [roster, setRoster] = useState([]);
+  const [mpError, setMpError] = useState("");
+  const [standings, setStandings] = useState([]);
 
   useEffect(() => {
     const engine = new Engine(canvasRef.current, state);
@@ -169,13 +196,31 @@ function Platformer() {
       state.on("lives", setLives),
       state.on("level", () => setLevelLabel(state.levelLabel())),
     ];
+    if (network) {
+      engine.attachNetwork(network);
+      unsubs.push(
+        network.on("roster", setRoster),
+        network.on("error", (e) => setMpError(String(e))),
+        network.on("remoteState", (snap) =>
+          remoteLatestRef.current.set(snap.id, {
+            level: snap.level, runTimeMs: snap.runTimeMs, finished: snap.finished,
+          }),
+        ),
+        network.on("playerFinished", ({ id, totalTimeMs }) => {
+          const prev = remoteLatestRef.current.get(id) ?? {};
+          remoteLatestRef.current.set(id, { ...prev, finished: true, runTimeMs: totalTimeMs ?? prev.runTimeMs });
+        }),
+        network.on("playerLeft", ({ id }) => remoteLatestRef.current.delete(id)),
+      );
+    }
     engine.start();
     return () => {
       for (const unsub of unsubs) unsub();
       engine.destroy();
+      network?.destroy();
       engineRef.current = null;
     };
-  }, [state]);
+  }, [state, network]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -215,13 +260,14 @@ function Platformer() {
       if (!document.fullscreenElement) {
         await shellRef.current.requestFullscreen();
         try {
-          await screen.orientation.lock("landscape");
+          // window.screen — the local `screen` here is the game-state string.
+          await window.screen.orientation.lock("landscape");
         } catch {
           // orientation lock unsupported — fullscreen alone is fine
         }
       } else {
         try {
-          screen.orientation.unlock();
+          window.screen.orientation.unlock();
         } catch {
           // ignore
         }
@@ -236,6 +282,90 @@ function Platformer() {
     state.selectedAvatar = i;
     setAvatar(i);
   };
+
+  // --- Multiplayer lobby + race (PLAT-23/24) ---
+  const openMultiplayer = () => {
+    setMpError("");
+    setLobbyMode("choose");
+    setRoster([]);
+    network?.connect();
+    state.openLobby();
+  };
+
+  const hostRace = async () => {
+    setMpError("");
+    const res = await network.createRoom(playerName || "Host", avatar);
+    if (res?.ok) {
+      setRoomCode(res.code);
+      setLobbyMode("room");
+    } else {
+      setMpError(res?.error || "Could not create room");
+    }
+  };
+
+  const joinRace = async () => {
+    setMpError("");
+    const res = await network.joinRoom(joinCode.trim().toUpperCase(), playerName || "Player", avatar);
+    if (res?.ok) {
+      setRoomCode(res.code);
+      setLobbyMode("room");
+    } else {
+      setMpError(res?.error || "Could not join room");
+    }
+  };
+
+  const startRace = () => {
+    remoteLatestRef.current.clear();
+    sentFinishRef.current = false;
+    state.multiplayer = true;
+    state.startGame();
+  };
+
+  // Send the finish once, when the race ends at the win screen.
+  useEffect(() => {
+    if (screen === "win" && state.multiplayer && network && !sentFinishRef.current) {
+      sentFinishRef.current = true;
+      network.sendFinished(Math.round(state.runTimeMs));
+    }
+  }, [screen, state, network]);
+
+  // Leaving to the menu drops the room and clears race data.
+  useEffect(() => {
+    if (screen === "menu" && network) {
+      network.leave();
+      remoteLatestRef.current.clear();
+      sentFinishRef.current = false;
+      setStandings([]);
+    }
+  }, [screen, network]);
+
+  // Sample a live leaderboard ~4x/sec while in a multiplayer race,
+  // combining the roster (names/avatars) with per-message live data
+  // for remotes and local GameState for self (PLAT-24).
+  useEffect(() => {
+    if (!network || !state.multiplayer || screen === "menu" || screen === "lobby") return;
+    const build = () => {
+      const list = network.roster.map((r) => {
+        if (r.id === network.playerId) {
+          return { id: r.id, name: r.name, self: true, level: state.currentLevel, runTimeMs: state.runTimeMs, finished: state.finished };
+        }
+        const live = remoteLatestRef.current.get(r.id) ?? {};
+        return { id: r.id, name: r.name, level: live.level ?? 0, runTimeMs: live.runTimeMs ?? 0, finished: Boolean(live.finished) };
+      });
+      list.sort((a, b) => {
+        if (a.finished !== b.finished) return a.finished ? -1 : 1;
+        if (a.finished) return a.runTimeMs - b.runTimeMs;
+        if (b.level !== a.level) return b.level - a.level;
+        return a.runTimeMs - b.runTimeMs;
+      });
+      setStandings(list);
+    };
+    build();
+    const timer = setInterval(build, 250);
+    return () => clearInterval(timer);
+  }, [network, screen, state]);
+
+  const multiplayerAvailable = Boolean(network);
 
   return (
     <div className="plat-shell" ref={shellRef}>
@@ -253,6 +383,19 @@ function Platformer() {
             <span>Coins: {coins}</span>
             <span>Level {levelLabel}</span>
             <span>Lives: {lives}</span>
+          </div>
+        )}
+
+        {state.multiplayer && inGame && standings.length > 0 && (
+          <div className="plat-leaderboard">
+            {standings.map((p, i) => (
+              <div key={p.id} className={`plat-lb-row${p.self ? " plat-lb-self" : ""}`}>
+                <span className="plat-lb-rank">{i + 1}</span>
+                <span className="plat-lb-name">{p.name}</span>
+                <span className="plat-lb-lvl">{p.finished ? "✓" : LEVEL_LABEL(p.level)}</span>
+                <span className="plat-lb-time">{formatTime(p.runTimeMs)}</span>
+              </div>
+            ))}
           </div>
         )}
 
@@ -296,6 +439,77 @@ function Platformer() {
             <button type="button" className="plat-btn" onClick={() => state.startGame()}>
               Start
             </button>
+            {multiplayerAvailable && (
+              <button type="button" className="plat-btn" onClick={openMultiplayer}>
+                Race a friend
+              </button>
+            )}
+          </div>
+        )}
+
+        {screen === "lobby" && (
+          <div className="plat-overlay">
+            <h4 className="plat-title">Race a friend</h4>
+            {lobbyMode === "choose" && (
+              <div className="plat-help">
+                <input
+                  className="plat-input"
+                  type="text"
+                  maxLength={16}
+                  placeholder="Your name"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                />
+                <button type="button" className="plat-btn" onClick={hostRace}>
+                  Create room
+                </button>
+                <div className="plat-join-row">
+                  <input
+                    className="plat-input plat-input-code"
+                    type="text"
+                    maxLength={4}
+                    placeholder="CODE"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  />
+                  <button
+                    type="button"
+                    className="plat-btn"
+                    disabled={joinCode.trim().length < 4}
+                    onClick={joinRace}
+                  >
+                    Join
+                  </button>
+                </div>
+                {mpError && <p className="plat-text plat-error">{mpError}</p>}
+                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                  Back
+                </button>
+              </div>
+            )}
+            {lobbyMode === "room" && (
+              <div className="plat-help">
+                <p className="plat-text">
+                  Room code: <span className="plat-code">{roomCode}</span>
+                </p>
+                <p className="plat-text">Players:</p>
+                <ul className="plat-roster">
+                  {roster.map((r) => (
+                    <li key={r.id}>
+                      <SpriteIcon sheet={AVATAR_SHEETS[r.avatar] ?? AVATAR_SHEETS[0]} frames={8} size={16} />{" "}
+                      {r.name}
+                      {r.id === network?.playerId ? " (you)" : ""}
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" className="plat-btn" onClick={startRace}>
+                  Start race
+                </button>
+                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                  Leave
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -367,11 +581,34 @@ function Platformer() {
 
         {screen === "win" && (
           <div className="plat-overlay">
-            <h4 className="plat-title">You Win! 🎉</h4>
-            <p className="plat-text">Total coins: {coins}</p>
-            <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
-              Menu
-            </button>
+            {state.multiplayer ? (
+              <>
+                <h4 className="plat-title">Race Results 🏁</h4>
+                <p className="plat-text">Your time: {formatTime(state.runTimeMs)}</p>
+                <div className="plat-results">
+                  {standings.map((p, i) => (
+                    <div key={p.id} className={`plat-lb-row${p.self ? " plat-lb-self" : ""}`}>
+                      <span className="plat-lb-rank">{i + 1}</span>
+                      <span className="plat-lb-name">{p.name}</span>
+                      <span className="plat-lb-time">
+                        {p.finished ? formatTime(p.runTimeMs) : `${LEVEL_LABEL(p.level)}…`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                  Menu
+                </button>
+              </>
+            ) : (
+              <>
+                <h4 className="plat-title">You Win! 🎉</h4>
+                <p className="plat-text">Total coins: {coins}</p>
+                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                  Menu
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
