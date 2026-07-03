@@ -62,6 +62,16 @@ function animFrameFor(anim) {
   return frames[Math.floor((performance.now() / 1000) * fps) % frames.length];
 }
 
+// Fan players out around the start point by their room slot so ghosts
+// don't stack on the local player (PLAT-19 polish). Centered on P so no
+// slot gets a positional edge: 0, +12, -12, +24, -24, …
+const SPAWN_SPACING = 12;
+function spawnOffset(slot) {
+  if (!slot) return 0;
+  const step = Math.ceil(slot / 2) * SPAWN_SPACING;
+  return slot % 2 === 1 ? step : -step;
+}
+
 export class Engine {
   constructor(canvas, state) {
     this.canvas = canvas;
@@ -160,8 +170,13 @@ export class Engine {
     }
 
     const start = this.level.playerStart ?? { x: TILE / 2, y: TILE / 2 };
-    this.player = createPlayer(start.x, start.y);
-    this.state.setCheckpoint(start);
+    // In a race, offset the spawn by this player's slot so everyone
+    // starts standing next to each other rather than stacked.
+    const offset =
+      this.network && this.state.multiplayer ? spawnOffset(this.network.selfSlot) : 0;
+    const spawn = { x: start.x + offset, y: start.y };
+    this.player = createPlayer(spawn.x, spawn.y);
+    this.state.setCheckpoint(spawn);
     this.cam = { x: 0, y: 0 };
     this.snapCamera();
   }
@@ -362,6 +377,10 @@ export class Engine {
       scaleY: p.scaleY,
     });
     ctx.globalAlpha = 1;
+    // Own name tag in a race, so it's easy to tell who's who.
+    if (this.network && this.state.multiplayer && this.network.selfName) {
+      this.drawNameLabel(ctx, this.network.selfName, p.x - ox, p.y - oy);
+    }
   }
 
   renderGhosts(ctx, ox, oy) {
@@ -375,13 +394,20 @@ export class Engine {
       ctx.globalAlpha = 0.5;
       this.drawFrame(ctx, sheet, animFrameFor(v.anim), gx, gy, { flip: v.facing < 0 });
       ctx.globalAlpha = 1;
-      // Name label above the ghost.
-      ctx.font = "6px monospace";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.fillText(v.name, Math.round(gx), Math.round(gy - 12));
-      ctx.textAlign = "left";
+      this.drawNameLabel(ctx, v.name, gx, gy);
     }
+  }
+
+  // Name tag above a player/ghost (multiplayer, PLAT-19 polish).
+  drawNameLabel(ctx, name, x, y) {
+    if (!name) return;
+    ctx.font = "6px monospace";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillText(name, Math.round(x), Math.round(y - 11)); // shadow for legibility
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillText(name, Math.round(x), Math.round(y - 12));
+    ctx.textAlign = "left";
   }
 
   renderClouds(ctx, ox, oy) {

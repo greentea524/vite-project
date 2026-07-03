@@ -28,6 +28,7 @@ function roster(room) {
     id: p.id,
     name: p.name,
     avatar: p.avatar,
+    slot: p.slot,
     level: p.level,
     runTimeMs: p.runTimeMs,
     finished: p.finished,
@@ -68,10 +69,15 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
   }
 
   function join(socket, room, code, { name, avatar }) {
+    // A stable, monotonic slot per room drives the fanned-out spawn so
+    // players don't stack on the start point (never reused, so leaves
+    // don't shuffle anyone).
+    const slot = room.nextSlot++;
     const player = {
       id: socket.id,
       name: (name || "Player").slice(0, 16),
       avatar: Number.isInteger(avatar) ? avatar : 0,
+      slot,
       level: 0,
       runTimeMs: 0,
       finished: false,
@@ -85,7 +91,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
   io.on("connection", (socket) => {
     socket.on("createRoom", (payload = {}, ack) => {
       const code = makeCode(rooms);
-      const room = { players: new Map() };
+      const room = { players: new Map(), nextSlot: 0 };
       rooms.set(code, room);
       join(socket, room, code, payload);
       ack?.({ ok: true, code, playerId: socket.id, roster: roster(room) });
@@ -102,7 +108,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       ack?.({ ok: true, code, playerId: socket.id, roster: roster(room) });
       // Tell everyone else who joined.
       socket.to(code).emit("playerJoined", {
-        id: player.id, name: player.name, avatar: player.avatar,
+        id: player.id, name: player.name, avatar: player.avatar, slot: player.slot,
       });
     });
 

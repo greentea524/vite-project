@@ -20,6 +20,8 @@ export class Network {
     this.socket = null;
     this.playerId = null;
     this.roomCode = null;
+    this.selfName = "";
+    this.selfSlot = 0; // spawn-fan slot assigned by the server
     this.roster = [];
     this._lastSent = 0;
   }
@@ -73,14 +75,18 @@ export class Network {
     this._emit("roster", this.roster);
   }
 
+  _onJoined(name, res) {
+    this.playerId = res.playerId;
+    this.roomCode = res.code;
+    this.selfName = name;
+    this.selfSlot = res.roster.find((r) => r.id === res.playerId)?.slot ?? 0;
+    this._setRoster(res.roster);
+  }
+
   createRoom(name, avatar) {
     return new Promise((resolve) => {
       this.socket.emit("createRoom", { name, avatar }, (res) => {
-        if (res?.ok) {
-          this.playerId = res.playerId;
-          this.roomCode = res.code;
-          this._setRoster(res.roster);
-        }
+        if (res?.ok) this._onJoined(name, res);
         resolve(res);
       });
     });
@@ -89,11 +95,7 @@ export class Network {
   joinRoom(code, name, avatar) {
     return new Promise((resolve) => {
       this.socket.emit("joinRoom", { code, name, avatar }, (res) => {
-        if (res?.ok) {
-          this.playerId = res.playerId;
-          this.roomCode = res.code;
-          this._setRoster(res.roster);
-        }
+        if (res?.ok) this._onJoined(name, res);
         resolve(res);
       });
     });
