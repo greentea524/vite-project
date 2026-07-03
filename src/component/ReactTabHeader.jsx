@@ -13,10 +13,10 @@ import RubiksCubeSolver from "./rubiks/RubiksCubeSolver.jsx";
 
 const LOCAL_GAMES = [
   {
-    key: "tictactoe",
-    title: "TicTacToe",
-    icon: "fa-th",
-    description: "Classic 3×3 — get three in a row before your opponent.",
+    key: "platformer",
+    title: "Platformer",
+    icon: "fa-gamepad",
+    description: "Run, double-jump, and stomp through six levels across two worlds.",
   },
   {
     key: "minesweeper",
@@ -37,10 +37,10 @@ const LOCAL_GAMES = [
     description: "Fill the colorful 9×9 grid so every row, column, and box has 1–9.",
   },
   {
-    key: "platformer",
-    title: "Platformer",
-    icon: "fa-gamepad",
-    description: "Run, double-jump, and stomp through six levels across two worlds.",
+    key: "tictactoe",
+    title: "TicTacToe",
+    icon: "fa-th",
+    description: "Classic 3×3 — get three in a row before your opponent.",
   },
 ];
 
