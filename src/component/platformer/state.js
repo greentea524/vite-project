@@ -125,9 +125,10 @@ export class GameState {
 
   levelComplete() {
     this.levelsCompleted = Math.max(this.levelsCompleted, this.currentLevel + 1);
-    // Finishing a world's last stage shows the world map (PG-37);
-    // mid-world stages keep the regular level-complete screen.
-    this._setScreen(this.isLastInWorld(this.currentLevel) ? "worldmap" : "levelcomplete");
+    // Show the world map after every level (PLAT-25); it highlights
+    // completed stages and marks the next one. Continue then routes to
+    // the next unfinished level or the win screen.
+    this._setScreen("worldmap");
   }
 
   // Continue from the world map: next unfinished level, or the win

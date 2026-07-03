@@ -326,21 +326,14 @@ function Platformer() {
           </div>
         )}
 
-        {screen === "levelcomplete" && (
-          <div className="plat-overlay">
-            <h4 className="plat-title">Level Complete!</h4>
-            <p className="plat-text">Coins collected: {coins}</p>
-            <button type="button" className="plat-btn" onClick={() => state.nextLevel()}>
-              Next level
-            </button>
-          </div>
-        )}
-
         {screen === "worldmap" && (
           <div className="plat-overlay">
             <h4 className="plat-title">
-              World {state.worldOf(state.currentLevel) + 1} complete!
+              {state.isLastInWorld(state.currentLevel)
+                ? `World ${state.worldOf(state.currentLevel) + 1} complete!`
+                : `Level ${state.levelLabel()} complete!`}
             </h4>
+            <p className="plat-text">Coins collected: {coins}</p>
             <div className="plat-map">
               {WORLDS.map((world, w) => (
                 <div className="plat-map-row" key={w}>

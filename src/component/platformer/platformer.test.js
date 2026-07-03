@@ -302,14 +302,18 @@ describe("contact rules", () => {
 });
 
 describe("game state flow", () => {
-  it("start -> mid-world complete -> level complete screen", () => {
+  it("start -> mid-world complete -> world map (PLAT-25)", () => {
     const s = new GameState();
     s.startGame();
     expect(s.screen).toBe("playing");
     expect(s.lives).toBe(START_LIVES);
     s.levelComplete(); // level 1-1 is not last in world 1
-    expect(s.screen).toBe("levelcomplete");
+    expect(s.screen).toBe("worldmap");
     expect(s.levelsCompleted).toBe(1);
+    // Continue proceeds to the next level (1-2).
+    s.continueFromWorldMap();
+    expect(s.screen).toBe("playing");
+    expect(s.currentLevel).toBe(1);
   });
 
   it("finishing a world shows the world map, then continues", () => {
