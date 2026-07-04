@@ -4,6 +4,22 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Terminal Feed</title>
+<!--
+  Standalone fake "hacker" terminal feed for screen-recording / demos.
+  Open directly in a browser, or reach it from the app under
+  Utility → Hacker Terminal.
+
+  Controls: tap the ⚙ gear (bottom-right) for the settings panel —
+  pause/resume, speed, fullscreen, and theme.
+  Shortcuts: Space = pause/resume, f = fullscreen, ↑/↓ = speed, Esc = close.
+
+  Themes:
+    • Classic — green-on-black log feed (default).
+    • Binary  — same feed rendered as a matrix of 0s and 1s.
+  Pick a theme from the settings panel; Classic is the default and is
+  unchanged unless Binary is selected.
+-->
+
 <style>
   :root {
     --green: #33ff66;
@@ -161,6 +177,24 @@
   #speedVal { color: var(--green); min-width: 38px; display: inline-block; text-align: right; }
   #controls input[type="range"] { accent-color: var(--green); cursor: pointer; flex: 1; min-width: 0; }
   #status { color: var(--green-dim); }
+
+  .theme-btn.theme-active { background: var(--green-dim); color: #000; }
+
+  /* Binary matrix theme: uniform green, wide letter spacing, and the feed
+     text is rendered as 0s/1s (see toBinary in the script). */
+  body.theme-matrix { text-shadow: 0 0 6px rgba(51, 255, 102, 0.7); }
+  body.theme-matrix #feed {
+    letter-spacing: 2px;
+    word-break: break-all;
+  }
+  body.theme-matrix .dim,
+  body.theme-matrix .bar,
+  body.theme-matrix .amber,
+  body.theme-matrix .red {
+    color: var(--green);
+    text-shadow: inherit;
+  }
+  body.theme-matrix .granted { color: #eafff0; }
 </style>
 </head>
 <body>
@@ -179,6 +213,11 @@
       <input id="speed" type="range" min="1" max="20" value="10" />
       <span id="speedVal">1.0x</span>
     </div>
+    <div class="controls-row theme-row">
+      <label>theme</label>
+      <button id="themeClassic" class="theme-btn theme-active" type="button">Classic</button>
+      <button id="themeMatrix" class="theme-btn" type="button">Binary</button>
+    </div>
     <div class="controls-row">
       <span id="status">streaming</span>
     </div>
@@ -196,11 +235,14 @@
   var fsBtn = document.getElementById("fsBtn");
   var gearBtn = document.getElementById("gearBtn");
   var controls = document.getElementById("controls");
+  var themeClassicBtn = document.getElementById("themeClassic");
+  var themeMatrixBtn = document.getElementById("themeMatrix");
 
   var MAX_LINES = 200;     // cap DOM nodes so it can loop forever
   var BASE_DELAY = 320;    // ms per line at 1.0x
   var paused = false;
   var timer = null;
+  var theme = "classic";   // "classic" (green text) or "matrix" (0s/1s)
 
   // ----- helpers -----------------------------------------------------------
   function rand(n) { return Math.floor(Math.random() * n); }
@@ -318,11 +360,23 @@
     progressBar, progressBar, access, access, alertLine
   ];
 
+  // Encode a string as space-separated 8-bit binary (for the matrix theme).
+  function toBinary(str) {
+    var out = "";
+    for (var i = 0; i < str.length; i++) {
+      var bits = str.charCodeAt(i).toString(2);
+      while (bits.length < 8) bits = "0" + bits;
+      out += (i ? " " : "") + bits;
+    }
+    return out;
+  }
+
   function buildLine() {
     var g = pick(GENERATORS)();
+    var text = ts() + "  " + g.html;
     var span = document.createElement("span");
     span.className = "line" + (g.cls ? " " + g.cls : "");
-    span.textContent = ts() + "  " + g.html;
+    span.textContent = theme === "matrix" ? toBinary(text) : text;
     return span;
   }
 
@@ -380,6 +434,24 @@
       document.exitFullscreen();
     }
   });
+
+  // theme switch: classic green text vs. matrix 0s/1s
+  function setTheme(next) {
+    theme = next;
+    document.body.classList.toggle("theme-matrix", next === "matrix");
+    themeClassicBtn.classList.toggle("theme-active", next === "classic");
+    themeMatrixBtn.classList.toggle("theme-active", next === "matrix");
+    // repaint the visible feed so the switch is immediate, not gradual
+    var line = cursorLine.previousSibling;
+    while (line) {
+      var prev = line.previousSibling;
+      feed.removeChild(line);
+      line = prev;
+    }
+    for (var i = 0; i < 12; i++) emit();
+  }
+  themeClassicBtn.addEventListener("click", function () { setTheme("classic"); });
+  themeMatrixBtn.addEventListener("click", function () { setTheme("matrix"); });
 
   // settings panel open/close (gear button)
   function setSettingsOpen(open) {
