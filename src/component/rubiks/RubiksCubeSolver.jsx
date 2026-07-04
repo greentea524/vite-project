@@ -22,7 +22,7 @@ const FACE_OFFSET = { U: 0, R: 9, F: 18, D: 27, L: 36, B: 45 };
 // Unfolded-net placement of the six faces.
 const NET_AREAS = { U: "u", L: "l", F: "f", R: "r", B: "b", D: "d" };
 
-function Face({ face, facelets, changed, onPaint, disabled }) {
+function Face({ face, facelets, changed, cursor, onSelect, disabled }) {
   const base = FACE_OFFSET[face];
   return (
     <div className="rk-face" style={{ gridArea: NET_AREAS[face] }}>
@@ -30,19 +30,24 @@ function Face({ face, facelets, changed, onPaint, disabled }) {
         const index = base + k;
         const letter = facelets[index];
         const isCenter = k === 4;
+        const isActive = !disabled && index === cursor;
         return (
           <button
             type="button"
             key={changed.has(index) ? `${index}-c` : index}
             className={`rk-sticker${isCenter ? " rk-center" : ""}${
               changed.has(index) ? " rk-changed" : ""
-            }`}
+            }${isActive ? " rk-cursor" : ""}`}
             style={{ background: FACE_COLORS[letter].hex }}
-            onClick={() => onPaint(index)}
+            onClick={() => onSelect(index)}
             disabled={disabled || isCenter}
             data-idx={index}
             aria-label={`${face} face sticker ${k + 1}: ${FACE_COLORS[letter].name}${
-              isCenter ? " (fixed center)" : ""
+              isCenter
+                ? " (fixed center)"
+                : isActive
+                  ? " (active — pick a color to fill)"
+                  : ""
             }`}
           />
         );
@@ -51,9 +56,20 @@ function Face({ face, facelets, changed, onPaint, disabled }) {
   );
 }
 
+// Centers (the 5th sticker of each 9-block) are fixed and never paintable.
+const isCenterIndex = (i) => i % 9 === 4;
+
+// Next paintable sticker after `from` in facelet order (skips centers).
+// Stays put once the last sticker is reached.
+function nextPaintable(from) {
+  for (let i = from + 1; i < 54; i++) if (!isCenterIndex(i)) return i;
+  return from;
+}
+
 function RubiksCubeSolver() {
   const [facelets, setFacelets] = useState(SOLVED);
   const [selectedColor, setSelectedColor] = useState("U");
+  const [cursor, setCursor] = useState(0); // active sticker for click-to-fill
   const [workerReady, setWorkerReady] = useState(false);
   const [solving, setSolving] = useState(false);
   const [solveError, setSolveError] = useState(null);
@@ -119,14 +135,26 @@ function RubiksCubeSolver() {
     return () => clearTimeout(timer);
   }, [playing, solution, step, speed]);
 
-  const paint = useCallback(
-    (index) => {
+  // Click a square to make it the active cell (cursor). No paint happens
+  // until a color is chosen, so users can click a square first (PLAT/#50).
+  const selectCell = useCallback((index) => {
+    setSolveError(null);
+    if (!isCenterIndex(index)) setCursor(index);
+  }, []);
+
+  // Click a color to fill the active square, then auto-advance to the next
+  // one in sequence — less clicking than pick-color-then-click-each-square.
+  const applyColor = useCallback(
+    (color) => {
+      setSelectedColor(color);
+      if (solution !== null || isCenterIndex(cursor)) return; // only while editing
       setSolveError(null);
       setFacelets(
-        (prev) => prev.slice(0, index) + selectedColor + prev.slice(index + 1)
+        (prev) => prev.slice(0, cursor) + color + prev.slice(cursor + 1)
       );
+      setCursor((cur) => nextPaintable(cur));
     },
-    [selectedColor]
+    [solution, cursor]
   );
 
   const clearSolution = () => {
@@ -134,6 +162,7 @@ function RubiksCubeSolver() {
     setStep(0);
     setPlaying(false);
     setSolveError(null);
+    setCursor(0);
   };
 
   const handleSolve = () => {
@@ -180,6 +209,17 @@ function RubiksCubeSolver() {
       <h4 className="rk-title">
         <i className="fa fa-cube" aria-hidden="true"></i> Rubik's Cube Solver
       </h4>
+      <p className="rk-credit">
+        Solving powered by{" "}
+        <a
+          href="https://github.com/cs0x7f/min2phase.js"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          min2phase.js
+        </a>{" "}
+        by cs0x7f (GPL-3.0).
+      </p>
 
       <details className="rk-help">
         <summary>How to use</summary>
@@ -187,8 +227,10 @@ function RubiksCubeSolver() {
           <li>
             Hold your cube with the <strong>white center up</strong> and the{" "}
             <strong>green center facing you</strong>, then copy each sticker
-            onto the net below (pick a color, click a sticker). Centers are
-            fixed.
+            onto the net below. The highlighted square is active — just{" "}
+            <strong>click a color</strong> to fill it and it jumps to the next
+            square automatically. Click any square to jump the highlight there.
+            Centers are fixed.
           </li>
           <li>
             Press <strong>Solve</strong>. Moves use standard notation — U D L R
@@ -210,8 +252,8 @@ function RubiksCubeSolver() {
               key={face}
               className={`rk-swatch${selectedColor === face ? " rk-swatch-active" : ""}`}
               style={{ background: FACE_COLORS[face].hex }}
-              onClick={() => setSelectedColor(face)}
-              aria-label={`Paint with ${FACE_COLORS[face].name}`}
+              onClick={() => applyColor(face)}
+              aria-label={`Fill active square with ${FACE_COLORS[face].name}`}
               title={FACE_COLORS[face].name}
             />
           ))}
@@ -225,7 +267,8 @@ function RubiksCubeSolver() {
             face={face}
             facelets={displayed}
             changed={changed}
-            onPaint={paint}
+            cursor={cursor}
+            onSelect={selectCell}
             disabled={!editing}
           />
         ))}

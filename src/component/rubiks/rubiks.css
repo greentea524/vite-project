@@ -16,6 +16,17 @@
   gap: 0.5rem;
 }
 
+.rk-credit {
+  margin: -0.35rem 0 0;
+  font-size: 0.78rem;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.rk-credit a {
+  color: inherit;
+}
+
 .rk-help {
   width: 100%;
   max-width: 34rem;
@@ -98,6 +109,16 @@
 .rk-center {
   cursor: not-allowed;
   box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.25);
+}
+
+/* Active sticker in click-to-fill mode: pick a color to fill it. */
+.rk-cursor {
+  outline: 3px solid #2563eb;
+  outline-offset: 1px;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 8px 2px rgba(37, 99, 235, 0.65);
+  z-index: 1;
 }
 
 /* Pulse the stickers affected by the latest playback step. */
