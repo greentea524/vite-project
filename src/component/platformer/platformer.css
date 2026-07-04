@@ -47,6 +47,18 @@
   box-sizing: border-box;
 }
 
+/* Sits exactly over the game canvas; smooth-scaled (not pixelated) so
+   name-label text is crisp. Non-interactive. */
+.plat-label-canvas {
+  grid-area: 1 / 1;
+  align-self: start;
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+
 .plat-hud {
   position: absolute;
   top: 0;

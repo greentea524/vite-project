@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./platformer.css";
 import { GameState, AVATAR_NAMES, START_LIVES } from "./state.js";
-import { Engine, VIEW_W, VIEW_H } from "./game.js";
+import { Engine, VIEW_W, VIEW_H, LABEL_SCALE } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS } from "./levels.js";
 import { Network, MAX_PLAYERS } from "./network.js";
@@ -158,6 +158,7 @@ function SpriteIcon({ sheet, frames, size = 32, aspect = 1 }) {
 // events (they replace the Godot menu scenes).
 function Platformer() {
   const canvasRef = useRef(null);
+  const labelCanvasRef = useRef(null);
   const engineRef = useRef(null);
   const shellRef = useRef(null);
   const stateRef = useRef(null);
@@ -189,7 +190,7 @@ function Platformer() {
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1
 
   useEffect(() => {
-    const engine = new Engine(canvasRef.current, state);
+    const engine = new Engine(canvasRef.current, state, labelCanvasRef.current);
     engineRef.current = engine;
     const unsubs = [
       state.on("screen", setScreen),
@@ -404,6 +405,14 @@ function Platformer() {
           width={VIEW_W}
           height={VIEW_H}
           className="plat-canvas"
+          style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}
+        />
+        {/* High-res overlay for crisp name labels over the pixel canvas. */}
+        <canvas
+          ref={labelCanvasRef}
+          width={VIEW_W * LABEL_SCALE}
+          height={VIEW_H * LABEL_SCALE}
+          className="plat-label-canvas"
           style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}
         />
 

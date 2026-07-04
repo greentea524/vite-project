@@ -33,6 +33,9 @@ import { createGhost, pushSnapshot, sampleGhost } from "./ghosts.js";
 
 export const VIEW_W = 320;
 export const VIEW_H = 180;
+// Name labels render on a separate, higher-res overlay canvas that
+// scales smoothly, so text stays crisp over the pixelated game canvas.
+export const LABEL_SCALE = 4;
 const DT = 1 / 60;
 const MAX_FRAME = 0.25;
 const CAM_SMOOTHING = 5; // Camera2D position_smoothing_speed default
@@ -73,11 +76,14 @@ function spawnOffset(slot) {
 }
 
 export class Engine {
-  constructor(canvas, state) {
+  constructor(canvas, state, labelCanvas = null) {
     this.canvas = canvas;
     canvas.__engine = this; // debug/testing handle
     this.ctx = canvas.getContext("2d");
     this.ctx.imageSmoothingEnabled = false;
+    // Optional high-res overlay for crisp name labels (multiplayer).
+    this.labelCanvas = labelCanvas;
+    this.labelCtx = labelCanvas ? labelCanvas.getContext("2d") : null;
     this.state = state;
     this.input = new Input();
     this.sfx = new Sfx();
@@ -305,6 +311,8 @@ export class Engine {
   render() {
     const ctx = this.ctx;
     ctx.imageSmoothingEnabled = false;
+    // Clear the label overlay each frame (labels are redrawn below).
+    if (this.labelCtx) this.labelCtx.clearRect(0, 0, this.labelCanvas.width, this.labelCanvas.height);
     if (!this.level) {
       ctx.fillStyle = css([0.43, 0.72, 0.91]);
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -379,7 +387,7 @@ export class Engine {
     ctx.globalAlpha = 1;
     // Own name tag in a race, so it's easy to tell who's who.
     if (this.network && this.state.multiplayer && this.network.selfName) {
-      this.drawNameLabel(ctx, this.network.selfName, p.x - ox, p.y - oy);
+      this.drawNameLabel(this.network.selfName, p.x - ox, p.y - oy);
     }
   }
 
@@ -394,20 +402,27 @@ export class Engine {
       ctx.globalAlpha = 0.5;
       this.drawFrame(ctx, sheet, animFrameFor(v.anim), gx, gy, { flip: v.facing < 0 });
       ctx.globalAlpha = 1;
-      this.drawNameLabel(ctx, v.name, gx, gy);
+      this.drawNameLabel(v.name, gx, gy);
     }
   }
 
-  // Name tag above a player/ghost (multiplayer, PLAT-19 polish).
-  drawNameLabel(ctx, name, x, y) {
-    if (!name) return;
-    ctx.font = "6px monospace";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillText(name, Math.round(x), Math.round(y - 11)); // shadow for legibility
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.fillText(name, Math.round(x), Math.round(y - 12));
-    ctx.textAlign = "left";
+  // Name tag above a player/ghost (multiplayer). Drawn to the high-res
+  // overlay canvas so the text is crisp, not pixel-upscaled. (x, y) are
+  // in game-view pixels; scaled up to the overlay's resolution.
+  drawNameLabel(name, x, y) {
+    const lc = this.labelCtx;
+    if (!name || !lc) return;
+    const S = LABEL_SCALE;
+    lc.font = `bold ${6 * S}px monospace`;
+    lc.textAlign = "center";
+    lc.textBaseline = "alphabetic";
+    const px = Math.round(x * S);
+    const py = Math.round((y - 12) * S);
+    lc.fillStyle = "rgba(0,0,0,0.65)";
+    lc.fillText(name, px, py + S); // shadow for legibility
+    lc.fillStyle = "rgba(255,255,255,0.95)";
+    lc.fillText(name, px, py);
+    lc.textAlign = "left";
   }
 
   renderClouds(ctx, ox, oy) {
