@@ -12,6 +12,7 @@ import { Server } from "socket.io";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no easily-confused chars
 const CODE_LEN = 4;
 export const MAX_PLAYERS = 4; // per room (host + up to 3 others)
+export const COUNTDOWN_MS = 3000; // synced-start countdown (PLAT-30)
 
 function makeCode(taken) {
   let code;
@@ -60,12 +61,18 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     const room = rooms.get(code);
     socket.data.roomCode = null;
     if (!room) return;
+    const wasHost = room.hostId === socket.id;
     room.players.delete(socket.id);
     socket.leave(code);
     if (room.players.size === 0) {
       rooms.delete(code); // empty rooms disappear
-    } else {
-      io.to(code).emit("playerLeft", { id: socket.id });
+      return;
+    }
+    io.to(code).emit("playerLeft", { id: socket.id });
+    // Promote the next player to host if the host left (PLAT-30).
+    if (wasHost) {
+      room.hostId = room.players.keys().next().value;
+      io.to(code).emit("hostChanged", { hostId: room.hostId });
     }
   }
 
@@ -92,10 +99,11 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
   io.on("connection", (socket) => {
     socket.on("createRoom", (payload = {}, ack) => {
       const code = makeCode(rooms);
-      const room = { players: new Map(), nextSlot: 0 };
+      // The creator is the host (PLAT-30).
+      const room = { players: new Map(), nextSlot: 0, hostId: socket.id };
       rooms.set(code, room);
       join(socket, room, code, payload);
-      ack?.({ ok: true, code, playerId: socket.id, roster: roster(room) });
+      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room) });
     });
 
     socket.on("joinRoom", (payload = {}, ack) => {
@@ -110,11 +118,27 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
         return;
       }
       const player = join(socket, room, code, payload);
-      ack?.({ ok: true, code, playerId: socket.id, roster: roster(room) });
+      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room) });
       // Tell everyone else who joined.
       socket.to(code).emit("playerJoined", {
         id: player.id, name: player.name, avatar: player.avatar, slot: player.slot,
       });
+    });
+
+    // Host-only synced start: broadcast a countdown to the whole room so
+    // everyone drops into level 1 together (PLAT-30). A duration (not an
+    // absolute timestamp) sidesteps cross-device clock skew.
+    socket.on("startRace", () => {
+      const code = socket.data.roomCode;
+      const room = code && rooms.get(code);
+      if (!room || room.hostId !== socket.id) return;
+      // Reset per-player race state for a fresh run.
+      for (const p of room.players.values()) {
+        p.level = 0;
+        p.runTimeMs = 0;
+        p.finished = false;
+      }
+      io.to(code).emit("raceStart", { countdownMs: COUNTDOWN_MS });
     });
 
     // Relayed as-is to the rest of the room; the client controls send rate.

@@ -182,23 +182,36 @@ body.plat-no-select {
 
 /* Multiplayer lobby + leaderboard (PLAT-23/24) */
 .plat-input {
-  padding: 4px 6px;
+  padding: 8px 10px;
   font-family: "Courier New", monospace;
-  font-size: 13px;
+  font-size: 16px; /* >=16px stops iOS zoom-on-focus */
   text-align: center;
+  box-sizing: border-box;
+  width: 220px;
+  max-width: 80vw;
 }
 
 .plat-input-code {
-  width: 70px;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 6px;
+  font-size: 22px;
+  font-weight: bold;
 }
 
+/* Stack the code input and Join button so the button is always full
+   width and on-screen — it used to overflow off the side on phones
+   (PLAT-29). */
 .plat-join-row {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
   align-items: center;
-  justify-content: center;
+  width: 100%;
+}
+
+.plat-join-row .plat-btn {
+  width: 220px;
+  max-width: 80vw;
 }
 
 .plat-code {
@@ -274,6 +287,18 @@ body.plat-no-select {
 .plat-lb-time {
   min-width: 42px;
   text-align: right;
+}
+
+.plat-countdown {
+  background: rgba(20, 24, 40, 0.55);
+}
+
+.plat-countdown-num {
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 64px;
+  color: #ffd95a;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
 }
 
 .plat-results {

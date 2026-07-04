@@ -186,6 +186,7 @@ function Platformer() {
   const [roster, setRoster] = useState([]);
   const [mpError, setMpError] = useState("");
   const [standings, setStandings] = useState([]);
+  const [countdown, setCountdown] = useState(null); // synced-start 3-2-1
 
   useEffect(() => {
     const engine = new Engine(canvasRef.current, state);
@@ -314,12 +315,40 @@ function Platformer() {
     }
   };
 
+  // Host clicks Start -> ask the server to start the synced countdown
+  // for everyone (PLAT-30). The actual local start happens when the
+  // raceStart broadcast comes back and the countdown reaches 0.
   const startRace = () => {
+    if (network?.isHost) network.startRace();
+  };
+
+  const beginLocalRace = () => {
     remoteLatestRef.current.clear();
     sentFinishRef.current = false;
     state.multiplayer = true;
     state.startGame();
   };
+
+  // Synced start: every client counts down from the same broadcast and
+  // drops into level 1 together (PLAT-30).
+  useEffect(() => {
+    if (!network) return;
+    return network.on("raceStart", ({ countdownMs }) => {
+      setCountdown(Math.ceil((countdownMs ?? 3000) / 1000));
+    });
+  }, [network]);
+
+  useEffect(() => {
+    if (countdown == null) return;
+    if (countdown < 0) {
+      // After "GO!" (0), drop into the race.
+      setCountdown(null);
+      beginLocalRace();
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), countdown === 0 ? 500 : 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   // Send the finish once, when the race ends at the win screen.
   useEffect(() => {
@@ -399,6 +428,11 @@ function Platformer() {
           </div>
         )}
 
+        {countdown != null && (
+          <div className="plat-overlay plat-countdown">
+            <div className="plat-countdown-num">{countdown > 0 ? countdown : "GO!"}</div>
+          </div>
+        )}
 
         {screen === "menu" && (
           <div className="plat-overlay">
@@ -501,12 +535,17 @@ function Platformer() {
                       <SpriteIcon sheet={AVATAR_SHEETS[r.avatar] ?? AVATAR_SHEETS[0]} frames={8} size={16} />{" "}
                       {r.name}
                       {r.id === network?.playerId ? " (you)" : ""}
+                      {r.id === network?.hostId ? " 👑" : ""}
                     </li>
                   ))}
                 </ul>
-                <button type="button" className="plat-btn" onClick={startRace}>
-                  Start race
-                </button>
+                {network?.isHost ? (
+                  <button type="button" className="plat-btn" onClick={startRace}>
+                    Start race
+                  </button>
+                ) : (
+                  <p className="plat-text">Waiting for the host to start…</p>
+                )}
                 <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
                   Leave
                 </button>

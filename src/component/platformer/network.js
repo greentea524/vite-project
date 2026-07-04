@@ -21,6 +21,7 @@ export class Network {
     this.socket = null;
     this.playerId = null;
     this.roomCode = null;
+    this.hostId = null;
     this.selfName = "";
     this.selfSlot = 0; // spawn-fan slot assigned by the server
     this.roster = [];
@@ -62,6 +63,12 @@ export class Network {
       this._emit("playerLeft", { id });
     });
     socket.on("remoteState", (snap) => this._emit("remoteState", snap));
+    socket.on("raceStart", (info) => this._emit("raceStart", info));
+    socket.on("hostChanged", ({ hostId }) => {
+      this.hostId = hostId;
+      this._emit("hostChanged", { hostId });
+      this._emit("roster", this.roster); // re-render lobby (host badge/Start)
+    });
     socket.on("playerFinished", (info) => {
       const r = this.roster.find((p) => p.id === info.id);
       if (r) { r.finished = true; if (info.totalTimeMs != null) r.runTimeMs = info.totalTimeMs; }
@@ -79,9 +86,19 @@ export class Network {
   _onJoined(name, res) {
     this.playerId = res.playerId;
     this.roomCode = res.code;
+    this.hostId = res.hostId ?? null;
     this.selfName = name;
     this.selfSlot = res.roster.find((r) => r.id === res.playerId)?.slot ?? 0;
     this._setRoster(res.roster);
+  }
+
+  get isHost() {
+    return this.playerId != null && this.playerId === this.hostId;
+  }
+
+  // Host-only: ask the server to start the synced countdown.
+  startRace() {
+    this.socket?.emit("startRace");
   }
 
   createRoom(name, avatar) {

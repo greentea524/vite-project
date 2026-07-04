@@ -148,6 +148,66 @@ describe("relay server + network client", () => {
     host.destroy();
     guest.destroy();
   });
+
+  it("marks the creator as host and joiners as non-host (PLAT-30)", async () => {
+    const host = new Network();
+    const guest = new Network();
+    await connected(host, url);
+    await connected(guest, url);
+    const c = await host.createRoom("H", 0);
+    expect(host.isHost).toBe(true);
+    expect(host.hostId).toBe(host.playerId);
+    await guest.joinRoom(c.code, "G", 0);
+    expect(guest.isHost).toBe(false);
+    expect(guest.hostId).toBe(host.playerId);
+    host.destroy();
+    guest.destroy();
+  });
+
+  it("host startRace broadcasts a countdown to everyone; non-host is ignored (PLAT-30)", async () => {
+    const host = new Network();
+    const guest = new Network();
+    await connected(host, url);
+    await connected(guest, url);
+    const { code } = await host.createRoom("H", 0);
+    await guest.joinRoom(code, "G", 0);
+
+    // Non-host start does nothing.
+    let fired = false;
+    const offHost = host.on("raceStart", () => (fired = true));
+    guest.startRace();
+    await new Promise((r) => setTimeout(r, 150));
+    expect(fired).toBe(false);
+    offHost();
+
+    // Host start reaches both players.
+    const hostStart = once(host, "raceStart");
+    const guestStart = once(guest, "raceStart");
+    host.startRace();
+    const [h, g] = await Promise.all([hostStart, guestStart]);
+    expect(h.countdownMs).toBeGreaterThan(0);
+    expect(g.countdownMs).toBeGreaterThan(0);
+
+    host.destroy();
+    guest.destroy();
+  });
+
+  it("promotes a new host when the host leaves (PLAT-30)", async () => {
+    const host = new Network();
+    const guest = new Network();
+    await connected(host, url);
+    await connected(guest, url);
+    const { code } = await host.createRoom("H", 0);
+    await guest.joinRoom(code, "G", 0);
+
+    const promoted = once(guest, "hostChanged");
+    host.leave();
+    const info = await promoted;
+    expect(info.hostId).toBe(guest.playerId);
+
+    guest.destroy();
+    host.destroy();
+  });
 });
 
 describe("ghost interpolation", () => {
@@ -172,11 +232,20 @@ describe("ghost interpolation", () => {
     expect(mid.y).toBeCloseTo(20, 5);
   });
 
-  it("clamps to the latest snapshot when render time is ahead of data", () => {
+  it("holds the last position when render time is ahead and no velocity is known", () => {
     const g = createGhost({ id: "x" });
     pushSnapshot(g, { x: 0, y: 0 }, 1000);
-    pushSnapshot(g, { x: 100, y: 0 }, 1100);
-    // now far ahead -> renderT beyond last -> clamps to last
+    pushSnapshot(g, { x: 100, y: 0 }, 1100); // no vx -> extrapolation adds 0
     expect(sampleGhost(g, 5000).x).toBe(100);
+  });
+
+  it("extrapolates along velocity through a late packet, capped (PLAT-28)", () => {
+    const g = createGhost({ id: "x" });
+    pushSnapshot(g, { x: 0, y: 0, vx: 100 }, 1000);
+    pushSnapshot(g, { x: 10, y: 0, vx: 100 }, 1100); // moving right at 100 px/s
+    // now=1250 -> renderT=1150 -> 50ms past last -> 10 + 100*0.05 = 15
+    expect(sampleGhost(g, 1250).x).toBeCloseTo(15, 5);
+    // far ahead -> capped at MAX_EXTRAPOLATE_MS (200ms) -> 10 + 100*0.2 = 30
+    expect(sampleGhost(g, 9000).x).toBeCloseTo(30, 5);
   });
 });

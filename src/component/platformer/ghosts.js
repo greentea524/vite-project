@@ -4,6 +4,9 @@
 // canvas — so the timing logic is unit-testable.
 
 export const INTERP_DELAY_MS = 100;
+// When the next packet is late, keep the ghost moving along its last
+// velocity for a short while instead of freezing (PLAT-28).
+export const MAX_EXTRAPOLATE_MS = 200;
 const MAX_SNAPSHOTS = 20;
 
 export function createGhost(meta) {
@@ -31,13 +34,23 @@ export function sampleGhost(ghost, now, delay = INTERP_DELAY_MS) {
   const buf = ghost.buffer;
   if (buf.length === 0) return null;
   const renderT = now - delay;
-
-  if (buf.length === 1 || renderT <= buf[0].t) return snapshotView(ghost, buf[0]);
+  const first = buf[0];
   const last = buf[buf.length - 1];
-  if (renderT >= last.t) return snapshotView(ghost, last);
 
-  let a = buf[0];
-  let b = buf[buf.length - 1];
+  if (renderT <= first.t) return snapshotView(ghost, first);
+
+  // Past the newest snapshot: extrapolate along the last velocity for a
+  // capped window so the ghost glides through packet gaps (PLAT-28).
+  if (renderT >= last.t) {
+    const ahead = Math.min(renderT - last.t, MAX_EXTRAPOLATE_MS) / 1000;
+    const view = snapshotView(ghost, last);
+    view.x += (last.vx ?? 0) * ahead;
+    return view;
+  }
+
+  // Interpolate between the two snapshots bracketing renderT.
+  let a = first;
+  let b = last;
   for (let i = 0; i < buf.length - 1; i++) {
     if (buf[i].t <= renderT && renderT <= buf[i + 1].t) {
       a = buf[i];
