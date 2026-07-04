@@ -165,7 +165,8 @@ function Platformer() {
   if (!stateRef.current) stateRef.current = new GameState();
   const state = stateRef.current;
   const networkRef = useRef(null);
-  if (!networkRef.current && Network.isConfigured()) networkRef.current = new Network();
+  if (!networkRef.current && Network.isConfigured())
+    networkRef.current = new Network();
   const network = networkRef.current;
   // Live level/time for remote players, updated per message without
   // re-rendering; the leaderboard samples it on a timer (PLAT-24).
@@ -205,14 +206,22 @@ function Platformer() {
         network.on("error", (e) => setMpError(String(e))),
         network.on("remoteState", (snap) =>
           remoteLatestRef.current.set(snap.id, {
-            level: snap.level, runTimeMs: snap.runTimeMs, finished: snap.finished,
+            level: snap.level,
+            runTimeMs: snap.runTimeMs,
+            finished: snap.finished,
           }),
         ),
         network.on("playerFinished", ({ id, totalTimeMs }) => {
           const prev = remoteLatestRef.current.get(id) ?? {};
-          remoteLatestRef.current.set(id, { ...prev, finished: true, runTimeMs: totalTimeMs ?? prev.runTimeMs });
+          remoteLatestRef.current.set(id, {
+            ...prev,
+            finished: true,
+            runTimeMs: totalTimeMs ?? prev.runTimeMs,
+          });
         }),
-        network.on("playerLeft", ({ id }) => remoteLatestRef.current.delete(id)),
+        network.on("playerLeft", ({ id }) =>
+          remoteLatestRef.current.delete(id),
+        ),
       );
     }
     engine.start();
@@ -307,7 +316,11 @@ function Platformer() {
 
   const joinRace = async () => {
     setMpError("");
-    const res = await network.joinRoom(joinCode.trim().toUpperCase(), playerName || "Player", avatar);
+    const res = await network.joinRoom(
+      joinCode.trim().toUpperCase(),
+      playerName || "Player",
+      avatar,
+    );
     if (res?.ok) {
       setRoomCode(res.code);
       setLobbyMode("room");
@@ -347,13 +360,21 @@ function Platformer() {
       beginLocalRace();
       return;
     }
-    const t = setTimeout(() => setCountdown((c) => c - 1), countdown === 0 ? 500 : 1000);
+    const t = setTimeout(
+      () => setCountdown((c) => c - 1),
+      countdown === 0 ? 500 : 1000,
+    );
     return () => clearTimeout(t);
   }, [countdown]);
 
   // Send the finish once, when the race ends at the win screen.
   useEffect(() => {
-    if (screen === "win" && state.multiplayer && network && !sentFinishRef.current) {
+    if (
+      screen === "win" &&
+      state.multiplayer &&
+      network &&
+      !sentFinishRef.current
+    ) {
       sentFinishRef.current = true;
       network.sendFinished(Math.round(state.runTimeMs));
     }
@@ -373,14 +394,33 @@ function Platformer() {
   // combining the roster (names/avatars) with per-message live data
   // for remotes and local GameState for self (PLAT-24).
   useEffect(() => {
-    if (!network || !state.multiplayer || screen === "menu" || screen === "lobby") return;
+    if (
+      !network ||
+      !state.multiplayer ||
+      screen === "menu" ||
+      screen === "lobby"
+    )
+      return;
     const build = () => {
       const list = network.roster.map((r) => {
         if (r.id === network.playerId) {
-          return { id: r.id, name: r.name, self: true, level: state.currentLevel, runTimeMs: state.runTimeMs, finished: state.finished };
+          return {
+            id: r.id,
+            name: r.name,
+            self: true,
+            level: state.currentLevel,
+            runTimeMs: state.runTimeMs,
+            finished: state.finished,
+          };
         }
         const live = remoteLatestRef.current.get(r.id) ?? {};
-        return { id: r.id, name: r.name, level: live.level ?? 0, runTimeMs: live.runTimeMs ?? 0, finished: Boolean(live.finished) };
+        return {
+          id: r.id,
+          name: r.name,
+          level: live.level ?? 0,
+          runTimeMs: live.runTimeMs ?? 0,
+          finished: Boolean(live.finished),
+        };
       });
       list.sort((a, b) => {
         if (a.finished !== b.finished) return a.finished ? -1 : 1;
@@ -395,7 +435,12 @@ function Platformer() {
     return () => clearInterval(timer);
   }, [network, screen, state]);
 
-  const multiplayerAvailable = Boolean(network);
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    ["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(
+      window.location.hostname,
+    );
+  const raceFriendEnabled = Boolean(network) && isLocalhost;
 
   return (
     <div className="plat-shell" ref={shellRef}>
@@ -427,10 +472,15 @@ function Platformer() {
         {state.multiplayer && inGame && standings.length > 0 && (
           <div className="plat-leaderboard">
             {standings.map((p, i) => (
-              <div key={p.id} className={`plat-lb-row${p.self ? " plat-lb-self" : ""}`}>
+              <div
+                key={p.id}
+                className={`plat-lb-row${p.self ? " plat-lb-self" : ""}`}
+              >
                 <span className="plat-lb-rank">{i + 1}</span>
                 <span className="plat-lb-name">{p.name}</span>
-                <span className="plat-lb-lvl">{p.finished ? "✓" : LEVEL_LABEL(p.level)}</span>
+                <span className="plat-lb-lvl">
+                  {p.finished ? "✓" : LEVEL_LABEL(p.level)}
+                </span>
                 <span className="plat-lb-time">{formatTime(p.runTimeMs)}</span>
               </div>
             ))}
@@ -439,7 +489,9 @@ function Platformer() {
 
         {countdown != null && (
           <div className="plat-overlay plat-countdown">
-            <div className="plat-countdown-num">{countdown > 0 ? countdown : "GO!"}</div>
+            <div className="plat-countdown-num">
+              {countdown > 0 ? countdown : "GO!"}
+            </div>
           </div>
         )}
 
@@ -448,22 +500,37 @@ function Platformer() {
             <h3 className="plat-title">Platform Game</h3>
             <div className="plat-help">
               <p className="plat-text">
-                Reach the flag <SpriteIcon sheet={IMAGE_URLS.flag} frames={1} size={12} aspect={2} /> to
-                clear each level — six levels across two worlds.
+                Reach the flag{" "}
+                <SpriteIcon
+                  sheet={IMAGE_URLS.flag}
+                  frames={1}
+                  size={12}
+                  aspect={2}
+                />{" "}
+                to clear each level — six levels across two worlds.
               </p>
               <p className="plat-text">
-                Grab coins <SpriteIcon sheet={IMAGE_URLS.coin} frames={2} size={16} /> · stomp
-                enemies <SpriteIcon sheet={IMAGE_URLS.enemy} frames={2} size={16} /> by landing on
-                top · checkpoints <SpriteIcon sheet={IMAGE_URLS.checkpoint} frames={1} size={16} /> set
-                your respawn.
+                Grab coins{" "}
+                <SpriteIcon sheet={IMAGE_URLS.coin} frames={2} size={16} /> ·
+                stomp enemies{" "}
+                <SpriteIcon sheet={IMAGE_URLS.enemy} frames={2} size={16} /> by
+                landing on top · checkpoints{" "}
+                <SpriteIcon
+                  sheet={IMAGE_URLS.checkpoint}
+                  frames={1}
+                  size={16}
+                />{" "}
+                set your respawn.
               </p>
               <p className="plat-text">
-                Avoid spikes <SpriteIcon sheet={IMAGE_URLS.spike} frames={1} size={16} /> and
+                Avoid spikes{" "}
+                <SpriteIcon sheet={IMAGE_URLS.spike} frames={1} size={16} /> and
                 falling into pits — you have 3 lives per run.
               </p>
               <p className="plat-text">
-                Move with A/D, ◀▶ keys, or the on-screen buttons · jump with Space or ▲ — hold
-                for a higher jump, press again mid-air to double jump · pause with Esc or ❚❚.
+                Move with A/D, ◀▶ keys, or the on-screen buttons · jump with
+                Space or ▲ — hold for a higher jump, press again mid-air to
+                double jump · pause with Esc or ❚❚.
               </p>
             </div>
             <div className="plat-avatar-row">
@@ -479,14 +546,22 @@ function Platformer() {
                 </button>
               ))}
             </div>
-            <button type="button" className="plat-btn" onClick={() => state.startGame()}>
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={() => state.startGame()}
+            >
               Start
             </button>
-            {multiplayerAvailable && (
-              <button type="button" className="plat-btn" onClick={openMultiplayer}>
-                Race a friend
-              </button>
-            )}
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={raceFriendEnabled ? openMultiplayer : undefined}
+              disabled={!raceFriendEnabled}
+              title={raceFriendEnabled ? "Race a friend" : "Work in progress"}
+            >
+              {raceFriendEnabled ? "Race a friend" : "Work in progress"}
+            </button>
           </div>
         )}
 
@@ -529,7 +604,11 @@ function Platformer() {
                   Join room
                 </button>
                 {mpError && <p className="plat-text plat-error">{mpError}</p>}
-                <button type="button" className="plat-btn plat-btn-subtle" onClick={() => state.mainMenu()}>
+                <button
+                  type="button"
+                  className="plat-btn plat-btn-subtle"
+                  onClick={() => state.mainMenu()}
+                >
                   Back
                 </button>
               </div>
@@ -545,7 +624,11 @@ function Platformer() {
                 <ul className="plat-roster">
                   {roster.map((r) => (
                     <li key={r.id}>
-                      <SpriteIcon sheet={AVATAR_SHEETS[r.avatar] ?? AVATAR_SHEETS[0]} frames={8} size={16} />{" "}
+                      <SpriteIcon
+                        sheet={AVATAR_SHEETS[r.avatar] ?? AVATAR_SHEETS[0]}
+                        frames={8}
+                        size={16}
+                      />{" "}
                       {r.name}
                       {r.id === network?.playerId ? " (you)" : ""}
                       {r.id === network?.hostId ? " 👑" : ""}
@@ -553,13 +636,21 @@ function Platformer() {
                   ))}
                 </ul>
                 {network?.isHost ? (
-                  <button type="button" className="plat-btn" onClick={startRace}>
+                  <button
+                    type="button"
+                    className="plat-btn"
+                    onClick={startRace}
+                  >
                     Start race
                   </button>
                 ) : (
                   <p className="plat-text">Waiting for the host to start…</p>
                 )}
-                <button type="button" className="plat-btn plat-btn-subtle" onClick={() => state.mainMenu()}>
+                <button
+                  type="button"
+                  className="plat-btn plat-btn-subtle"
+                  onClick={() => state.mainMenu()}
+                >
                   Leave
                 </button>
               </div>
@@ -570,13 +661,25 @@ function Platformer() {
         {screen === "paused" && (
           <div className="plat-overlay plat-overlay-dim">
             <h4 className="plat-title">Paused</h4>
-            <button type="button" className="plat-btn" onClick={() => state.resume()}>
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={() => state.resume()}
+            >
               Resume
             </button>
-            <button type="button" className="plat-btn" onClick={() => state.restartLevel()}>
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={() => state.restartLevel()}
+            >
               Restart
             </button>
-            <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={() => state.mainMenu()}
+            >
               Quit to menu
             </button>
           </div>
@@ -585,10 +688,18 @@ function Platformer() {
         {screen === "gameover" && (
           <div className="plat-overlay">
             <h4 className="plat-title">Game Over</h4>
-            <button type="button" className="plat-btn" onClick={() => state.retryLevel()}>
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={() => state.retryLevel()}
+            >
               Retry
             </button>
-            <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={() => state.mainMenu()}
+            >
               Menu
             </button>
           </div>
@@ -617,8 +728,20 @@ function Platformer() {
                           !done && !next ? " plat-map-locked" : ""
                         }`}
                       >
-                        {done && <SpriteIcon sheet={IMAGE_URLS.coin} frames={2} size={20} />}
-                        {next && <SpriteIcon sheet={AVATAR_SHEETS[avatar]} frames={8} size={20} />}
+                        {done && (
+                          <SpriteIcon
+                            sheet={IMAGE_URLS.coin}
+                            frames={2}
+                            size={20}
+                          />
+                        )}
+                        {next && (
+                          <SpriteIcon
+                            sheet={AVATAR_SHEETS[avatar]}
+                            frames={8}
+                            size={20}
+                          />
+                        )}
                         {!done && !next && <span className="plat-icon-blank" />}
                         {w + 1}-{s + 1}
                       </span>
@@ -627,7 +750,11 @@ function Platformer() {
                 </div>
               ))}
             </div>
-            <button type="button" className="plat-btn" onClick={() => state.continueFromWorldMap()}>
+            <button
+              type="button"
+              className="plat-btn"
+              onClick={() => state.continueFromWorldMap()}
+            >
               Continue
             </button>
           </div>
@@ -638,19 +765,30 @@ function Platformer() {
             {state.multiplayer ? (
               <>
                 <h4 className="plat-title">Race Results 🏁</h4>
-                <p className="plat-text">Your time: {formatTime(state.runTimeMs)}</p>
+                <p className="plat-text">
+                  Your time: {formatTime(state.runTimeMs)}
+                </p>
                 <div className="plat-results">
                   {standings.map((p, i) => (
-                    <div key={p.id} className={`plat-lb-row${p.self ? " plat-lb-self" : ""}`}>
+                    <div
+                      key={p.id}
+                      className={`plat-lb-row${p.self ? " plat-lb-self" : ""}`}
+                    >
                       <span className="plat-lb-rank">{i + 1}</span>
                       <span className="plat-lb-name">{p.name}</span>
                       <span className="plat-lb-time">
-                        {p.finished ? formatTime(p.runTimeMs) : `${LEVEL_LABEL(p.level)}…`}
+                        {p.finished
+                          ? formatTime(p.runTimeMs)
+                          : `${LEVEL_LABEL(p.level)}…`}
                       </span>
                     </div>
                   ))}
                 </div>
-                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => state.mainMenu()}
+                >
                   Menu
                 </button>
               </>
@@ -658,7 +796,11 @@ function Platformer() {
               <>
                 <h4 className="plat-title">You Win! 🎉</h4>
                 <p className="plat-text">Total coins: {coins}</p>
-                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => state.mainMenu()}
+                >
                   Menu
                 </button>
               </>
@@ -674,7 +816,9 @@ function Platformer() {
             <button
               type="button"
               className="plat-touch-btn plat-touch-pause"
-              onClick={() => (screen === "paused" ? state.resume() : state.pause())}
+              onClick={() =>
+                screen === "paused" ? state.resume() : state.pause()
+              }
             >
               ❚❚
             </button>
