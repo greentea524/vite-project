@@ -4,7 +4,7 @@ import { GameState, AVATAR_NAMES, START_LIVES } from "./state.js";
 import { Engine, VIEW_W, VIEW_H, LABEL_SCALE } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS } from "./levels.js";
-import { Network, MAX_PLAYERS } from "./network.js";
+import { Network, MAX_PLAYERS, isLocalNetworkHost } from "./network.js";
 
 // mm:ss.d for the leaderboard/results (PLAT-24).
 function formatTime(ms) {
@@ -435,12 +435,9 @@ function Platformer() {
     return () => clearInterval(timer);
   }, [network, screen, state]);
 
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    ["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(
-      window.location.hostname,
-    );
-  const raceFriendEnabled = Boolean(network) && isLocalhost;
+  const isLocalNetwork =
+    typeof window !== "undefined" && isLocalNetworkHost(window.location.hostname);
+  const raceFriendEnabled = Boolean(network) && isLocalNetwork;
 
   return (
     <div className="plat-shell" ref={shellRef}>

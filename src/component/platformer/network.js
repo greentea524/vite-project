@@ -15,6 +15,19 @@ export const MULTIPLAYER_URL =
 export const SEND_INTERVAL_MS = 66; // ~15 Hz, decoupled from the 60 Hz sim
 export const MAX_PLAYERS = 4; // mirrors the server cap (relay.js enforces it)
 
+// True for localhost and RFC 1918 private LAN addresses (plus mDNS
+// .local), so the multiplayer button works during local dev and for
+// phones on the same Wi-Fi — but not on the public deployed site.
+export function isLocalNetworkHost(hostname = "") {
+  if (["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(hostname)) return true;
+  if (hostname.endsWith(".local")) return true;
+  return (
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) || // 10.0.0.0/8
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) || // 192.168.0.0/16
+    /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(hostname) // 172.16.0.0/12
+  );
+}
+
 export class Network {
   constructor() {
     this._listeners = new Map();

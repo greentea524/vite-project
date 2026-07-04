@@ -4,8 +4,23 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createRelayServer } from "../../../server/relay.js";
-import { Network } from "./network.js";
+import { Network, isLocalNetworkHost } from "./network.js";
 import { createGhost, pushSnapshot, sampleGhost } from "./ghosts.js";
+
+describe("isLocalNetworkHost", () => {
+  it("allows localhost and private LAN addresses", () => {
+    for (const h of ["localhost", "127.0.0.1", "::1", "0.0.0.0", "dev.local",
+      "192.168.0.21", "192.168.1.100", "10.0.0.5", "172.16.3.4", "172.31.255.1"]) {
+      expect(isLocalNetworkHost(h)).toBe(true);
+    }
+  });
+  it("rejects public hosts", () => {
+    for (const h of ["greentea524.github.io", "example.com", "8.8.8.8",
+      "172.15.0.1", "172.32.0.1", "11.0.0.1", ""]) {
+      expect(isLocalNetworkHost(h)).toBe(false);
+    }
+  });
+});
 
 // Resolve when `event` fires on the network, or reject after timeout.
 function once(net, event, timeout = 2000) {
