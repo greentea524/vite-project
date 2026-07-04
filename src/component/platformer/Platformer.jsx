@@ -485,49 +485,53 @@ function Platformer() {
           <div className="plat-overlay">
             <h4 className="plat-title">Race a friend</h4>
             {lobbyMode === "choose" && (
-              <div className="plat-help">
-                <input
-                  className="plat-input"
-                  type="text"
-                  maxLength={16}
-                  placeholder="Your name"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                />
+              <div className="plat-lobby">
+                <label className="plat-field">
+                  <span className="plat-field-label">Your name</span>
+                  <input
+                    className="plat-input"
+                    type="text"
+                    maxLength={16}
+                    placeholder="Player"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                  />
+                </label>
                 <button type="button" className="plat-btn" onClick={hostRace}>
                   Create room
                 </button>
-                <div className="plat-join-row">
-                  <input
-                    className="plat-input plat-input-code"
-                    type="text"
-                    maxLength={4}
-                    placeholder="CODE"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  />
-                  <button
-                    type="button"
-                    className="plat-btn"
-                    disabled={joinCode.trim().length < 4}
-                    onClick={joinRace}
-                  >
-                    Join
-                  </button>
-                </div>
+                <div className="plat-lobby-divider">or join a room</div>
+                <input
+                  className="plat-input plat-input-code"
+                  type="text"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  maxLength={4}
+                  placeholder="CODE"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                />
+                <button
+                  type="button"
+                  className="plat-btn"
+                  disabled={joinCode.trim().length < 4}
+                  onClick={joinRace}
+                >
+                  Join room
+                </button>
                 {mpError && <p className="plat-text plat-error">{mpError}</p>}
-                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                <button type="button" className="plat-btn plat-btn-subtle" onClick={() => state.mainMenu()}>
                   Back
                 </button>
               </div>
             )}
             {lobbyMode === "room" && (
-              <div className="plat-help">
+              <div className="plat-lobby">
                 <p className="plat-text">
                   Room code: <span className="plat-code">{roomCode}</span>
                 </p>
                 <p className="plat-text">
-                  Players ({roster.length}/{MAX_PLAYERS}):
+                  Players ({roster.length}/{MAX_PLAYERS})
                 </p>
                 <ul className="plat-roster">
                   {roster.map((r) => (
@@ -546,7 +550,7 @@ function Platformer() {
                 ) : (
                   <p className="plat-text">Waiting for the host to start…</p>
                 )}
-                <button type="button" className="plat-btn" onClick={() => state.mainMenu()}>
+                <button type="button" className="plat-btn plat-btn-subtle" onClick={() => state.mainMenu()}>
                   Leave
                 </button>
               </div>
