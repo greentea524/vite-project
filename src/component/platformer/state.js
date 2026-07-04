@@ -24,6 +24,11 @@ export class GameState {
     this.respawn = { x: 0, y: 0 };
     // Number of consecutively completed levels; drives the world map.
     this.levelsCompleted = 0;
+    // Ghost-race multiplayer (PLAT-19). runTimeMs accumulates playing
+    // time across the whole run for the leaderboard.
+    this.multiplayer = false;
+    this.runTimeMs = 0;
+    this.finished = false;
   }
 
   on(event, cb) {
@@ -45,9 +50,20 @@ export class GameState {
     this.coins = 0;
     this.lives = START_LIVES;
     this.levelsCompleted = 0;
+    this.runTimeMs = 0;
+    this.finished = false;
     this._emit("coins", this.coins);
     this._emit("lives", this.lives);
     this.gotoLevel(0);
+  }
+
+  // Multiplayer lobby (PLAT-23): choose create/join before starting.
+  openLobby() {
+    this._setScreen("lobby");
+  }
+
+  addRunTime(ms) {
+    this.runTimeMs += ms;
   }
 
   gotoLevel(index) {
@@ -73,6 +89,7 @@ export class GameState {
   }
 
   mainMenu() {
+    this.multiplayer = false;
     this._setScreen("menu");
   }
 
@@ -134,8 +151,12 @@ export class GameState {
   // Continue from the world map: next unfinished level, or the win
   // screen once everything is done.
   continueFromWorldMap() {
-    if (this.levelsCompleted >= LEVELS.length) this._setScreen("win");
-    else this.gotoLevel(this.levelsCompleted);
+    if (this.levelsCompleted >= LEVELS.length) {
+      this.finished = true; // completing the last level ends the race
+      this._setScreen("win");
+    } else {
+      this.gotoLevel(this.levelsCompleted);
+    }
   }
 
   gameOver() {

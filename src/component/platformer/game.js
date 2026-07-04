@@ -13,6 +13,8 @@ import {
   respawnPlayer,
   playerFrame,
   RESPAWN_DELAY,
+  SHEET_FRAMES,
+  SHEET_FPS,
 } from "./player.js";
 import { createEnemy, updateEnemy, enemyFrame } from "./enemy.js";
 import {
@@ -27,9 +29,13 @@ import {
 import { Input } from "./input.js";
 import { Sfx } from "./sfx.js";
 import { loadImages } from "./assets.js";
+import { createGhost, pushSnapshot, sampleGhost } from "./ghosts.js";
 
 export const VIEW_W = 320;
 export const VIEW_H = 180;
+// Name labels render on a separate, higher-res overlay canvas that
+// scales smoothly, so text stays crisp over the pixelated game canvas.
+export const LABEL_SCALE = 4;
 const DT = 1 / 60;
 const MAX_FRAME = 0.25;
 const CAM_SMOOTHING = 5; // Camera2D position_smoothing_speed default
@@ -51,12 +57,33 @@ const css = ([r, g, b]) =>
   `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 const isWhite = ([r, g, b]) => r === 1 && g === 1 && b === 1;
 
+// Frame for a ghost given only its anim name (we don't track a remote
+// player's animation clock, so drive it from wall time).
+function animFrameFor(anim) {
+  const frames = SHEET_FRAMES[anim] ?? SHEET_FRAMES.idle;
+  const fps = SHEET_FPS[anim] ?? 4;
+  return frames[Math.floor((performance.now() / 1000) * fps) % frames.length];
+}
+
+// Fan players out around the start point by their room slot so ghosts
+// don't stack on the local player (PLAT-19 polish). Centered on P so no
+// slot gets a positional edge: 0, +12, -12, +24, -24, …
+const SPAWN_SPACING = 12;
+function spawnOffset(slot) {
+  if (!slot) return 0;
+  const step = Math.ceil(slot / 2) * SPAWN_SPACING;
+  return slot % 2 === 1 ? step : -step;
+}
+
 export class Engine {
-  constructor(canvas, state) {
+  constructor(canvas, state, labelCanvas = null) {
     this.canvas = canvas;
     canvas.__engine = this; // debug/testing handle
     this.ctx = canvas.getContext("2d");
     this.ctx.imageSmoothingEnabled = false;
+    // Optional high-res overlay for crisp name labels (multiplayer).
+    this.labelCanvas = labelCanvas;
+    this.labelCtx = labelCanvas ? labelCanvas.getContext("2d") : null;
     this.state = state;
     this.input = new Input();
     this.sfx = new Sfx();
@@ -66,6 +93,27 @@ export class Engine {
     this._raf = 0;
     this._unsubs = [];
     this._pending = null; // { t, fn } — delayed respawn / game over
+    // Multiplayer (PLAT-22): remote players rendered as ghosts.
+    this.network = null;
+    this.ghosts = new Map(); // id -> ghost (see ghosts.js)
+  }
+
+  // Wire in a Network so the engine broadcasts the local player and
+  // renders remote players as ghosts. Single-player leaves this unset.
+  attachNetwork(network) {
+    this.network = network;
+    this._unsubs.push(
+      network.on("remoteState", (snap) => {
+        let ghost = this.ghosts.get(snap.id);
+        if (!ghost) {
+          const meta = network.roster.find((r) => r.id === snap.id) ?? { id: snap.id };
+          ghost = createGhost(meta);
+          this.ghosts.set(snap.id, ghost);
+        }
+        pushSnapshot(ghost, snap, performance.now());
+      }),
+      network.on("playerLeft", ({ id }) => this.ghosts.delete(id)),
+    );
   }
 
   async start() {
@@ -128,8 +176,13 @@ export class Engine {
     }
 
     const start = this.level.playerStart ?? { x: TILE / 2, y: TILE / 2 };
-    this.player = createPlayer(start.x, start.y);
-    this.state.setCheckpoint(start);
+    // In a race, offset the spawn by this player's slot so everyone
+    // starts standing next to each other rather than stacked.
+    const offset =
+      this.network && this.state.multiplayer ? spawnOffset(this.network.selfSlot) : 0;
+    const spawn = { x: start.x + offset, y: start.y };
+    this.player = createPlayer(spawn.x, spawn.y);
+    this.state.setCheckpoint(spawn);
     this.cam = { x: 0, y: 0 };
     this.snapCamera();
   }
@@ -174,6 +227,21 @@ export class Engine {
         this._pending = null;
         fn();
       }
+    }
+
+    // Multiplayer: accumulate the run timer (playing time only, so
+    // pauses don't count) and broadcast a throttled snapshot.
+    if (this.network && this.state.multiplayer) {
+      this.state.addRunTime(dt * 1000);
+      this.network.sendState({
+        x: p.x,
+        y: p.y,
+        vx: p.vx,
+        facing: p.facing,
+        anim: p.anim,
+        level: this.state.currentLevel,
+        runTimeMs: Math.round(this.state.runTimeMs),
+      });
     }
 
     this.updateCamera(dt);
@@ -243,6 +311,8 @@ export class Engine {
   render() {
     const ctx = this.ctx;
     ctx.imageSmoothingEnabled = false;
+    // Clear the label overlay each frame (labels are redrawn below).
+    if (this.labelCtx) this.labelCtx.clearRect(0, 0, this.labelCanvas.width, this.labelCanvas.height);
     if (!this.level) {
       ctx.fillStyle = css([0.43, 0.72, 0.91]);
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -299,6 +369,10 @@ export class Engine {
       );
     }
 
+    // Ghosts: remote players on this same level, drawn translucently
+    // behind the local player (PLAT-22).
+    if (this.ghosts.size) this.renderGhosts(ctx, ox, oy);
+
     const p = this.player;
     const sheetName = AVATAR_SHEET_NAMES[this.state.selectedAvatar] ?? "player";
     const sheet = p.tint
@@ -311,6 +385,44 @@ export class Engine {
       scaleY: p.scaleY,
     });
     ctx.globalAlpha = 1;
+    // Own name tag in a race, so it's easy to tell who's who.
+    if (this.network && this.state.multiplayer && this.network.selfName) {
+      this.drawNameLabel(this.network.selfName, p.x - ox, p.y - oy);
+    }
+  }
+
+  renderGhosts(ctx, ox, oy) {
+    const now = performance.now();
+    for (const ghost of this.ghosts.values()) {
+      const v = sampleGhost(ghost, now);
+      if (!v || v.level !== this.state.currentLevel) continue; // only same-level ghosts
+      const sheet = this.images[AVATAR_SHEET_NAMES[v.avatar] ?? "player"];
+      const gx = v.x - ox;
+      const gy = v.y - oy;
+      ctx.globalAlpha = 0.5;
+      this.drawFrame(ctx, sheet, animFrameFor(v.anim), gx, gy, { flip: v.facing < 0 });
+      ctx.globalAlpha = 1;
+      this.drawNameLabel(v.name, gx, gy);
+    }
+  }
+
+  // Name tag above a player/ghost (multiplayer). Drawn to the high-res
+  // overlay canvas so the text is crisp, not pixel-upscaled. (x, y) are
+  // in game-view pixels; scaled up to the overlay's resolution.
+  drawNameLabel(name, x, y) {
+    const lc = this.labelCtx;
+    if (!name || !lc) return;
+    const S = LABEL_SCALE;
+    lc.font = `bold ${6 * S}px monospace`;
+    lc.textAlign = "center";
+    lc.textBaseline = "alphabetic";
+    const px = Math.round(x * S);
+    const py = Math.round((y - 12) * S);
+    lc.fillStyle = "rgba(0,0,0,0.65)";
+    lc.fillText(name, px, py + S); // shadow for legibility
+    lc.fillStyle = "rgba(255,255,255,0.95)";
+    lc.fillText(name, px, py);
+    lc.textAlign = "left";
   }
 
   renderClouds(ctx, ox, oy) {

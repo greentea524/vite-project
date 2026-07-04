@@ -47,6 +47,18 @@
   box-sizing: border-box;
 }
 
+/* Sits exactly over the game canvas; smooth-scaled (not pixelated) so
+   name-label text is crisp. Non-interactive. */
+.plat-label-canvas {
+  grid-area: 1 / 1;
+  align-self: start;
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+
 .plat-hud {
   position: absolute;
   top: 0;
@@ -178,6 +190,178 @@ body.plat-no-select {
   width: 40px;
   height: 40px;
   font-size: 12px;
+}
+
+/* Multiplayer lobby + leaderboard (PLAT-23/24) */
+/* Multiplayer lobby (PLAT-29): one clean column, all controls the same
+   width, comfortable touch sizing. */
+.plat-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 240px;
+  max-width: 86vw;
+}
+
+.plat-lobby .plat-input,
+.plat-lobby .plat-btn {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.plat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+}
+
+.plat-field-label {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.plat-input {
+  padding: 9px 10px;
+  font-family: "Courier New", monospace;
+  font-size: 16px; /* >=16px stops iOS zoom-on-focus */
+  text-align: center;
+  box-sizing: border-box;
+  min-height: 40px;
+}
+
+.plat-input-code {
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  font-size: 24px;
+  font-weight: bold;
+  padding-left: 18px; /* re-center against the letter-spacing */
+}
+
+.plat-lobby-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.plat-lobby-divider::before,
+.plat-lobby-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.plat-btn-subtle {
+  opacity: 0.7;
+}
+
+.plat-code {
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: #ffd95a;
+}
+
+.plat-error {
+  color: #ff8a8a;
+}
+
+.plat-roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.plat-roster li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  margin: 2px 0;
+}
+
+.plat-leaderboard {
+  position: absolute;
+  top: 26px;
+  right: 6px;
+  min-width: 116px;
+  background: rgba(20, 24, 40, 0.55);
+  border-radius: 4px;
+  padding: 3px 5px;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  color: #fff;
+  pointer-events: none;
+}
+
+.plat-lb-row {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+  line-height: 1.5;
+}
+
+.plat-lb-self {
+  color: #ffd95a;
+}
+
+.plat-lb-rank {
+  width: 10px;
+  text-align: right;
+  opacity: 0.7;
+}
+
+.plat-lb-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60px;
+}
+
+.plat-lb-lvl {
+  opacity: 0.85;
+}
+
+.plat-lb-time {
+  min-width: 42px;
+  text-align: right;
+}
+
+/* Compound selector beats `.plat-overlay { z-index: 1 }` regardless of
+   source order, so the countdown paints above the lobby (the host in
+   the lobby was otherwise not seeing it). */
+.plat-overlay.plat-countdown {
+  background: rgba(20, 24, 40, 0.55);
+  z-index: 5;
+}
+
+.plat-countdown-num {
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 64px;
+  color: #ffd95a;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.plat-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  min-width: 180px;
 }
 
 .plat-overlay {
