@@ -229,18 +229,22 @@ const LEVEL_4_3 = [
 // shows the level as "world-stage" (1-1 ... 4-3).
 export const WORLDS = [
   [
-    { layout: LEVEL_1, sky: DEFAULT_SKY, tileTint: WHITE, cloudTint: WHITE },
-    { layout: LEVEL_2, sky: DEFAULT_SKY, tileTint: WHITE, cloudTint: WHITE },
-    { layout: LEVEL_3, sky: DEFAULT_SKY, tileTint: WHITE, cloudTint: WHITE },
+    // World 1 — grassland decor (PG-46): trees, bushes, flowers, fences.
+    { layout: LEVEL_1, sky: DEFAULT_SKY, tileTint: WHITE, cloudTint: WHITE, decor: "grassland" },
+    { layout: LEVEL_2, sky: DEFAULT_SKY, tileTint: WHITE, cloudTint: WHITE, decor: "grassland" },
+    { layout: LEVEL_3, sky: DEFAULT_SKY, tileTint: WHITE, cloudTint: WHITE, decor: "grassland" },
   ],
+  // World 2 — dusk-forest decor (PG-46): tall dark trees, mushrooms,
+  // hanging vines, and fallen logs.
   [
-    { layout: LEVEL_2_1, sky: DUSK_SKY, tileTint: DUSK_TILE, cloudTint: DUSK_CLOUD },
-    { layout: LEVEL_2_2, sky: DUSK_SKY, tileTint: DUSK_TILE, cloudTint: DUSK_CLOUD },
+    { layout: LEVEL_2_1, sky: DUSK_SKY, tileTint: DUSK_TILE, cloudTint: DUSK_CLOUD, decor: "forest" },
+    { layout: LEVEL_2_2, sky: DUSK_SKY, tileTint: DUSK_TILE, cloudTint: DUSK_CLOUD, decor: "forest" },
     {
       layout: LEVEL_2_3,
       sky: [0.13, 0.11, 0.2],
       tileTint: [0.68, 0.65, 0.9],
       cloudTint: [0.55, 0.52, 0.7],
+      decor: "forest",
     },
   ],
   // World 3 — Underworld/Cave (PG-38): dark, no clouds, crystal backdrop.

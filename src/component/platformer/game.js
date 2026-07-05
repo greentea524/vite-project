@@ -4,7 +4,7 @@
 // smoothing and limits. The game renders a 320x180 world view — the
 // Godot project's 640x360 viewport at 2x camera zoom.
 
-import { TILE, BLOCK, buildLevel, bodyRect, rectsOverlap } from "./physics.js";
+import { TILE, BLOCK, buildLevel, bodyRect, rectsOverlap, solidAt } from "./physics.js";
 import { LEVELS } from "./levels.js";
 import {
   createPlayer,
@@ -617,6 +617,8 @@ export class Engine {
         ctx.fill();
         ctx.globalAlpha = 1;
       }
+    } else if (this.theme.decor === "grassland" || this.theme.decor === "forest") {
+      this.renderGroundDecor(ctx, ox, oy, this.theme.decor);
     } else if (this.theme.decor === "cave") {
       // Faint glowing crystals scattered in the background rock.
       const par = 0.5;
@@ -640,6 +642,153 @@ export class Engine {
         }
       }
     }
+  }
+
+  // Grassland (World 1) / dusk-forest (World 2) background scenery
+  // (PG-46). World-anchored decorative props drawn behind the tilemap,
+  // only over solid ground, deterministically placed so they don't
+  // jitter. Purely visual — no collision.
+  renderGroundDecor(ctx, ox, oy, kind) {
+    const forest = kind === "forest";
+    const groundRow = this.level.rows - 1;
+    const groundY = groundRow * TILE;
+    const STEP = 34;
+    const gx0 = Math.floor(ox / STEP) - 1;
+    const gx1 = Math.floor((ox + VIEW_W) / STEP) + 1;
+
+    // Forest vines hang from the top of the view (independent of ground).
+    if (forest) {
+      for (let gx = gx0; gx <= gx1; gx++) {
+        if (hash2(gx, 999) < 0.72) continue;
+        const sx = Math.round(gx * STEP + hash2(gx, 5) * STEP - ox);
+        const len = 22 + Math.floor(hash2(gx, 8) * 40);
+        ctx.strokeStyle = "rgba(58,92,58,0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(sx, 0);
+        ctx.quadraticCurveTo(sx + 4, len * 0.5, sx, len);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(70,110,70,0.55)";
+        ctx.beginPath();
+        ctx.ellipse(sx, len, 3, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    for (let gx = gx0; gx <= gx1; gx++) {
+      if (hash2(gx, forest ? 41 : 17) < 0.45) continue; // sparse scatter
+      const wx = gx * STEP + hash2(gx, 3) * (STEP - 10);
+      if (!solidAt(this.level, Math.floor(wx / TILE), groundRow)) continue;
+      const x = Math.round(wx - ox);
+      const y = Math.round(groundY - oy);
+      const pick = hash2(gx, forest ? 71 : 29);
+      if (forest) {
+        if (pick < 0.42) this.drawTallTree(ctx, x, y);
+        else if (pick < 0.68) this.drawMushroom(ctx, x, y);
+        else this.drawLog(ctx, x, y);
+      } else {
+        if (pick < 0.4) this.drawTree(ctx, x, y);
+        else if (pick < 0.62) this.drawBush(ctx, x, y);
+        else if (pick < 0.82) this.drawFlowers(ctx, x, y);
+        else this.drawFence(ctx, x, y);
+      }
+    }
+  }
+
+  drawTree(ctx, x, yb) {
+    ctx.fillStyle = "#7a5230";
+    ctx.fillRect(x - 2, yb - 14, 4, 14);
+    ctx.fillStyle = "#4a9e3a";
+    for (const [dx, dy, r] of [[0, -20, 9], [-6, -15, 7], [6, -15, 7]]) {
+      ctx.beginPath();
+      ctx.arc(x + dx, yb + dy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#57b046";
+    ctx.beginPath();
+    ctx.arc(x - 3, yb - 22, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawBush(ctx, x, yb) {
+    ctx.fillStyle = "#5aa845";
+    for (const [dx, r] of [[-5, 5], [0, 7], [5, 5]]) {
+      ctx.beginPath();
+      ctx.arc(x + dx, yb - 4, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  drawFlowers(ctx, x, yb) {
+    const cols = ["#ff5d73", "#ffd93b", "#ff9ff3"];
+    for (let i = 0; i < 3; i++) {
+      const fx = x + (i - 1) * 5;
+      ctx.strokeStyle = "#3f8f38";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(fx, yb);
+      ctx.lineTo(fx, yb - 8);
+      ctx.stroke();
+      ctx.fillStyle = cols[i % cols.length];
+      ctx.beginPath();
+      ctx.arc(fx, yb - 9, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  drawFence(ctx, x, yb) {
+    ctx.fillStyle = "#e8dcc0";
+    ctx.fillRect(x - 7, yb - 10, 2, 10);
+    ctx.fillRect(x + 5, yb - 10, 2, 10);
+    ctx.fillRect(x - 8, yb - 8, 15, 2);
+    ctx.fillRect(x - 8, yb - 4, 15, 2);
+  }
+
+  drawTallTree(ctx, x, yb) {
+    ctx.fillStyle = "#3a2b1f";
+    ctx.fillRect(x - 2, yb - 22, 3, 22);
+    ctx.fillStyle = "#243a28";
+    ctx.beginPath();
+    ctx.moveTo(x - 8, yb - 20);
+    ctx.lineTo(x + 8, yb - 20);
+    ctx.lineTo(x, yb - 36);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x - 7, yb - 27);
+    ctx.lineTo(x + 7, yb - 27);
+    ctx.lineTo(x, yb - 41);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  drawMushroom(ctx, x, yb) {
+    ctx.fillStyle = "#e6dcc8";
+    ctx.fillRect(x - 1, yb - 6, 3, 6);
+    ctx.fillStyle = "#b0455a";
+    ctx.beginPath();
+    ctx.ellipse(x, yb - 6, 5, 3, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillRect(x - 2, yb - 7, 1, 1);
+    ctx.fillRect(x + 1, yb - 8, 1, 1);
+  }
+
+  drawLog(ctx, x, yb) {
+    ctx.fillStyle = "#5b3a24";
+    ctx.beginPath();
+    ctx.ellipse(x, yb - 3, 10, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#3f2817";
+    ctx.beginPath();
+    ctx.ellipse(x - 9, yb - 3, 2.5, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#7a4e30";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, yb - 4);
+    ctx.lineTo(x + 8, yb - 4);
+    ctx.stroke();
   }
 
   // Animated lava tiles (PG-40).

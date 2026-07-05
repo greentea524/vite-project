@@ -195,4 +195,12 @@ describe("worlds wiring", () => {
     expect(LEVELS[9].gravity).toBe(0.55); // World 4-1
     expect(LEVELS[10].meteors).toBe(true); // 4-2 meteor shower
   });
+
+  it("assigns a decor theme to every level (PG-46 adds World 1/2)", () => {
+    const decors = LEVELS.map((l) => l.decor);
+    expect(decors.slice(0, 3)).toEqual(["grassland", "grassland", "grassland"]);
+    expect(decors.slice(3, 6)).toEqual(["forest", "forest", "forest"]);
+    expect(decors.slice(6, 9)).toEqual(["cave", "cave", "cave"]);
+    expect(decors.slice(9, 12)).toEqual(["space", "space", "space"]);
+  });
 });
