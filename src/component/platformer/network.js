@@ -13,7 +13,7 @@ export const MULTIPLAYER_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_MULTIPLAYER_URL) || "";
 
 export const SEND_INTERVAL_MS = 66; // ~15 Hz, decoupled from the 60 Hz sim
-export const MAX_PLAYERS = 4; // mirrors the server cap (relay.js enforces it)
+export const MAX_PLAYERS = 6; // mirrors the server cap (relay.js enforces it)
 
 // True for localhost and RFC 1918 private LAN addresses (plus mDNS
 // .local), so the multiplayer button works during local dev and for

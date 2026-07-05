@@ -11,7 +11,7 @@ import { Server } from "socket.io";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no easily-confused chars
 const CODE_LEN = 4;
-export const MAX_PLAYERS = 4; // per room (host + up to 3 others)
+export const MAX_PLAYERS = 6; // per room (host + up to 5 others, PG-57)
 export const COUNTDOWN_MS = 3000; // synced-start countdown (PLAT-30)
 
 function makeCode(taken) {

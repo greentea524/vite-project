@@ -3,8 +3,8 @@
 // pure ghost-interpolation logic (PLAT-22).
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { createRelayServer } from "../../../server/relay.js";
-import { Network, isLocalNetworkHost } from "./network.js";
+import { createRelayServer, MAX_PLAYERS } from "../../../server/relay.js";
+import { Network, isLocalNetworkHost, MAX_PLAYERS as CLIENT_MAX } from "./network.js";
 import { createGhost, pushSnapshot, sampleGhost } from "./ghosts.js";
 
 describe("isLocalNetworkHost", () => {
@@ -75,14 +75,17 @@ describe("relay server + network client", () => {
     guest.destroy();
   });
 
-  it("caps a room at 4 players and rejects a 5th", async () => {
+  it(`caps a room at ${MAX_PLAYERS} players and rejects one more`, async () => {
+    // The client constant must mirror the server cap (PG-57).
+    expect(CLIENT_MAX).toBe(MAX_PLAYERS);
+
     const host = new Network();
     await connected(host, url);
     const { code } = await host.createRoom("Host", 0);
 
     const guests = [];
-    // 3 more fill the room to 4.
-    for (let i = 0; i < 3; i++) {
+    // Guests fill the room to the cap.
+    for (let i = 0; i < MAX_PLAYERS - 1; i++) {
       const g = new Network();
       await connected(g, url);
       const res = await g.joinRoom(code, `G${i}`, 0);
@@ -90,14 +93,14 @@ describe("relay server + network client", () => {
       guests.push(g);
     }
 
-    const fifth = new Network();
-    await connected(fifth, url);
-    const res = await fifth.joinRoom(code, "TooMany", 0);
+    const extra = new Network();
+    await connected(extra, url);
+    const res = await extra.joinRoom(code, "TooMany", 0);
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/full/i);
 
     host.destroy();
-    fifth.destroy();
+    extra.destroy();
     guests.forEach((g) => g.destroy());
   });
 
