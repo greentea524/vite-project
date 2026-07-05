@@ -70,6 +70,12 @@ const WEB_GAMES = [
     href: "https://greentea524.github.io/game/js-boxing/",
     description: "A role-playing boxing game where you train and fight opponents.",
   },
+  {
+    title: "Platformer (Standalone)",
+    href: `${import.meta.env.BASE_URL}platformer/`,
+    description:
+      "The platformer on its own full page — same game, no app UI around it.",
+  },
 ];
 
 // Deep link so the platformer can be opened directly by URL, e.g.

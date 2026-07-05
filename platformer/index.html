@@ -21,11 +21,22 @@
       }
       #root {
         min-height: 100vh;
+        min-height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 12px;
         box-sizing: border-box;
+      }
+      /* Fit-to-screen: cap the 16:9 stage (and the control bar under
+         it) so canvas + touch controls fit the viewport height with no
+         scrolling — same math as the component's :fullscreen rule.
+         ~150px covers page/shell padding plus the control bar. dvh
+         tracks the real visible height around mobile browser bars. */
+      #root .plat-stage,
+      #root .plat-touch-bar {
+        width: min(100%, calc((100vh - 150px) * 16 / 9));
+        width: min(100%, calc((100dvh - 150px) * 16 / 9));
       }
     </style>
   </head>

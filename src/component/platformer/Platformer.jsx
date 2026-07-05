@@ -174,6 +174,10 @@ function Platformer() {
   const sentFinishRef = useRef(false);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // iPhone Safari has no Fullscreen API for arbitrary elements — hide
+  // the button entirely there rather than showing a no-op control.
+  const fullscreenSupported =
+    typeof document !== "undefined" && !!document.fullscreenEnabled;
   const [screen, setScreen] = useState(state.screen);
   const [coins, setCoins] = useState(state.coins);
   const [lives, setLives] = useState(state.lives);
@@ -819,15 +823,17 @@ function Platformer() {
             >
               ❚❚
             </button>
-            <button
-              type="button"
-              className="plat-touch-btn plat-touch-pause"
-              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-              aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-              onClick={toggleFullscreen}
-            >
-              ⛶
-            </button>
+            {fullscreenSupported && (
+              <button
+                type="button"
+                className="plat-touch-btn plat-touch-pause"
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                onClick={toggleFullscreen}
+              >
+                ⛶
+              </button>
+            )}
           </div>
           <TouchButton
             label="▲"
