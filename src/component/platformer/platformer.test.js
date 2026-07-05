@@ -353,7 +353,10 @@ describe("game state flow", () => {
 
   it("labels levels world-stage and detects world boundaries", () => {
     const s = new GameState();
-    expect(LEVELS.map((l) => l.label)).toEqual(["1-1", "1-2", "1-3", "2-1", "2-2", "2-3"]);
+    expect(LEVELS.map((l) => l.label)).toEqual([
+      "1-1", "1-2", "1-3", "2-1", "2-2", "2-3",
+      "3-1", "3-2", "3-3", "4-1", "4-2", "4-3",
+    ]);
     expect(s.isLastInWorld(2)).toBe(true);
     expect(s.isLastInWorld(1)).toBe(false);
     expect(s.isLastInWorld(LEVELS.length - 1)).toBe(true);

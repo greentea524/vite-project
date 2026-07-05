@@ -56,6 +56,23 @@ export function buildLevel(layout) {
         case "K":
           spawns.push({ type: "checkpoint", ...pos });
           break;
+        // World 3/4 mechanics (PG-38/PG-39).
+        case "L": // lava pool — non-solid, deadly on contact
+          spawns.push({ type: "lava", ...pos });
+          break;
+        case "V": // bat — flying patrol enemy
+          spawns.push({ type: "bat", ...pos });
+          break;
+        case "A": // alien — walking enemy (space-themed)
+          spawns.push({ type: "alien", ...pos });
+          break;
+        case "T": // stalactite — drops when the player passes beneath
+          spawns.push({ type: "stalactite", ...pos });
+          break;
+        case "X": // crumbling platform — solid until stood on, then falls
+          tiles.set(`${x},${y}`, BLOCK);
+          spawns.push({ type: "crumble", tx: x, ty: y, ...pos });
+          break;
         case "P":
           playerStart = pos;
           break;

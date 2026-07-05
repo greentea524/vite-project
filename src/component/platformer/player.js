@@ -62,9 +62,13 @@ export function updatePlayer(p, input, level, dt, fx) {
     p.scaleY = 1 - 0.4 * t;
   }
 
+  // Low-gravity worlds (Space, PG-43) scale gravity down for floatier
+  // jumps. Default 1 keeps every other world exactly as before.
+  const gravity = GRAVITY * (level.gravityScale ?? 1);
+
   if (p.dying) {
     // Mario-style death hop: collisions are off, just fall out of view.
-    p.vy += GRAVITY * dt;
+    p.vy += gravity * dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     return;
@@ -74,7 +78,7 @@ export function updatePlayer(p, input, level, dt, fx) {
     p.coyote = COYOTE_TIME;
     p.airJumps = MAX_AIR_JUMPS;
   } else {
-    p.vy += GRAVITY * dt;
+    p.vy += gravity * dt;
     p.coyote -= dt;
   }
 

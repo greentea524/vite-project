@@ -24,7 +24,64 @@ export function createEnemy(x, y) {
     dir: -1,
     dead: false, squashT: 0, gone: false,
     animT: 0, scaleY: 1,
+    kind: "walker",
   };
+}
+
+// Alien (World 4): same ground-patrol AI as the walker, distinguished
+// only by its procedural render. Reuses updateEnemy.
+export function createAlien(x, y) {
+  return { ...createEnemy(x, y), kind: "alien" };
+}
+
+// Bat (World 3): flies a fixed horizontal patrol with a gentle vertical
+// bob, ignoring gravity and floors. Reverses at walls or at the edges of
+// its patrol span. Stompable via the shared rule in entities.js.
+export const BAT_SPEED = 42;
+const BAT_BOB_AMP = 7; // px
+const BAT_BOB_FREQ = 3; // rad/s
+const BAT_SPAN = 40; // px each way from spawn before turning
+export const BAT_FLAP_FPS = 8;
+export const BAT_FLAP_FRAMES = [0, 1];
+
+export function createBat(x, y) {
+  return {
+    x, y, vx: 0, vy: 0, w: 12, h: 8, ox: 0, oy: 0,
+    onFloor: false, onWall: false, onCeiling: false,
+    dir: -1,
+    dead: false, squashT: 0, gone: false,
+    animT: 0, scaleY: 1,
+    kind: "bat",
+    homeX: x, baseY: y, bobT: Math.random() * Math.PI * 2,
+  };
+}
+
+export function batFrame(e) {
+  return BAT_FLAP_FRAMES[Math.floor(e.animT * BAT_FLAP_FPS) % BAT_FLAP_FRAMES.length];
+}
+
+export function updateBat(e, level, dt) {
+  if (e.dead) {
+    e.squashT = Math.max(0, e.squashT - dt);
+    e.scaleY = 0.2 + 0.8 * (e.squashT / SQUASH_TIME);
+    if (e.squashT === 0) e.gone = true;
+    return;
+  }
+  e.animT += dt;
+  e.bobT += dt;
+
+  // Horizontal patrol: turn at a wall ahead or at the span limit.
+  const nextX = e.x + e.dir * BAT_SPEED * dt;
+  if (
+    pointSolid(level, nextX + e.dir * (e.w / 2), e.y) ||
+    Math.abs(nextX - e.homeX) > BAT_SPAN
+  ) {
+    e.dir *= -1;
+  } else {
+    e.x = nextX;
+  }
+  // Vertical bob around the spawn height (purely presentational motion).
+  e.y = e.baseY + Math.sin(e.bobT * BAT_BOB_FREQ) * BAT_BOB_AMP;
 }
 
 export function enemyFrame(e) {
@@ -46,7 +103,7 @@ export function updateEnemy(e, level, dt) {
   e.animT += dt;
 
   if (!e.onFloor) {
-    e.vy += GRAVITY * dt;
+    e.vy += GRAVITY * (level.gravityScale ?? 1) * dt;
   } else if (
     pointSolid(level, e.x + WALL_PROBE_X * e.dir, e.y + WALL_PROBE_Y) ||
     !pointSolid(level, e.x + FLOOR_PROBE_X * e.dir, e.y + FLOOR_PROBE_Y)

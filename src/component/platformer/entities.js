@@ -3,7 +3,7 @@
 // applies the gameplay contact rules each frame. Pure logic: the
 // engine supplies callbacks for sounds and game-state changes.
 
-import { bodyRect, rectsOverlap } from "./physics.js";
+import { bodyRect, rectsOverlap, pointSolid, GRAVITY, TILE } from "./physics.js";
 import { bounce } from "./player.js";
 import { enemyHitbox, squashEnemy } from "./enemy.js";
 
@@ -27,6 +27,55 @@ export function createCheckpoint(x, y) {
 
 export function createFlag(x, y) {
   return { type: "flag", x, y, reached: false };
+}
+
+// --- World 3/4 hazards (PG-38/PG-39) ---------------------------------
+
+// Lava pool: a non-solid tile cell that kills on contact (World 3).
+export function createLava(x, y) {
+  return { type: "lava", x, y, animT: 0 };
+}
+
+// Stalactite: hangs from the ceiling until the player passes beneath,
+// then drops under gravity and shatters on the floor (World 3).
+export const STALACTITE_TRIGGER_X = 12; // horizontal proximity to drop
+export function createStalactite(x, y) {
+  return { type: "stalactite", x, y, vy: 0, falling: false, gone: false };
+}
+
+// Meteor: falls straight down at a constant speed; kills on contact and
+// is removed once it drops past the level (World 4). Spawned by the
+// engine at random intervals, not from a tile.
+export const METEOR_SPEED = 170;
+export function createMeteor(x, y) {
+  return { type: "meteor", x, y, animT: 0, gone: false };
+}
+
+export function updateStalactite(s, level, player, dt) {
+  if (s.gone) return;
+  if (!s.falling) {
+    // Drop once the player is roughly underneath and below the tip.
+    if (
+      player &&
+      !player.dying &&
+      Math.abs(player.x - s.x) < STALACTITE_TRIGGER_X &&
+      player.y > s.y
+    ) {
+      s.falling = true;
+    }
+    return;
+  }
+  s.vy += GRAVITY * dt;
+  s.y += s.vy * dt;
+  // Shatter when the tip reaches a solid tile or falls out of the level.
+  if (pointSolid(level, s.x, s.y + 8) || s.y > level.killY) s.gone = true;
+}
+
+export function updateMeteor(m, level, dt) {
+  if (m.gone) return;
+  m.animT += dt;
+  m.y += METEOR_SPEED * dt;
+  if (m.y > level.killY) m.gone = true;
 }
 
 export function coinFrame(c) {
@@ -64,6 +113,22 @@ export function flagRect(f) {
   return { left: f.x - 6, top: f.y - 23, right: f.x + 6, bottom: f.y + 7 };
 }
 
+// Lava fills its tile cell; the top is dropped a few px so merely
+// standing at the edge of an adjacent tile isn't an instant kill.
+export function lavaRect(l) {
+  return { left: l.x - TILE / 2, top: l.y - 4, right: l.x + TILE / 2, bottom: l.y + TILE / 2 };
+}
+
+export function stalactiteRect(s) {
+  // ~10x14 pointing down from (x, y).
+  return { left: s.x - 5, top: s.y - 7, right: s.x + 5, bottom: s.y + 7 };
+}
+
+export function meteorRect(m) {
+  // ~12x12 fireball core.
+  return { left: m.x - 6, top: m.y - 6, right: m.x + 6, bottom: m.y + 6 };
+}
+
 // Applies the contact rules for one frame. `world` holds the player,
 // entity lists, and level; `ev` supplies the outcome callbacks:
 //   onCoin(coin), onStomp(enemy), onPlayerDeath(), onCheckpoint(k),
@@ -82,6 +147,27 @@ export function processInteractions(world, ev) {
 
   for (const s of world.spikes) {
     if (rectsOverlap(pr, spikesRect(s))) {
+      ev.onPlayerDeath();
+      return;
+    }
+  }
+
+  // Lava, falling stalactites, and meteors are all touch-to-die hazards
+  // (World 3/4). Lists are absent on earlier worlds — treat as empty.
+  for (const l of world.lava ?? []) {
+    if (rectsOverlap(pr, lavaRect(l))) {
+      ev.onPlayerDeath();
+      return;
+    }
+  }
+  for (const s of world.stalactites ?? []) {
+    if (!s.gone && rectsOverlap(pr, stalactiteRect(s))) {
+      ev.onPlayerDeath();
+      return;
+    }
+  }
+  for (const m of world.meteors ?? []) {
+    if (!m.gone && rectsOverlap(pr, meteorRect(m))) {
       ev.onPlayerDeath();
       return;
     }

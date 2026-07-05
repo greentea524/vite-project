@@ -122,8 +122,111 @@ const LEVEL_2_3 = [
   r("G", 12) + r(".", 8) + r("G", 14) + r(".", 6) + r("G", 16) + r(".", 8) + r("G", 16) + r(".", 7) + r("G", 25),
 ].join("\n");
 
+// World 3 Underworld/Cave theme (PG-38). Dark rock, no sky clouds; a
+// procedural cave-crystal backdrop is drawn by the engine (decor: cave).
+const CAVE_SKY = [0.05, 0.03, 0.08];
+const CAVE_TILE = [0.46, 0.4, 0.56];
+
+// World 4 Space theme (PG-39). Near-black sky with a starfield/planets
+// backdrop (decor: space), low gravity, and (later stages) meteors.
+const SPACE_SKY = [0.02, 0.02, 0.06];
+const SPACE_TILE = [0.62, 0.64, 0.74];
+
+// Legend recap for the new mechanics: L lava · V bat · A alien ·
+// T stalactite (falls when passed beneath) · X crumbling platform.
+
+// Level 3-1 — Cave intro (PG-40). Lava pools to jump and bats patrolling
+// mid-air. Moderate difficulty as a transition from World 2.
+// 64 columns. Ground segments 0-15, 19-38, 42-63 (two 3-wide lava pits).
+const LEVEL_3_1 = [
+  r(".", 28) + "CCC" + r(".", 33),
+  r(".", 27) + "BBBBB" + r(".", 32),
+  "",
+  r(".", 22) + "CC" + r(".", 18) + "CC" + r(".", 20),
+  r(".", 21) + "BBBB" + r(".", 16) + "BBBB" + r(".", 19),
+  r(".", 10) + "V" + r(".", 25) + "V" + r(".", 27),
+  "..P....C...E...." + "..." + ".....C....E......C.." + "..." + "....C.......C....F....",
+  r("G", 16) + "LLL" + r("G", 20) + "LLL" + r("G", 22),
+].join("\n");
+
+// Level 3-2 — Deeper cave (PG-41). Wider lava (with a stepping stone),
+// more bats, falling stalactites that drop when the player passes under,
+// and a mid-level checkpoint.
+// 80 columns. Ground segments 0-19, 24-45, 49-79 (lava pits 4 and 3 wide).
+const LEVEL_3_2 = [
+  r(".", 34) + "CCC" + r(".", 43),
+  r(".", 33) + "BBBBB" + r(".", 42),
+  r(".", 30) + "T" + r(".", 24) + "T" + r(".", 10) + "T" + r(".", 13),
+  r(".", 21) + "CC" + r(".", 57),
+  r(".", 21) + "BB" + r(".", 57),
+  r(".", 14) + "V" + r(".", 30) + "V" + r(".", 34),
+  "..P.....C....E......" + "...." + ".....C....K.....E....." + "..." + ".....C.......E........F........",
+  r("G", 20) + "LLLL" + r("G", 22) + "LLL" + r("G", 31),
+].join("\n");
+
+// Level 3-3 — Underworld finale (PG-42). Lava everywhere, a swarm of
+// bats, stalactites, and a crumbling-platform bridge over a wide lava
+// pit. Two checkpoints.
+// 96 columns. Ground segments 0-15, 19-34, 40-59, 63-95 (lava 3,5,3 wide;
+// the 5-wide pit is crossed by crumbling platforms one row up).
+const LEVEL_3_3 = [
+  r(".", 44) + "CCC" + r(".", 49),
+  r(".", 43) + "BBBBB" + r(".", 48),
+  r(".", 24) + "T" + r(".", 21) + "T" + r(".", 23) + "T" + r(".", 14) + "T" + r(".", 10),
+  r(".", 20) + "CC" + r(".", 74),
+  r(".", 20) + "BB" + r(".", 74),
+  r(".", 35) + "XXXXX" + r(".", 8) + "V" + r(".", 20) + "V" + r(".", 26),
+  "..P....C....E..." + "..." + "...K....C....E.." + "....." + ".....C......E......." + "..." + "....K.....C.......E......F.......",
+  r("G", 16) + "LLL" + r("G", 16) + "LLLLL" + r("G", 20) + "LLL" + r("G", 33),
+].join("\n");
+
+// Level 4-1 — Space intro (PG-43). Low gravity makes jumps floaty;
+// alien enemies patrol the station floor; void gaps replace pits.
+// 72 columns. Ground segments 0-23, 28-49, 53-71 (4- and 3-wide voids).
+const LEVEL_4_1 = [
+  r(".", 30) + "CCC" + r(".", 39),
+  r(".", 29) + "BBBBB" + r(".", 38),
+  "",
+  r(".", 24) + "CC" + r(".", 46),
+  r(".", 24) + "BBB" + r(".", 23) + "BBB" + r(".", 19),
+  "",
+  "..P......C.....A........" + "...." + "....C......A........." + "..." + "...C.....A....F....",
+  r("G", 24) + r(".", 4) + r("G", 22) + r(".", 3) + r("G", 19),
+].join("\n");
+
+// Level 4-2 — Meteor belt (PG-44). Meteors rain from above at random
+// intervals; static asteroid platforms bridge the voids; more aliens and
+// a checkpoint.
+// 88 columns. Ground segments 0-19, 25-48, 53-87 (5- and 4-wide voids).
+const LEVEL_4_2 = [
+  r(".", 40) + "CCC" + r(".", 45),
+  r(".", 39) + "BBBBB" + r(".", 44),
+  "",
+  r(".", 20) + "CC" + r(".", 66),
+  r(".", 20) + "BBBB" + r(".", 25) + "BBB" + r(".", 36),
+  "",
+  "..P.....C.....A....." + "....." + "...K....C......A........" + "...." + "....C.......A.......C......F.......",
+  r("G", 20) + r(".", 5) + r("G", 24) + r(".", 4) + r("G", 35),
+].join("\n");
+
+// Level 4-3 — Ultimate finale (PG-45). Every Space mechanic together:
+// low gravity, asteroid platforms, meteors, and aliens across a long
+// run with two checkpoints. It's the last level, so the goal triggers
+// the You-Win screen.
+// 108 columns. Ground segments 0-15, 20-43, 49-76, 81-107 (voids 4,5,4).
+const LEVEL_4_3 = [
+  r(".", 52) + "CCC" + r(".", 53),
+  r(".", 51) + "BBBBB" + r(".", 52),
+  "",
+  r(".", 30) + "CCC" + r(".", 75),
+  r(".", 16) + "BBB" + r(".", 25) + "BBBB" + r(".", 24) + "BBB" + r(".", 33),
+  "",
+  "..P....C....A..." + "...." + "...K...C.....A.......C.." + "....." + "....C......A........C......." + "...." + "...K....C......A......F....",
+  r("G", 16) + r(".", 4) + r("G", 24) + r(".", 5) + r("G", 28) + r(".", 4) + r("G", 27),
+].join("\n");
+
 // Levels grouped by world, mirroring GameManager.WORLDS. The HUD
-// shows the level as "world-stage" (1-1 ... 2-3).
+// shows the level as "world-stage" (1-1 ... 4-3).
 export const WORLDS = [
   [
     { layout: LEVEL_1, sky: DEFAULT_SKY, tileTint: WHITE, cloudTint: WHITE },
@@ -139,6 +242,19 @@ export const WORLDS = [
       tileTint: [0.68, 0.65, 0.9],
       cloudTint: [0.55, 0.52, 0.7],
     },
+  ],
+  // World 3 — Underworld/Cave (PG-38): dark, no clouds, crystal backdrop.
+  [
+    { layout: LEVEL_3_1, sky: CAVE_SKY, tileTint: CAVE_TILE, cloudTint: WHITE, clouds: false, decor: "cave" },
+    { layout: LEVEL_3_2, sky: CAVE_SKY, tileTint: CAVE_TILE, cloudTint: WHITE, clouds: false, decor: "cave" },
+    { layout: LEVEL_3_3, sky: [0.03, 0.02, 0.05], tileTint: [0.5, 0.36, 0.42], cloudTint: WHITE, clouds: false, decor: "cave" },
+  ],
+  // World 4 — Space (PG-39): starfield backdrop, low gravity, meteors on
+  // the later stages.
+  [
+    { layout: LEVEL_4_1, sky: SPACE_SKY, tileTint: SPACE_TILE, cloudTint: WHITE, clouds: false, decor: "space", gravity: 0.55 },
+    { layout: LEVEL_4_2, sky: SPACE_SKY, tileTint: SPACE_TILE, cloudTint: WHITE, clouds: false, decor: "space", gravity: 0.55, meteors: true },
+    { layout: LEVEL_4_3, sky: [0.03, 0.01, 0.08], tileTint: [0.6, 0.55, 0.72], cloudTint: WHITE, clouds: false, decor: "space", gravity: 0.55, meteors: true },
   ],
 ];
 

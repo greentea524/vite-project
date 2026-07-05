@@ -4,7 +4,7 @@
 // smoothing and limits. The game renders a 320x180 world view — the
 // Godot project's 640x360 viewport at 2x camera zoom.
 
-import { TILE, buildLevel } from "./physics.js";
+import { TILE, BLOCK, buildLevel, bodyRect, rectsOverlap } from "./physics.js";
 import { LEVELS } from "./levels.js";
 import {
   createPlayer,
@@ -16,13 +16,26 @@ import {
   SHEET_FRAMES,
   SHEET_FPS,
 } from "./player.js";
-import { createEnemy, updateEnemy, enemyFrame } from "./enemy.js";
+import {
+  createEnemy,
+  updateEnemy,
+  enemyFrame,
+  createAlien,
+  createBat,
+  updateBat,
+  batFrame,
+} from "./enemy.js";
 import {
   createCoin,
   createSpikes,
   createCheckpoint,
   createFlag,
+  createLava,
+  createStalactite,
+  createMeteor,
   updateCoin,
+  updateStalactite,
+  updateMeteor,
   coinFrame,
   processInteractions,
 } from "./entities.js";
@@ -40,6 +53,9 @@ const DT = 1 / 60;
 const MAX_FRAME = 0.25;
 const CAM_SMOOTHING = 5; // Camera2D position_smoothing_speed default
 const GAME_OVER_DELAY = 1.0;
+// Crumbling platform timings (World 3, PG-42).
+const CRUMBLE_SHAKE = 0.4; // wobble time before it drops
+const CRUMBLE_RESPAWN = 3.0; // time before it returns
 
 // Two looping cloud layers at different scroll speeds and sizes give
 // the background depth (PG-31). From level.gd::_add_clouds.
@@ -56,6 +72,14 @@ const DEATH_TINT = [1, 0.45, 0.45];
 const css = ([r, g, b]) =>
   `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 const isWhite = ([r, g, b]) => r === 1 && g === 1 && b === 1;
+
+// Stable per-cell pseudo-random in [0,1) for procedural decor (stars,
+// crystals) so the backdrop doesn't jitter as the camera moves.
+function hash2(x, y) {
+  let h = (x | 0) * 374761393 + (y | 0) * 668265263;
+  h = (h ^ (h >> 13)) * 1274126177;
+  return ((h ^ (h >> 16)) >>> 0) / 4294967296;
+}
 
 // Frame for a ghost given only its anim name (we don't track a remote
 // player's animation clock, so drive it from wall time).
@@ -158,6 +182,8 @@ export class Engine {
   loadLevel(index) {
     const data = LEVELS[index];
     this.level = buildLevel(data.layout);
+    // Low-gravity worlds scale the whole sim; default 1 (PG-43).
+    this.level.gravityScale = data.gravity ?? 1;
     this.theme = data;
     this._pending = null;
 
@@ -166,14 +192,29 @@ export class Engine {
     this.spikes = [];
     this.checkpoints = [];
     this.flags = [];
+    this.lava = [];
+    this.stalactites = [];
+    this.crumbles = [];
+    this.meteors = [];
     for (const s of this.level.spawns) {
       if (s.type === "coin") this.coins.push(createCoin(s.x, s.y));
       else if (s.type === "enemy") this.enemies.push(createEnemy(s.x, s.y));
+      else if (s.type === "alien") this.enemies.push(createAlien(s.x, s.y));
+      else if (s.type === "bat") this.enemies.push(createBat(s.x, s.y));
       else if (s.type === "spikes") this.spikes.push(createSpikes(s.x, s.y));
+      else if (s.type === "lava") this.lava.push(createLava(s.x, s.y));
+      else if (s.type === "stalactite")
+        this.stalactites.push(createStalactite(s.x, s.y));
+      else if (s.type === "crumble")
+        this.crumbles.push({ tx: s.tx, ty: s.ty, x: s.x, y: s.y, state: "idle", t: 0 });
       else if (s.type === "checkpoint")
         this.checkpoints.push(createCheckpoint(s.x, s.y));
       else if (s.type === "flag") this.flags.push(createFlag(s.x, s.y));
     }
+    // Meteor shower (World 4): spawn on a randomized timer across the
+    // visible span. Disabled unless the theme opts in.
+    this.meteorsOn = !!data.meteors;
+    this.meteorTimer = 1.2;
 
     const start = this.level.playerStart ?? { x: TILE / 2, y: TILE / 2 };
     // In a race, offset the spawn by this player's slot so everyone
@@ -190,8 +231,16 @@ export class Engine {
   step(dt) {
     const p = this.player;
     updatePlayer(p, this.input, this.level, dt, this.sfx);
-    for (const e of this.enemies) if (!e.gone) updateEnemy(e, this.level, dt);
+    for (const e of this.enemies) {
+      if (e.gone) continue;
+      if (e.kind === "bat") updateBat(e, this.level, dt);
+      else updateEnemy(e, this.level, dt);
+    }
     for (const c of this.coins) if (!c.gone) updateCoin(c, dt);
+    for (const s of this.stalactites) updateStalactite(s, this.level, p, dt);
+    for (const m of this.meteors) if (!m.gone) updateMeteor(m, this.level, dt);
+    this.updateCrumbles(dt);
+    if (this.meteorsOn) this.updateMeteorSpawner(dt);
 
     processInteractions(
       {
@@ -200,6 +249,9 @@ export class Engine {
         coins: this.coins,
         enemies: this.enemies,
         spikes: this.spikes,
+        lava: this.lava,
+        stalactites: this.stalactites,
+        meteors: this.meteors,
         checkpoints: this.checkpoints,
         flags: this.flags,
       },
@@ -260,6 +312,66 @@ export class Engine {
           this.snapCamera();
         },
       };
+    }
+  }
+
+  // Crumbling platforms (World 3): a cell shakes when the player stands
+  // on it, drops out after CRUMBLE_SHAKE, then returns after
+  // CRUMBLE_RESPAWN. Solidity is the presence of the tile key, so we
+  // just delete / re-add it in level.tiles.
+  updateCrumbles(dt) {
+    const p = this.player;
+    const pr = bodyRect(p);
+    const feetTy = Math.floor((pr.bottom + 0.01) / TILE);
+    const txMin = Math.floor(pr.left / TILE);
+    const txMax = Math.floor((pr.right - 0.001) / TILE);
+    for (const c of this.crumbles) {
+      if (c.state === "idle") {
+        const standing =
+          p.onFloor && feetTy === c.ty && c.tx >= txMin && c.tx <= txMax;
+        if (standing) {
+          c.state = "shaking";
+          c.t = CRUMBLE_SHAKE;
+        }
+      } else if (c.state === "shaking") {
+        c.t -= dt;
+        if (c.t <= 0) {
+          this.level.tiles.delete(`${c.tx},${c.ty}`);
+          c.state = "gone";
+          c.t = CRUMBLE_RESPAWN;
+        }
+      } else if (c.state === "gone") {
+        c.t -= dt;
+        if (c.t <= 0) {
+          // Don't rematerialize inside the player — wait until clear.
+          const cell = {
+            left: c.tx * TILE,
+            top: c.ty * TILE,
+            right: c.tx * TILE + TILE,
+            bottom: c.ty * TILE + TILE,
+          };
+          if (!rectsOverlap(bodyRect(p), cell)) {
+            this.level.tiles.set(`${c.tx},${c.ty}`, BLOCK);
+            c.state = "idle";
+          }
+        }
+      }
+    }
+  }
+
+  // World 4 meteor shower: drop a meteor from above the camera at a
+  // random x across the level on a randomized cadence, and drop
+  // spent meteors from the list.
+  updateMeteorSpawner(dt) {
+    this.meteorTimer -= dt;
+    if (this.meteorTimer <= 0) {
+      this.meteorTimer = 0.7 + Math.random() * 1.1;
+      const x = Math.random() * this.level.width * TILE;
+      const y = this.cam.y - VIEW_H / 2 - TILE;
+      this.meteors.push(createMeteor(x, y));
+    }
+    if (this.meteors.length > 40) {
+      this.meteors = this.meteors.filter((m) => !m.gone);
     }
   }
 
@@ -325,8 +437,13 @@ export class Engine {
     const ox = this.cam.x - VIEW_W / 2; // world coords of the view origin
     const oy = this.cam.y - VIEW_H / 2;
 
-    this.renderClouds(ctx, ox, oy);
+    // Themed backdrop: cave glow or space starfield (PG-40/PG-43).
+    if (this.theme.decor) this.renderDecor(ctx, ox, oy);
+    // Space skips clouds; other worlds keep the parallax layers.
+    if (this.theme.clouds !== false) this.renderClouds(ctx, ox, oy);
     this.renderTiles(ctx, ox, oy);
+    this.renderLava(ctx, ox, oy);
+    this.renderCrumbleFx(ctx, ox, oy);
 
     for (const s of this.spikes)
       this.drawSprite(ctx, "spike", 0, s.x - ox, s.y - oy);
@@ -354,19 +471,21 @@ export class Engine {
       this.drawSprite(ctx, "coin", coinFrame(c), c.x - ox, c.y + c.riseY - oy);
       ctx.globalAlpha = 1;
     }
+    for (const s of this.stalactites) {
+      if (!s.gone) this.drawStalactite(ctx, s, ox, oy);
+    }
+    for (const m of this.meteors) {
+      if (!m.gone) this.drawMeteor(ctx, m, ox, oy);
+    }
     for (const e of this.enemies) {
       if (e.gone) continue;
-      this.drawFrame(
-        ctx,
-        this.images.enemy,
-        enemyFrame(e),
-        e.x - ox,
-        e.y - oy,
-        {
+      if (e.kind === "bat") this.drawBat(ctx, e, ox, oy);
+      else if (e.kind === "alien") this.drawAlien(ctx, e, ox, oy);
+      else
+        this.drawFrame(ctx, this.images.enemy, enemyFrame(e), e.x - ox, e.y - oy, {
           flip: e.dir > 0,
           scaleY: e.scaleY,
-        },
-      );
+        });
     }
 
     // Ghosts: remote players on this same level, drawn translucently
@@ -462,6 +581,195 @@ export class Engine {
         );
       }
     }
+  }
+
+  // Themed parallax backdrop drawn behind the clouds/tiles.
+  renderDecor(ctx, ox, oy) {
+    if (this.theme.decor === "space") {
+      // Starfield (parallax) + a couple of distant planets.
+      const par = 0.35;
+      const sx = ox * par;
+      const sy = oy * par;
+      const CELL = 22;
+      const now = performance.now() / 1000;
+      for (let gy = Math.floor(sy / CELL) - 1; gy <= Math.floor((sy + VIEW_H) / CELL) + 1; gy++) {
+        for (let gx = Math.floor(sx / CELL) - 1; gx <= Math.floor((sx + VIEW_W) / CELL) + 1; gx++) {
+          const h = hash2(gx, gy);
+          if (h < 0.5) continue;
+          const px = Math.round(gx * CELL + hash2(gx + 7, gy) * CELL - sx);
+          const py = Math.round(gy * CELL + hash2(gx, gy + 7) * CELL - sy);
+          const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * 2 + h * 30));
+          ctx.fillStyle = `rgba(255,255,255,${(h > 0.9 ? twinkle : h * 0.7).toFixed(2)})`;
+          ctx.fillRect(px, py, h > 0.85 ? 2 : 1, h > 0.85 ? 2 : 1);
+        }
+      }
+      const planets = [
+        { x: 60, y: 40, r: 14, c: "#6c5ce7" },
+        { x: 250, y: 70, r: 20, c: "#c0562e" },
+      ];
+      for (const pl of planets) {
+        const x = pl.x - ox * 0.2;
+        const y = pl.y - oy * 0.2;
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = pl.c;
+        ctx.beginPath();
+        ctx.arc(x, y, pl.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    } else if (this.theme.decor === "cave") {
+      // Faint glowing crystals scattered in the background rock.
+      const par = 0.5;
+      const sx = ox * par;
+      const sy = oy * par;
+      const CELL = 40;
+      for (let gy = Math.floor(sy / CELL) - 1; gy <= Math.floor((sy + VIEW_H) / CELL) + 1; gy++) {
+        for (let gx = Math.floor(sx / CELL) - 1; gx <= Math.floor((sx + VIEW_W) / CELL) + 1; gx++) {
+          const h = hash2(gx, gy);
+          if (h < 0.72) continue;
+          const px = Math.round(gx * CELL + hash2(gx + 3, gy) * CELL - sx);
+          const py = Math.round(gy * CELL + hash2(gx, gy + 3) * CELL - sy);
+          ctx.fillStyle = h > 0.88 ? "rgba(120,230,180,0.35)" : "rgba(150,120,220,0.28)";
+          ctx.beginPath();
+          ctx.moveTo(px, py - 4);
+          ctx.lineTo(px + 3, py);
+          ctx.lineTo(px, py + 5);
+          ctx.lineTo(px - 3, py);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+  }
+
+  // Animated lava tiles (PG-40).
+  renderLava(ctx, ox, oy) {
+    if (!this.lava.length) return;
+    const t = performance.now() / 1000;
+    for (const l of this.lava) {
+      const x = Math.round(l.x - TILE / 2 - ox);
+      const y = Math.round(l.y - TILE / 2 - oy);
+      ctx.fillStyle = "#7a1500";
+      ctx.fillRect(x, y, TILE, TILE);
+      const g = ctx.createLinearGradient(0, y, 0, y + TILE);
+      g.addColorStop(0, "#ffb02f");
+      g.addColorStop(0.45, "#ff5a00");
+      g.addColorStop(1, "#a81a00");
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y + 2, TILE, TILE - 2);
+      const b = 0.5 + 0.5 * Math.sin(t * 3 + l.x * 0.5);
+      ctx.fillStyle = `rgba(255,235,140,${(0.35 + 0.4 * b).toFixed(2)})`;
+      ctx.fillRect(x + 2 + Math.round(b * 8), y + 3, 2, 2);
+      ctx.fillRect(x + 9 - Math.round(b * 5), y + 5, 2, 2);
+    }
+  }
+
+  // Crack/shake overlay marking crumbling platforms (PG-42). The solid
+  // tile itself is drawn by renderTiles while present.
+  renderCrumbleFx(ctx, ox, oy) {
+    for (const c of this.crumbles) {
+      if (c.state === "gone") continue;
+      let x = c.tx * TILE - ox;
+      const y = c.ty * TILE - oy;
+      if (c.state === "shaking") x += (Math.random() * 2 - 1) * 1.5;
+      x = Math.round(x);
+      const yy = Math.round(y);
+      ctx.fillStyle = "rgba(120,80,40,0.35)";
+      ctx.fillRect(x, yy, TILE, TILE);
+      ctx.strokeStyle = "rgba(20,10,0,0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, yy);
+      ctx.lineTo(x + 7, yy + 8);
+      ctx.lineTo(x + 3, yy + TILE);
+      ctx.moveTo(x + 11, yy);
+      ctx.lineTo(x + 9, yy + 9);
+      ctx.lineTo(x + 13, yy + TILE);
+      ctx.stroke();
+    }
+  }
+
+  drawStalactite(ctx, s, ox, oy) {
+    const x = Math.round(s.x - ox);
+    const y = Math.round(s.y - oy);
+    ctx.fillStyle = "#6b5a7a";
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y - 7);
+    ctx.lineTo(x + 5, y - 7);
+    ctx.lineTo(x, y + 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.fillRect(x - 3, y - 6, 2, 4);
+  }
+
+  drawMeteor(ctx, m, ox, oy) {
+    const x = Math.round(m.x - ox);
+    const y = Math.round(m.y - oy);
+    ctx.fillStyle = "rgba(255,160,40,0.35)";
+    ctx.beginPath();
+    ctx.moveTo(x, y - 15);
+    ctx.lineTo(x - 4, y);
+    ctx.lineTo(x + 4, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ffcf5a";
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ff6a00";
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawBat(ctx, e, ox, oy) {
+    const x = Math.round(e.x - ox);
+    const y = Math.round(e.y - oy);
+    const wingUp = batFrame(e) === 0;
+    const wy = wingUp ? -4 : 2;
+    ctx.fillStyle = "#2b2333";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 9, y + wy);
+    ctx.lineTo(x - 3, y + 3);
+    ctx.lineTo(x + 3, y + 3);
+    ctx.lineTo(x + 9, y + wy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#3a2f47";
+    ctx.beginPath();
+    ctx.arc(x, y + 1, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ff4d4d";
+    ctx.fillRect(x - 2, y, 1, 1);
+    ctx.fillRect(x + 1, y, 1, 1);
+  }
+
+  drawAlien(ctx, e, ox, oy) {
+    const x = Math.round(e.x - ox);
+    const y = Math.round(e.y - oy);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, e.scaleY);
+    ctx.fillStyle = "#4caf50";
+    ctx.beginPath();
+    ctx.arc(0, 2, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#66d17a";
+    ctx.beginPath();
+    ctx.arc(0, -3, 5, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = "#111";
+    ctx.beginPath();
+    ctx.ellipse(0, -3, 2.4, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(-1, -5, 1, 1);
+    ctx.restore();
   }
 
   // Draws one 16x16 frame from a horizontal sheet, centered at (x, y).
