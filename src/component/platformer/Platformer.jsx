@@ -249,6 +249,23 @@ function Platformer() {
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  // Enter advances the post-level screens without the mouse (PG-56):
+  // world map → next level, game over → retry. The engine's Input only
+  // tracks gameplay actions and is frozen on these screens, so this is
+  // a plain listener. The win screen is deliberately excluded — Enter
+  // out of habit would dismiss the race results.
+  useEffect(() => {
+    if (screen !== "worldmap" && screen !== "gameover") return undefined;
+    const onKey = (e) => {
+      if (e.key !== "Enter" || e.repeat) return;
+      e.preventDefault();
+      if (screen === "worldmap") state.continueFromWorldMap();
+      else state.retryLevel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [screen, state]);
+
   const inGame = screen === "playing" || screen === "paused";
 
   // While playing, holding a control must not start text selection
@@ -764,6 +781,7 @@ function Platformer() {
             >
               Continue
             </button>
+            {!touchDevice && <p className="plat-enter-hint">or press Enter</p>}
           </div>
         )}
 
