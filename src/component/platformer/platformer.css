@@ -75,6 +75,26 @@
   pointer-events: none;
 }
 
+/* Mini stage strip in the HUD center: the current world's stages,
+   world-map style — done gold, current highlighted, rest dimmed. */
+.plat-hud-stages {
+  display: flex;
+  gap: 8px;
+}
+
+.plat-hud-stage-current {
+  color: #fff;
+  border-bottom: 2px solid #ffd95a;
+}
+
+.plat-hud-stage-done {
+  color: #ffd95a;
+}
+
+.plat-hud-stage-todo {
+  color: rgba(255, 255, 255, 0.45);
+}
+
 /* Touch controls live in a bar below the game view (PLAT-13), so
    they never cover gameplay. */
 .plat-touch-bar {

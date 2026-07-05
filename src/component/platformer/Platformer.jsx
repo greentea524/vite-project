@@ -188,7 +188,7 @@ function Platformer() {
   const [coins, setCoins] = useState(state.coins);
   const [lives, setLives] = useState(state.lives);
   const [avatar, setAvatar] = useState(state.selectedAvatar);
-  const [levelLabel, setLevelLabel] = useState("1-1");
+  const [levelIndex, setLevelIndex] = useState(state.currentLevel);
 
   // Multiplayer UI state (PLAT-23/24).
   const [playerName, setPlayerName] = useState("");
@@ -207,7 +207,7 @@ function Platformer() {
       state.on("screen", setScreen),
       state.on("coins", setCoins),
       state.on("lives", setLives),
-      state.on("level", () => setLevelLabel(state.levelLabel())),
+      state.on("level", setLevelIndex),
     ];
     if (network) {
       engine.attachNetwork(network);
@@ -488,7 +488,28 @@ function Platformer() {
         {inGame && (
           <div className="plat-hud">
             <span>Coins: {coins}</span>
-            <span>Level {levelLabel}</span>
+            {/* Current world's stages, world-map style: done stages
+                gold, the current one highlighted, the rest dimmed. */}
+            <span
+              className="plat-hud-stages"
+              aria-label={`Level ${state.levelLabel()}`}
+            >
+              {WORLDS[state.worldOf(levelIndex)].map((_, s) => {
+                const w = state.worldOf(levelIndex);
+                const idx = state.flatIndex(w, s);
+                const cls =
+                  idx === levelIndex
+                    ? " plat-hud-stage-current"
+                    : state.isCompleted(idx)
+                      ? " plat-hud-stage-done"
+                      : " plat-hud-stage-todo";
+                return (
+                  <span key={s} className={`plat-hud-stage${cls}`}>
+                    {w + 1}-{s + 1}
+                  </span>
+                );
+              })}
+            </span>
             <span>Lives: {lives}</span>
           </div>
         )}
