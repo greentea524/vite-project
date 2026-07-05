@@ -178,6 +178,12 @@ function Platformer() {
   // the button entirely there rather than showing a no-op control.
   const fullscreenSupported =
     typeof document !== "undefined" && !!document.fullscreenEnabled;
+  // Primary input decides the control bar: coarse pointers (phones,
+  // tablets) get the touch joystick; fine pointers (desktop) play on
+  // the keyboard, so show key hints instead of irrelevant controls.
+  const touchDevice =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches;
   const [screen, setScreen] = useState(state.screen);
   const [coins, setCoins] = useState(state.coins);
   const [lives, setLives] = useState(state.lives);
@@ -810,19 +816,53 @@ function Platformer() {
         )}
       </div>
 
-      {inGame && (
-        <div className="plat-touch-bar">
-          <VirtualJoystick onDirection={handleJoystick} />
-          <div className="plat-touch-center">
-            <button
-              type="button"
-              className="plat-touch-btn plat-touch-pause"
-              onClick={() =>
-                screen === "paused" ? state.resume() : state.pause()
-              }
-            >
-              ❚❚
-            </button>
+      {inGame &&
+        (touchDevice ? (
+          <div className="plat-touch-bar">
+            <VirtualJoystick onDirection={handleJoystick} />
+            <div className="plat-touch-center">
+              <button
+                type="button"
+                className="plat-touch-btn plat-touch-pause"
+                onClick={() =>
+                  screen === "paused" ? state.resume() : state.pause()
+                }
+              >
+                ❚❚
+              </button>
+              {fullscreenSupported && (
+                <button
+                  type="button"
+                  className="plat-touch-btn plat-touch-pause"
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  onClick={toggleFullscreen}
+                >
+                  ⛶
+                </button>
+              )}
+            </div>
+            <TouchButton
+              label="▲"
+              className="plat-touch-jump"
+              onPress={press("jump")}
+              onRelease={release("jump")}
+            />
+          </div>
+        ) : (
+          // Desktop plays on the keyboard — show key hints instead of
+          // touch controls. Fullscreen keeps a button (no key for it).
+          <div className="plat-key-hints">
+            <span className="plat-key-hint">
+              <kbd>←</kbd>
+              <kbd>→</kbd> move
+            </span>
+            <span className="plat-key-hint">
+              <kbd>↑</kbd> / <kbd>Space</kbd> jump
+            </span>
+            <span className="plat-key-hint">
+              <kbd>Esc</kbd> pause
+            </span>
             {fullscreenSupported && (
               <button
                 type="button"
@@ -835,14 +875,7 @@ function Platformer() {
               </button>
             )}
           </div>
-          <TouchButton
-            label="▲"
-            className="plat-touch-jump"
-            onPress={press("jump")}
-            onRelease={release("jump")}
-          />
-        </div>
-      )}
+        ))}
     </div>
   );
 }

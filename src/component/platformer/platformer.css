@@ -85,6 +85,42 @@
   margin-top: 10px;
 }
 
+/* Keyboard hint bar shown instead of touch controls on fine-pointer
+   (desktop) devices. Self-contained dark pill so it reads on both the
+   app's light theme and the standalone page's dark backdrop. */
+.plat-key-hints {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(20, 24, 40, 0.55);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+}
+
+.plat-key-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.plat-key-hints kbd {
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-bottom-width: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
 /* Page-wide selection guard while the game is being played — a held
    control button must not long-press-select text anywhere (PLAT-17). */
 body.plat-no-select {
