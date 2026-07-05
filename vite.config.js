@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -8,6 +9,18 @@ export default defineConfig({
   // testing. Equivalent to `vite --host`.
   server: {
     host: true,
+  },
+  // Multi-page build: the main app plus a standalone platformer page
+  // served at /platformer/ (deploys to .../vite-project/platformer/).
+  build: {
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        platformer: fileURLToPath(
+          new URL("./platformer/index.html", import.meta.url),
+        ),
+      },
+    },
   },
   plugins: [
     react({
