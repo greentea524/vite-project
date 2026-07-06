@@ -444,6 +444,11 @@ function Platformer() {
     setAvatar(i);
   };
 
+  const cycleAvatar = (delta) => {
+    const next = (avatar + delta + AVATAR_SHEETS.length) % AVATAR_SHEETS.length;
+    pickAvatar(next);
+  };
+
   // --- Multiplayer lobby + race (PLAT-23/24) ---
   const openMultiplayer = () => {
     setMpError("");
@@ -819,6 +824,43 @@ function Platformer() {
                 <p className="plat-text">
                   Room code: <span className="plat-code">{activeRoomCode}</span>
                 </p>
+                <label className="plat-field">
+                  <span className="plat-field-label">Your name</span>
+                  <input
+                    className="plat-input"
+                    type="text"
+                    maxLength={16}
+                    placeholder="Player"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                  />
+                </label>
+                <div className="plat-avatar-picker">
+                  <button
+                    type="button"
+                    className="plat-btn plat-btn-subtle"
+                    onClick={() => cycleAvatar(-1)}
+                  >
+                    ←
+                  </button>
+                  <div className="plat-avatar-preview">
+                    <SpriteIcon
+                      sheet={AVATAR_SHEETS[avatar] ?? AVATAR_SHEETS[0]}
+                      frames={8}
+                      size={32}
+                    />
+                    <span className="plat-avatar-name">
+                      {AVATAR_NAMES[avatar] ?? AVATAR_NAMES[0]}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="plat-btn plat-btn-subtle"
+                    onClick={() => cycleAvatar(1)}
+                  >
+                    →
+                  </button>
+                </div>
                 {qrDataUrl && (
                   <div className="plat-qr-card">
                     <img
