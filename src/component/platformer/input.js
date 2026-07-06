@@ -38,8 +38,16 @@ export class Input {
   }
 
   _keyDown(e) {
+    const target = e.target;
+    const isTextInput = Boolean(
+      target &&
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable),
+    );
     const action = KEY_ACTION[e.code];
     if (!action) return;
+    if (isTextInput) return;
     // Keep arrows/space from scrolling the page while playing.
     e.preventDefault();
     if (e.repeat) return;
@@ -83,7 +91,9 @@ export class Input {
 
   // Godot's get_axis for the horizontal movement direction.
   axis() {
-    return (this.isDown("move_right") ? 1 : 0) - (this.isDown("move_left") ? 1 : 0);
+    return (
+      (this.isDown("move_right") ? 1 : 0) - (this.isDown("move_left") ? 1 : 0)
+    );
   }
 
   // Called once per simulation frame after entities consumed the edges.

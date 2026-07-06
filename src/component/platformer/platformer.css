@@ -360,6 +360,32 @@ body.plat-no-select {
   color: #ffd95a;
 }
 
+.plat-qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.plat-qr-image {
+  width: 140px;
+  height: 140px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.plat-link-text {
+  font-size: 11px;
+  word-break: break-all;
+  opacity: 0.75;
+  max-width: 100%;
+}
+
 .plat-error {
   color: #ff8a8a;
 }

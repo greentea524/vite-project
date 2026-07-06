@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import "./platformer.css";
 import { GameState, AVATAR_NAMES, START_LIVES } from "./state.js";
 import { Engine, VIEW_W, VIEW_H, LABEL_SCALE } from "./game.js";
@@ -16,6 +17,14 @@ function formatTime(ms) {
 }
 
 const LEVEL_LABEL = (i) => `${Math.floor(i / 3) + 1}-${(i % 3) + 1}`;
+
+function buildJoinLink(code) {
+  if (typeof window === "undefined" || !code) return "";
+  const url = new URL(window.location.href);
+  url.searchParams.set("join", code);
+  url.hash = "";
+  return url.toString();
+}
 
 // On-screen control button (PLAT-13), usable with touch or mouse.
 // Pointer events feed the engine's Input actions, so press-and-hold
@@ -195,6 +204,8 @@ function Platformer() {
   const [lobbyMode, setLobbyMode] = useState("choose"); // choose | room
   const [roomCode, setRoomCode] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  const [joinLink, setJoinLink] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [roster, setRoster] = useState([]);
   const [mpError, setMpError] = useState("");
   // Relay connection status for the lobby (KAN-53). Free hosting naps
@@ -205,6 +216,19 @@ function Platformer() {
   const [retryTick, setRetryTick] = useState(0);
   const [standings, setStandings] = useState([]);
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1
+  const autoJoinRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const joinParam = params.get("join")?.trim().toUpperCase();
+    if (!joinParam) return;
+    setJoinCode(joinParam);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("join");
+    window.history.replaceState({}, "", nextUrl);
+    autoJoinRef.current = true;
+  }, []);
 
   useEffect(() => {
     const engine = new Engine(canvasRef.current, state, labelCanvasRef.current);
@@ -227,7 +251,9 @@ function Platformer() {
           setConnStatus((s) => (s === "failed" ? s : "connecting")),
         ),
         network.on("error", () =>
-          setConnStatus((s) => (s === "connected" || s === "failed" ? s : "waking")),
+          setConnStatus((s) =>
+            s === "connected" || s === "failed" ? s : "waking",
+          ),
         ),
         network.on("remoteState", (snap) =>
           remoteLatestRef.current.set(snap.id, {
@@ -306,6 +332,56 @@ function Platformer() {
       clearTimeout(fail);
     };
   }, [screen, network, retryTick]);
+
+  useEffect(() => {
+    if (!roomCode && !network?.roomCode) {
+      setJoinLink("");
+      setQrDataUrl("");
+      return;
+    }
+    const nextRoomCode = roomCode || network?.roomCode || "";
+    const nextLink = buildJoinLink(nextRoomCode);
+    setJoinLink(nextLink);
+    let cancelled = false;
+    QRCode.toDataURL(nextLink, {
+      margin: 1,
+      width: 160,
+      color: { dark: "#14182a", light: "#ffffff" },
+    })
+      .then((dataUrl) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [roomCode, network?.roomCode]);
+
+  useEffect(() => {
+    if (
+      !autoJoinRef.current ||
+      !network ||
+      connStatus !== "connected" ||
+      screen !== "menu"
+    )
+      return;
+    autoJoinRef.current = false;
+    openMultiplayer();
+  }, [network, connStatus, screen]);
+
+  useEffect(() => {
+    if (
+      !autoJoinRef.current ||
+      screen !== "lobby" ||
+      lobbyMode !== "choose" ||
+      !joinCode.trim()
+    )
+      return;
+    autoJoinRef.current = false;
+    void joinRace();
+  }, [screen, lobbyMode, joinCode]);
 
   const retryConnect = () => {
     Network.warmUp();
@@ -515,6 +591,7 @@ function Platformer() {
   // sets it in .env.local. The old LAN-only gate predated the public
   // relay and would have kept the button dead on the deployed site.
   const raceFriendEnabled = Boolean(network);
+  const activeRoomCode = roomCode || network?.roomCode || "";
 
   return (
     <div className="plat-shell" ref={shellRef}>
@@ -668,8 +745,8 @@ function Platformer() {
                 {connStatus === "waking" && (
                   <p className="plat-text plat-conn">
                     <span className="plat-spinner" aria-hidden="true"></span>
-                    Waking up the race server — free hosting naps when
-                    idle, this can take ~30–60s…
+                    Waking up the race server — free hosting naps when idle,
+                    this can take ~30–60s…
                   </p>
                 )}
                 {connStatus === "connecting" && (
@@ -720,7 +797,9 @@ function Platformer() {
                 <button
                   type="button"
                   className="plat-btn"
-                  disabled={connStatus !== "connected" || joinCode.trim().length < 4}
+                  disabled={
+                    connStatus !== "connected" || joinCode.trim().length < 4
+                  }
                   onClick={joinRace}
                 >
                   Join room
@@ -738,8 +817,21 @@ function Platformer() {
             {lobbyMode === "room" && (
               <div className="plat-lobby">
                 <p className="plat-text">
-                  Room code: <span className="plat-code">{roomCode}</span>
+                  Room code: <span className="plat-code">{activeRoomCode}</span>
                 </p>
+                {qrDataUrl && (
+                  <div className="plat-qr-card">
+                    <img
+                      className="plat-qr-image"
+                      src={qrDataUrl}
+                      alt="QR code to join the race room"
+                    />
+                    <p className="plat-text">Scan to join this room</p>
+                    {joinLink && (
+                      <p className="plat-text plat-link-text">{joinLink}</p>
+                    )}
+                  </div>
+                )}
                 <p className="plat-text">
                   Players ({roster.length}/{MAX_PLAYERS})
                 </p>

@@ -3,16 +3,38 @@
 // physics step, collision, player feel (coyote/buffer/double jump),
 // enemy patrol, contact rules, and the game-state flow.
 
-import { describe, it, expect } from "vitest";
-import { TILE, GRAVITY, buildLevel, solidAt, moveBody, bodyRect, GRASS, DIRT, BLOCK } from "./physics.js";
+import { describe, it, expect, vi } from "vitest";
 import {
-  createPlayer, updatePlayer, killPlayer, respawnPlayer,
-  SPEED, JUMP_VELOCITY, JUMP_CUT_MULTIPLIER, STOMP_BOUNCE, MAX_AIR_JUMPS,
+  TILE,
+  GRAVITY,
+  buildLevel,
+  solidAt,
+  moveBody,
+  bodyRect,
+  GRASS,
+  DIRT,
+  BLOCK,
+} from "./physics.js";
+import { Input } from "./input.js";
+import {
+  createPlayer,
+  updatePlayer,
+  killPlayer,
+  respawnPlayer,
+  SPEED,
+  JUMP_VELOCITY,
+  JUMP_CUT_MULTIPLIER,
+  STOMP_BOUNCE,
+  MAX_AIR_JUMPS,
 } from "./player.js";
 import { createEnemy, updateEnemy, ENEMY_SPEED } from "./enemy.js";
 import {
-  createCoin, createSpikes, createCheckpoint, createFlag,
-  updateCoin, processInteractions,
+  createCoin,
+  createSpikes,
+  createCheckpoint,
+  createFlag,
+  updateCoin,
+  processInteractions,
 } from "./entities.js";
 import { GameState, START_LIVES } from "./state.js";
 import { LEVELS } from "./levels.js";
@@ -27,7 +49,9 @@ function makeInput({ down = [], pressed = [], released = [] } = {}) {
     isDown: (a) => down.includes(a),
     justPressed: (a) => pressed.includes(a),
     justReleased: (a) => released.includes(a),
-    axis: () => (down.includes("move_right") ? 1 : 0) - (down.includes("move_left") ? 1 : 0),
+    axis: () =>
+      (down.includes("move_right") ? 1 : 0) -
+      (down.includes("move_left") ? 1 : 0),
   };
 }
 
@@ -53,8 +77,33 @@ function events() {
 }
 
 function world(level, player, over = {}) {
-  return { player, level, coins: [], enemies: [], spikes: [], checkpoints: [], flags: [], ...over };
+  return {
+    player,
+    level,
+    coins: [],
+    enemies: [],
+    spikes: [],
+    checkpoints: [],
+    flags: [],
+    ...over,
+  };
 }
+
+describe("Input", () => {
+  it("does not hijack movement keys while typing in a text field", () => {
+    const input = new Input();
+    const preventDefault = vi.fn();
+    input._keyDown({
+      code: "KeyD",
+      repeat: false,
+      target: { tagName: "INPUT" },
+      preventDefault,
+    });
+
+    expect(input.isDown("move_right")).toBe(false);
+    expect(preventDefault).not.toHaveBeenCalled();
+  });
+});
 
 describe("buildLevel", () => {
   it("parses tiles, spawns, and the player start", () => {
@@ -103,7 +152,16 @@ describe("moveBody", () => {
 
   it("blocks horizontal movement at the level edge walls", () => {
     const level = buildLevel(FLAT);
-    const body = { x: 8, y: TILE - 8, vx: 0, vy: 0, w: 10, h: 14, ox: 0, oy: 1 };
+    const body = {
+      x: 8,
+      y: TILE - 8,
+      vx: 0,
+      vy: 0,
+      w: 10,
+      h: 14,
+      ox: 0,
+      oy: 1,
+    };
     // vx is re-applied each frame, as the player/enemy updates do —
     // contact flags reflect the latest moveBody call, like Godot.
     for (let i = 0; i < 30; i++) {
@@ -156,7 +214,13 @@ describe("player", () => {
     const run = makeInput({ down: ["move_right"] });
     while (p.onFloor) updatePlayer(p, run, level, DT, noFx);
     updatePlayer(p, run, level, DT, noFx); // 1 airborne frame < 0.1s
-    updatePlayer(p, makeInput({ down: ["move_right"], pressed: ["jump"] }), level, DT, noFx);
+    updatePlayer(
+      p,
+      makeInput({ down: ["move_right"], pressed: ["jump"] }),
+      level,
+      DT,
+      noFx,
+    );
     expect(p.vy).toBeLessThan(JUMP_VELOCITY * 0.9);
   });
 
@@ -167,7 +231,8 @@ describe("player", () => {
     p.onFloor = false;
     updatePlayer(p, makeInput({ pressed: ["jump"] }), level, DT, noFx); // buffered, no double jump left? airJumps consumed?
     p.airJumps = 0; // isolate the buffer path
-    for (let i = 0; i < 5 && p.vy >= 0; i++) updatePlayer(p, IDLE, level, DT, noFx);
+    for (let i = 0; i < 5 && p.vy >= 0; i++)
+      updatePlayer(p, IDLE, level, DT, noFx);
     expect(p.vy).toBeLessThan(0); // jumped on the frame it landed
   });
 
@@ -199,7 +264,9 @@ describe("player", () => {
 
 describe("enemy", () => {
   it("patrols a platform without walking off the ledge", () => {
-    const level = buildLevel(["........", "..GGGG..", "........", "........"].join("\n"));
+    const level = buildLevel(
+      ["........", "..GGGG..", "........", "........"].join("\n"),
+    );
     const e = createEnemy(4 * TILE, TILE + 3);
     for (let i = 0; i < 60 * 10; i++) updateEnemy(e, level, DT);
     expect(e.x).toBeGreaterThan(2 * TILE);
@@ -265,7 +332,10 @@ describe("contact rules", () => {
     const level = buildLevel(FLAT);
     const p = createPlayer(40, TILE - 8);
     const { log, ev } = events();
-    processInteractions(world(level, p, { spikes: [createSpikes(40, TILE - 8)] }), ev);
+    processInteractions(
+      world(level, p, { spikes: [createSpikes(40, TILE - 8)] }),
+      ev,
+    );
     expect(log).toEqual(["death"]);
   });
 
@@ -296,7 +366,10 @@ describe("contact rules", () => {
     const p = createPlayer(40, TILE - 8);
     killPlayer(p);
     const { log, ev } = events();
-    processInteractions(world(level, p, { spikes: [createSpikes(40, TILE - 8)] }), ev);
+    processInteractions(
+      world(level, p, { spikes: [createSpikes(40, TILE - 8)] }),
+      ev,
+    );
     expect(log).toEqual([]);
   });
 });
@@ -354,8 +427,18 @@ describe("game state flow", () => {
   it("labels levels world-stage and detects world boundaries", () => {
     const s = new GameState();
     expect(LEVELS.map((l) => l.label)).toEqual([
-      "1-1", "1-2", "1-3", "2-1", "2-2", "2-3",
-      "3-1", "3-2", "3-3", "4-1", "4-2", "4-3",
+      "1-1",
+      "1-2",
+      "1-3",
+      "2-1",
+      "2-2",
+      "2-3",
+      "3-1",
+      "3-2",
+      "3-3",
+      "4-1",
+      "4-2",
+      "4-3",
     ]);
     expect(s.isLastInWorld(2)).toBe(true);
     expect(s.isLastInWorld(1)).toBe(false);
