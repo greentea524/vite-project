@@ -210,7 +210,18 @@ function Platformer() {
   const [standings, setStandings] = useState([]);
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1
   const autoOpenLobbyRef = useRef(false); // pending: open the lobby from the menu
-  const autoJoinRef = useRef(false); // pending: auto-submit the join code
+  const autoJoinRef = useRef(false);       // pending: auto-submit the join code
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyLinkTimerRef = useRef(null);
+
+  const copyJoinLink = () => {
+    if (!joinLink) return;
+    navigator.clipboard?.writeText(joinLink).then(() => {
+      setLinkCopied(true);
+      clearTimeout(copyLinkTimerRef.current);
+      copyLinkTimerRef.current = setTimeout(() => setLinkCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -880,7 +891,18 @@ function Platformer() {
                     />
                     <p className="plat-text">Scan to join this room</p>
                     {joinLink && (
-                      <p className="plat-text plat-link-text">{joinLink}</p>
+                      <div className="plat-link-row">
+                        <p className="plat-text plat-link-text">{joinLink}</p>
+                        <button
+                          type="button"
+                          className={`plat-copy-btn${linkCopied ? " plat-copy-btn--done" : ""}`}
+                          onClick={copyJoinLink}
+                          title="Copy link"
+                          aria-label="Copy join link"
+                        >
+                          {linkCopied ? "✓" : "Copy"}
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

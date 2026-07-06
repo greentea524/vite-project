@@ -405,6 +405,45 @@ body.plat-no-select {
   word-break: break-all;
   opacity: 0.75;
   max-width: 100%;
+  /* Override the shell-wide user-select: none so the URL can be
+     highlighted and copied even during a session (PLAT-15 applies
+     only to in-game controls, not lobby text). */
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.plat-link-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.plat-copy-btn {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  /* Must be selectable/clickable even though the shell disables selection */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.plat-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.plat-copy-btn--done {
+  background: rgba(72, 199, 116, 0.25);
+  border-color: #48c774;
+  color: #48c774;
 }
 
 .plat-error {
