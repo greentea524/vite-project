@@ -91,12 +91,16 @@ export class Network {
       this._emit("roster", this.roster);
       this._emit("playerLeft", { id });
     });
-    // A player changed avatar in the lobby: patch the roster in place.
-    socket.on("playerUpdated", ({ id, avatar }) => {
+    // A player changed avatar or name in the lobby: patch the roster
+    // in place.
+    socket.on("playerUpdated", ({ id, avatar, name }) => {
       const r = this.roster.find((p) => p.id === id);
-      if (r && avatar != null) r.avatar = avatar;
+      if (r) {
+        if (avatar != null) r.avatar = avatar;
+        if (name != null) r.name = name;
+      }
       this._emit("roster", this.roster);
-      this._emit("playerUpdated", { id, avatar });
+      this._emit("playerUpdated", { id, avatar, name });
     });
     socket.on("remoteState", (snap) => this._emit("remoteState", snap));
     socket.on("raceStart", (info) => this._emit("raceStart", info));
@@ -147,6 +151,20 @@ export class Network {
       this._emit("roster", this.roster);
     }
     this.socket.emit("setAvatar", { avatar });
+  }
+
+  // Broadcast a lobby name change — and update selfName, which drives
+  // the local player's own in-game label. No-op outside a room.
+  setName(name) {
+    if (!this.socket || !this.roomCode) return;
+    const clean = (String(name ?? "").trim() || "Player").slice(0, 16);
+    this.selfName = clean;
+    const self = this.roster.find((p) => p.id === this.playerId);
+    if (self) {
+      self.name = clean;
+      this._emit("roster", this.roster);
+    }
+    this.socket.emit("setName", { name: clean });
   }
 
   // Acks are given a deadline (KAN-53): with socket.timeout() the

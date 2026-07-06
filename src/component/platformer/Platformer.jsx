@@ -465,6 +465,13 @@ function Platformer() {
     network?.setAvatar(i);
   };
 
+  // Same deal for the name: the room lobby's input edits it after it
+  // was sent at join time, so push changes live (no-op outside a room).
+  const changeName = (value) => {
+    setPlayerName(value);
+    network?.setName(value);
+  };
+
   const cycleAvatar = (delta) => {
     const next = (avatar + delta + AVATAR_SHEETS.length) % AVATAR_SHEETS.length;
     pickAvatar(next);
@@ -853,7 +860,7 @@ function Platformer() {
                     maxLength={16}
                     placeholder="Player"
                     value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
+                    onChange={(e) => changeName(e.target.value)}
                   />
                 </label>
                 <div className="plat-avatar-picker">

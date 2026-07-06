@@ -135,6 +135,16 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       io.to(code).emit("playerUpdated", { id: socket.id, avatar });
     });
 
+    // Name changed in the room lobby: same deal as setAvatar, with the
+    // same sanitization as join().
+    socket.on("setName", ({ name } = {}) => {
+      const code = socket.data.roomCode;
+      const player = code && rooms.get(code)?.players.get(socket.id);
+      if (!player || typeof name !== "string") return;
+      player.name = (name.trim() || "Player").slice(0, 16);
+      io.to(code).emit("playerUpdated", { id: socket.id, name: player.name });
+    });
+
     // Host-only synced start: broadcast a countdown to the whole room so
     // everyone drops into level 1 together (PLAT-30). A duration (not an
     // absolute timestamp) sidesteps cross-device clock skew.

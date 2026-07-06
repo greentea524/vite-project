@@ -128,6 +128,36 @@ describe("relay server + network client", () => {
     guest.destroy();
   });
 
+  it("propagates a lobby name change to other players' rosters", async () => {
+    const host = new Network();
+    const guest = new Network();
+    await connected(host, url);
+    await connected(guest, url);
+    const created = await host.createRoom("Alice", 0);
+    await guest.joinRoom(created.code, "Player", 1);
+
+    // The guest types their real name in the room lobby.
+    const hostSaw = once(host, "playerUpdated");
+    guest.setName("Bobby");
+    const u = await hostSaw;
+    expect(u.id).toBe(guest.playerId);
+    expect(u.name).toBe("Bobby");
+    expect(host.roster.find((r) => r.id === guest.playerId).name).toBe("Bobby");
+    // selfName drives the guest's own in-game label.
+    expect(guest.selfName).toBe("Bobby");
+
+    // Sanitized like join(): blank falls back, long names are clipped.
+    const hostSaw2 = once(host, "playerUpdated");
+    guest.setName("   ");
+    expect((await hostSaw2).name).toBe("Player");
+    const hostSaw3 = once(host, "playerUpdated");
+    guest.setName("ABCDEFGHIJKLMNOPQRSTU");
+    expect((await hostSaw3).name).toHaveLength(16);
+
+    host.destroy();
+    guest.destroy();
+  });
+
   it("rejects joining an unknown room code", async () => {
     const c = new Network();
     await connected(c, url);
