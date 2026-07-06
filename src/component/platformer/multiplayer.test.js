@@ -106,6 +106,28 @@ describe("relay server + network client", () => {
     guests.forEach((g) => g.destroy());
   });
 
+  it("propagates a lobby avatar change to other players' rosters", async () => {
+    const host = new Network();
+    const guest = new Network();
+    await connected(host, url);
+    await connected(guest, url);
+    const created = await host.createRoom("Alice", 0);
+    await guest.joinRoom(created.code, "Bob", 1);
+
+    // Bob picks a different color in the room lobby.
+    const hostSaw = once(host, "playerUpdated");
+    guest.setAvatar(4);
+    const u = await hostSaw;
+    expect(u).toEqual({ id: guest.playerId, avatar: 4 });
+    // Alice's roster (the source for Bob's ghost) now has the new color.
+    expect(host.roster.find((r) => r.id === guest.playerId).avatar).toBe(4);
+    // Bob's own roster updated locally too.
+    expect(guest.roster.find((r) => r.id === guest.playerId).avatar).toBe(4);
+
+    host.destroy();
+    guest.destroy();
+  });
+
   it("rejects joining an unknown room code", async () => {
     const c = new Network();
     await connected(c, url);

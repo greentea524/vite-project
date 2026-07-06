@@ -449,6 +449,9 @@ function Platformer() {
   const pickAvatar = (i) => {
     state.selectedAvatar = i;
     setAvatar(i);
+    // In a room lobby the avatar was already sent at join time — push
+    // the change so other players' rosters/ghosts get the new color.
+    network?.setAvatar(i);
   };
 
   const cycleAvatar = (delta) => {

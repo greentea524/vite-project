@@ -303,6 +303,9 @@ export class Engine {
         vx: p.vx,
         facing: p.facing,
         anim: p.anim,
+        // Carried in every snapshot so ghosts self-correct even if a
+        // roster update was missed (pushSnapshot consumes it).
+        avatar: this.state.selectedAvatar,
         level: this.state.currentLevel,
         runTimeMs: Math.round(this.state.runTimeMs),
       });

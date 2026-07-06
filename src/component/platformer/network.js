@@ -91,6 +91,13 @@ export class Network {
       this._emit("roster", this.roster);
       this._emit("playerLeft", { id });
     });
+    // A player changed avatar in the lobby: patch the roster in place.
+    socket.on("playerUpdated", ({ id, avatar }) => {
+      const r = this.roster.find((p) => p.id === id);
+      if (r && avatar != null) r.avatar = avatar;
+      this._emit("roster", this.roster);
+      this._emit("playerUpdated", { id, avatar });
+    });
     socket.on("remoteState", (snap) => this._emit("remoteState", snap));
     socket.on("raceStart", (info) => this._emit("raceStart", info));
     socket.on("hostChanged", ({ hostId }) => {
@@ -128,6 +135,18 @@ export class Network {
   // Host-only: ask the server to start the synced countdown.
   startRace() {
     this.socket?.emit("startRace");
+  }
+
+  // Broadcast a lobby avatar change so other players' rosters (and the
+  // ghosts built from them) show the right color. No-op outside a room.
+  setAvatar(avatar) {
+    if (!this.socket || !this.roomCode) return;
+    const self = this.roster.find((p) => p.id === this.playerId);
+    if (self) {
+      self.avatar = avatar;
+      this._emit("roster", this.roster);
+    }
+    this.socket.emit("setAvatar", { avatar });
   }
 
   // Acks are given a deadline (KAN-53): with socket.timeout() the

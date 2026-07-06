@@ -125,6 +125,16 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       });
     });
 
+    // Avatar changed in the room lobby (after join): update the room
+    // record and tell everyone, so rosters and ghosts stay in sync.
+    socket.on("setAvatar", ({ avatar } = {}) => {
+      const code = socket.data.roomCode;
+      const player = code && rooms.get(code)?.players.get(socket.id);
+      if (!player || !Number.isInteger(avatar)) return;
+      player.avatar = avatar;
+      io.to(code).emit("playerUpdated", { id: socket.id, avatar });
+    });
+
     // Host-only synced start: broadcast a countdown to the whole room so
     // everyone drops into level 1 together (PLAT-30). A duration (not an
     // absolute timestamp) sidesteps cross-device clock skew.
