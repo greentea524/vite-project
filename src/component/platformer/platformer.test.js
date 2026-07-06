@@ -16,6 +16,7 @@ import {
   BLOCK,
 } from "./physics.js";
 import { Input } from "./input.js";
+import { buildJoinLink } from "./joinLink.js";
 import {
   createPlayer,
   updatePlayer,
@@ -88,6 +89,14 @@ function world(level, player, over = {}) {
     ...over,
   };
 }
+
+describe("buildJoinLink", () => {
+  it("adds the join parameter and targets the platformer page", () => {
+    const link = buildJoinLink("ABCD", "https://example.com/vite-project/");
+    expect(link).toContain("join=ABCD");
+    expect(link).toContain("/platformer/");
+  });
+});
 
 describe("Input", () => {
   it("does not hijack movement keys while typing in a text field", () => {

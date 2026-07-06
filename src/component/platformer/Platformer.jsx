@@ -6,6 +6,7 @@ import { Engine, VIEW_W, VIEW_H, LABEL_SCALE } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS } from "./levels.js";
 import { Network, MAX_PLAYERS } from "./network.js";
+import { buildJoinLink } from "./joinLink.js";
 
 // mm:ss.d for the leaderboard/results (PLAT-24).
 function formatTime(ms) {
@@ -17,14 +18,6 @@ function formatTime(ms) {
 }
 
 const LEVEL_LABEL = (i) => `${Math.floor(i / 3) + 1}-${(i % 3) + 1}`;
-
-function buildJoinLink(code) {
-  if (typeof window === "undefined" || !code) return "";
-  const url = new URL(window.location.href);
-  url.searchParams.set("join", code);
-  url.hash = "";
-  return url.toString();
-}
 
 // On-screen control button (PLAT-13), usable with touch or mouse.
 // Pointer events feed the engine's Input actions, so press-and-hold
@@ -340,7 +333,7 @@ function Platformer() {
       return;
     }
     const nextRoomCode = roomCode || network?.roomCode || "";
-    const nextLink = buildJoinLink(nextRoomCode);
+    const nextLink = buildJoinLink(nextRoomCode, window.location.href);
     setJoinLink(nextLink);
     let cancelled = false;
     QRCode.toDataURL(nextLink, {
