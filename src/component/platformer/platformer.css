@@ -297,6 +297,38 @@ body.plat-no-select {
   padding-left: 18px; /* re-center against the letter-spacing */
 }
 
+/* Relay connection status while the free-tier host wakes (KAN-53). */
+.plat-conn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffd95a;
+  font-size: 12px;
+}
+
+.plat-spinner {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 217, 90, 0.3);
+  border-top-color: #ffd95a;
+  animation: plat-spin 0.9s linear infinite;
+}
+
+@keyframes plat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.plat-retry-btn {
+  min-width: 0;
+  padding: 4px 12px;
+  margin-left: 6px;
+}
+
 .plat-lobby-divider {
   display: flex;
   align-items: center;

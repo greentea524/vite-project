@@ -197,6 +197,12 @@ function Platformer() {
   const [joinCode, setJoinCode] = useState("");
   const [roster, setRoster] = useState([]);
   const [mpError, setMpError] = useState("");
+  // Relay connection status for the lobby (KAN-53). Free hosting naps
+  // when idle, so the first connection can take ~30-60s:
+  // connecting -> waking (after a grace period or the first
+  // connect_error) -> connected, or failed after ~90s.
+  const [connStatus, setConnStatus] = useState("connecting");
+  const [retryTick, setRetryTick] = useState(0);
   const [standings, setStandings] = useState([]);
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1
 
@@ -213,7 +219,16 @@ function Platformer() {
       engine.attachNetwork(network);
       unsubs.push(
         network.on("roster", setRoster),
-        network.on("error", (e) => setMpError(String(e))),
+        // Connection lifecycle drives the lobby status. connect_error
+        // is routed here too — during a cold start those are expected,
+        // so they surface as "waking", not as a raw error message.
+        network.on("connected", () => setConnStatus("connected")),
+        network.on("disconnected", () =>
+          setConnStatus((s) => (s === "failed" ? s : "connecting")),
+        ),
+        network.on("error", () =>
+          setConnStatus((s) => (s === "connected" || s === "failed" ? s : "waking")),
+        ),
         network.on("remoteState", (snap) =>
           remoteLatestRef.current.set(snap.id, {
             level: snap.level,
@@ -265,6 +280,38 @@ function Platformer() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [screen, state]);
+
+  // Grace/fail timers while waiting for the relay in the lobby
+  // (KAN-53): after 4s of silence assume it's a cold start ("waking"),
+  // after 90s give up and offer a retry. Socket.io keeps reconnecting
+  // in the background the whole time, so "connected" can still arrive
+  // and win at any point.
+  useEffect(() => {
+    if (screen !== "lobby" || !network) return undefined;
+    if (network.isConnected) {
+      setConnStatus("connected");
+      return undefined;
+    }
+    setConnStatus("connecting");
+    const wake = setTimeout(
+      () => setConnStatus((s) => (s === "connecting" ? "waking" : s)),
+      4000,
+    );
+    const fail = setTimeout(
+      () => setConnStatus((s) => (s === "connected" ? s : "failed")),
+      90000,
+    );
+    return () => {
+      clearTimeout(wake);
+      clearTimeout(fail);
+    };
+  }, [screen, network, retryTick]);
+
+  const retryConnect = () => {
+    Network.warmUp();
+    network?.connect();
+    setRetryTick((t) => t + 1); // restarts the grace/fail timers
+  };
 
   const inGame = screen === "playing" || screen === "paused";
 
@@ -326,6 +373,7 @@ function Platformer() {
     setMpError("");
     setLobbyMode("choose");
     setRoster([]);
+    Network.warmUp(); // HTTP ping wakes a sleeping host early (KAN-53)
     network?.connect();
     state.openLobby();
   };
@@ -617,6 +665,28 @@ function Platformer() {
             <h4 className="plat-title">Race a friend</h4>
             {lobbyMode === "choose" && (
               <div className="plat-lobby">
+                {connStatus === "waking" && (
+                  <p className="plat-text plat-conn">
+                    <span className="plat-spinner" aria-hidden="true"></span>
+                    Waking up the race server — free hosting naps when
+                    idle, this can take ~30–60s…
+                  </p>
+                )}
+                {connStatus === "connecting" && (
+                  <p className="plat-text plat-conn">Connecting…</p>
+                )}
+                {connStatus === "failed" && (
+                  <p className="plat-text plat-error">
+                    Couldn't reach the race server.{" "}
+                    <button
+                      type="button"
+                      className="plat-btn plat-btn-subtle plat-retry-btn"
+                      onClick={retryConnect}
+                    >
+                      Retry
+                    </button>
+                  </p>
+                )}
                 <label className="plat-field">
                   <span className="plat-field-label">Your name</span>
                   <input
@@ -628,7 +698,12 @@ function Platformer() {
                     onChange={(e) => setPlayerName(e.target.value)}
                   />
                 </label>
-                <button type="button" className="plat-btn" onClick={hostRace}>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  disabled={connStatus !== "connected"}
+                  onClick={hostRace}
+                >
                   Create room
                 </button>
                 <div className="plat-lobby-divider">or join a room</div>
@@ -645,7 +720,7 @@ function Platformer() {
                 <button
                   type="button"
                   className="plat-btn"
-                  disabled={joinCode.trim().length < 4}
+                  disabled={connStatus !== "connected" || joinCode.trim().length < 4}
                   onClick={joinRace}
                 >
                   Join room

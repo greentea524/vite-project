@@ -14,6 +14,9 @@ export const MULTIPLAYER_URL =
 
 export const SEND_INTERVAL_MS = 66; // ~15 Hz, decoupled from the 60 Hz sim
 export const MAX_PLAYERS = 6; // mirrors the server cap (relay.js enforces it)
+// Room create/join acks time out rather than hang forever if the
+// server goes quiet mid-session (KAN-53).
+export const ACK_TIMEOUT_MS = 10000;
 
 // True for localhost and RFC 1918 private LAN addresses (plus mDNS
 // .local), so the multiplayer button works during local dev and for
@@ -43,6 +46,19 @@ export class Network {
 
   static isConfigured() {
     return Boolean(MULTIPLAYER_URL);
+  }
+
+  get isConnected() {
+    return Boolean(this.socket?.connected);
+  }
+
+  // Cold-start warm-up (KAN-53): a plain HTTP ping to /health starts a
+  // sleeping free-tier host spinning up immediately, while the socket
+  // retries in parallel. Fire-and-forget; failures are expected while
+  // the server is still waking.
+  static warmUp(url = MULTIPLAYER_URL) {
+    if (!url || typeof fetch !== "function") return;
+    fetch(`${url.replace(/\/$/, "")}/health`, { cache: "no-store" }).catch(() => {});
   }
 
   on(event, cb) {
@@ -114,18 +130,23 @@ export class Network {
     this.socket?.emit("startRace");
   }
 
-  createRoom(name, avatar) {
+  // Acks are given a deadline (KAN-53): with socket.timeout() the
+  // callback receives (err, res) and err is set when no ack arrives in
+  // time, so these promises can never hang a frozen lobby.
+  createRoom(name, avatar, timeoutMs = ACK_TIMEOUT_MS) {
     return new Promise((resolve) => {
-      this.socket.emit("createRoom", { name, avatar }, (res) => {
+      this.socket.timeout(timeoutMs).emit("createRoom", { name, avatar }, (err, res) => {
+        if (err) return resolve({ ok: false, error: "No response from the server — try again." });
         if (res?.ok) this._onJoined(name, res);
         resolve(res);
       });
     });
   }
 
-  joinRoom(code, name, avatar) {
+  joinRoom(code, name, avatar, timeoutMs = ACK_TIMEOUT_MS) {
     return new Promise((resolve) => {
-      this.socket.emit("joinRoom", { code, name, avatar }, (res) => {
+      this.socket.timeout(timeoutMs).emit("joinRoom", { code, name, avatar }, (err, res) => {
+        if (err) return resolve({ ok: false, error: "No response from the server — try again." });
         if (res?.ok) this._onJoined(name, res);
         resolve(res);
       });

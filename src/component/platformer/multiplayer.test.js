@@ -3,6 +3,8 @@
 // pure ghost-interpolation logic (PLAT-22).
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { createServer } from "node:http";
+import { Server } from "socket.io";
 import { createRelayServer, MAX_PLAYERS } from "../../../server/relay.js";
 import { Network, isLocalNetworkHost, MAX_PLAYERS as CLIENT_MAX } from "./network.js";
 import { createGhost, pushSnapshot, sampleGhost } from "./ghosts.js";
@@ -225,6 +227,41 @@ describe("relay server + network client", () => {
 
     guest.destroy();
     host.destroy();
+  });
+});
+
+// Cold-start handling (KAN-53): the /health warm-up ping and the ack
+// deadline that keeps createRoom/joinRoom from hanging a frozen lobby.
+describe("cold-start handling", () => {
+  it("warmUp pings the /health endpoint", async () => {
+    const server = await createRelayServer({ port: 0 });
+    const res = await fetch(`http://127.0.0.1:${server.port}/health`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("ok");
+    // warmUp itself is fire-and-forget and must never throw, even
+    // against an unreachable host.
+    expect(() => Network.warmUp(`http://127.0.0.1:${server.port}`)).not.toThrow();
+    expect(() => Network.warmUp("http://127.0.0.1:1")).not.toThrow();
+    await server.close();
+  });
+
+  it("createRoom resolves with an error instead of hanging when the server never acks", async () => {
+    // A bare socket.io server accepts the connection but has no
+    // createRoom handler, so the ack never arrives.
+    const http = createServer();
+    const io = new Server(http, { cors: { origin: "*" } });
+    await new Promise((resolve) => http.listen(0, resolve));
+    const url = `http://127.0.0.1:${http.address().port}`;
+
+    const net = new Network();
+    await connected(net, url);
+    const res = await net.createRoom("Ghost", 0, 300); // 300ms deadline
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/no response/i);
+
+    net.destroy();
+    io.close();
+    await new Promise((resolve) => http.close(resolve));
   });
 });
 
