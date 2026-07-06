@@ -4,7 +4,7 @@ import { GameState, AVATAR_NAMES, START_LIVES } from "./state.js";
 import { Engine, VIEW_W, VIEW_H, LABEL_SCALE } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS } from "./levels.js";
-import { Network, MAX_PLAYERS, isLocalNetworkHost } from "./network.js";
+import { Network, MAX_PLAYERS } from "./network.js";
 
 // mm:ss.d for the leaderboard/results (PLAT-24).
 function formatTime(ms) {
@@ -462,9 +462,11 @@ function Platformer() {
     return () => clearInterval(timer);
   }, [network, screen, state]);
 
-  const isLocalNetwork =
-    typeof window !== "undefined" && isLocalNetworkHost(window.location.hostname);
-  const raceFriendEnabled = Boolean(network) && isLocalNetwork;
+  // Enabled wherever a relay URL is configured (VITE_MULTIPLAYER_URL):
+  // the production build bakes in the Render relay (PLAT-27), local dev
+  // sets it in .env.local. The old LAN-only gate predated the public
+  // relay and would have kept the button dead on the deployed site.
+  const raceFriendEnabled = Boolean(network);
 
   return (
     <div className="plat-shell" ref={shellRef}>

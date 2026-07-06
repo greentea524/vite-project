@@ -32,6 +32,11 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Ghost-race relay on Render (PLAT-27, issue #44). Baked into
+          # the client at build time so the deployed site's multiplayer
+          # connects to the production relay.
+          VITE_MULTIPLAYER_URL: https://vite-project-yazf.onrender.com
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
