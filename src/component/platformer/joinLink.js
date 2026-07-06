@@ -20,3 +20,4 @@ export function buildJoinLink(
   const result = url.toString();
   console.log("buildJoinLink result:", result);
   return result;
+}
