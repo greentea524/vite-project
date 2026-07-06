@@ -209,7 +209,8 @@ function Platformer() {
   const [retryTick, setRetryTick] = useState(0);
   const [standings, setStandings] = useState([]);
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1
-  const autoJoinRef = useRef(false);
+  const autoOpenLobbyRef = useRef(false); // pending: open the lobby from the menu
+  const autoJoinRef = useRef(false);       // pending: auto-submit the join code
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -220,6 +221,9 @@ function Platformer() {
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.delete("join");
     window.history.replaceState({}, "", nextUrl);
+    // Two-step auto-join: first open the lobby, then submit the code.
+    // Keep these as separate flags so each effect fires independently.
+    autoOpenLobbyRef.current = true;
     autoJoinRef.current = true;
   }, []);
 
@@ -354,13 +358,13 @@ function Platformer() {
 
   useEffect(() => {
     if (
-      !autoJoinRef.current ||
+      !autoOpenLobbyRef.current ||
       !network ||
       connStatus !== "connected" ||
       screen !== "menu"
     )
       return;
-    autoJoinRef.current = false;
+    autoOpenLobbyRef.current = false;
     openMultiplayer();
   }, [network, connStatus, screen]);
 
