@@ -11,10 +11,15 @@ import {
   createLava,
   createStalactite,
   createMeteor,
+  createVolcano,
+  createLavaRock,
   updateStalactite,
   updateMeteor,
+  updateVolcano,
+  updateLavaRock,
   processInteractions,
   METEOR_SPEED,
+  VOLCANO_MAX_INTERVAL,
 } from "./entities.js";
 import { WORLDS, LEVELS } from "./levels.js";
 
@@ -139,6 +144,61 @@ describe("meteor", () => {
       { onCoin() {}, onStomp() {}, onCheckpoint() {}, onFlag() {}, onPlayerDeath() { died = true; } },
     );
     expect(died).toBe(true);
+  });
+});
+
+describe("volcano (PG-58)", () => {
+  const lvl = buildLevel(["....................", "GGGGGGGGGGGGGGGGGGGG"].join("\n"));
+
+  it("erupts lava rocks when its timer elapses, then rearms", () => {
+    const v = createVolcano(TILE * 5, 0);
+    const rocks = [];
+    v.timer = 0.01;
+    updateVolcano(v, 0.02, rocks);
+    expect(rocks.length).toBeGreaterThanOrEqual(2);
+    expect(rocks.length).toBeLessThanOrEqual(3);
+    for (const r of rocks) expect(r.vy).toBeLessThan(0); // launched upward
+    // rearmed for the next eruption
+    expect(v.timer).toBeGreaterThan(0);
+    expect(v.timer).toBeLessThanOrEqual(VOLCANO_MAX_INTERVAL);
+  });
+
+  it("does not erupt before the timer elapses", () => {
+    const v = createVolcano(TILE * 5, 0);
+    const rocks = [];
+    v.timer = 5;
+    updateVolcano(v, 0.5, rocks);
+    expect(rocks).toHaveLength(0);
+  });
+
+  it("lava rock follows an arc and shatters on the ground", () => {
+    const r = createLavaRock(TILE * 5, TILE * 0.5, 20, -200);
+    const x0 = r.x;
+    let minY = r.y;
+    for (let i = 0; i < 600 && !r.gone; i++) {
+      updateLavaRock(r, lvl, DT);
+      minY = Math.min(minY, r.y);
+    }
+    expect(minY).toBeLessThan(TILE * 0.5); // rose out of the crater first
+    expect(r.x).toBeGreaterThan(x0); // drifted with its horizontal velocity
+    expect(r.gone).toBe(true); // landed on the floor and shattered
+  });
+
+  it("lava rock kills the player on contact", () => {
+    const r = createLavaRock(TILE * 5, TILE * 3, 0, 0);
+    const p = createPlayer(TILE * 5, TILE * 3);
+    let died = false;
+    processInteractions(
+      { player: p, level: lvl, coins: [], enemies: [], spikes: [], lavaRocks: [r], checkpoints: [], flags: [] },
+      { onCoin() {}, onStomp() {}, onCheckpoint() {}, onFlag() {}, onPlayerDeath() { died = true; } },
+    );
+    expect(died).toBe(true);
+  });
+
+  it("buildLevel spawns a volcano from O", () => {
+    const l = buildLevel(["O...", "GGGG"].join("\n"));
+    expect(l.spawns.some((s) => s.type === "volcano")).toBe(true);
+    expect(solidAt(l, 0, 0)).toBe(false); // the mound is not a solid tile
   });
 });
 

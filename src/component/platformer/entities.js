@@ -78,6 +78,57 @@ export function updateMeteor(m, level, dt) {
   if (m.y > level.killY) m.gone = true;
 }
 
+// Volcano (World 3, PG-58): a ground mound that periodically erupts,
+// lobbing lava rocks in an arc. The mound itself is harmless and
+// non-solid — the rocks are the hazard.
+export const VOLCANO_MIN_INTERVAL = 2.8;
+export const VOLCANO_MAX_INTERVAL = 4.4;
+export function createVolcano(x, y) {
+  return {
+    type: "volcano",
+    x,
+    y,
+    // Random initial phase so multiple volcanoes don't fire in sync.
+    timer: 1 + Math.random() * VOLCANO_MIN_INTERVAL,
+    interval: VOLCANO_MIN_INTERVAL, // set per eruption
+    animT: 0,
+  };
+}
+
+export function createLavaRock(x, y, vx, vy) {
+  return { type: "lavarock", x, y, vx, vy, airborne: true, gone: false, animT: 0 };
+}
+
+// Counts down to the next eruption; spent time drives the crater-glow
+// charge in the renderer. New rocks are pushed into `out`.
+export function updateVolcano(v, dt, out) {
+  v.animT += dt;
+  v.timer -= dt;
+  if (v.timer > 0) return;
+  v.interval =
+    VOLCANO_MIN_INTERVAL + Math.random() * (VOLCANO_MAX_INTERVAL - VOLCANO_MIN_INTERVAL);
+  v.timer = v.interval;
+  const count = 2 + (Math.random() < 0.5 ? 1 : 0);
+  for (let i = 0; i < count; i++) {
+    const vx = (Math.random() * 2 - 1) * 70;
+    const vy = -(200 + Math.random() * 60);
+    out.push(createLavaRock(v.x, v.y - 6, vx, vy));
+  }
+}
+
+export function updateLavaRock(r, level, dt) {
+  if (r.gone) return;
+  r.animT += dt;
+  r.vy += GRAVITY * dt;
+  r.x += r.vx * dt;
+  r.y += r.vy * dt;
+  // Rocks shatter when they land on something solid (only on the way
+  // down, so they can rise out of the crater) or fall out of the level.
+  if ((r.vy > 0 && pointSolid(level, r.x, r.y + 3)) || r.y > level.killY) {
+    r.gone = true;
+  }
+}
+
 export function coinFrame(c) {
   return COIN_SPIN_FRAMES[Math.floor(c.animT * COIN_SPIN_FPS) % COIN_SPIN_FRAMES.length];
 }
@@ -129,6 +180,11 @@ export function meteorRect(m) {
   return { left: m.x - 6, top: m.y - 6, right: m.x + 6, bottom: m.y + 6 };
 }
 
+export function lavaRockRect(r) {
+  // ~8x8 glowing rock.
+  return { left: r.x - 4, top: r.y - 4, right: r.x + 4, bottom: r.y + 4 };
+}
+
 // Applies the contact rules for one frame. `world` holds the player,
 // entity lists, and level; `ev` supplies the outcome callbacks:
 //   onCoin(coin), onStomp(enemy), onPlayerDeath(), onCheckpoint(k),
@@ -168,6 +224,12 @@ export function processInteractions(world, ev) {
   }
   for (const m of world.meteors ?? []) {
     if (!m.gone && rectsOverlap(pr, meteorRect(m))) {
+      ev.onPlayerDeath();
+      return;
+    }
+  }
+  for (const r of world.lavaRocks ?? []) {
+    if (!r.gone && rectsOverlap(pr, lavaRockRect(r))) {
       ev.onPlayerDeath();
       return;
     }

@@ -33,9 +33,12 @@ import {
   createLava,
   createStalactite,
   createMeteor,
+  createVolcano,
   updateCoin,
   updateStalactite,
   updateMeteor,
+  updateVolcano,
+  updateLavaRock,
   coinFrame,
   processInteractions,
 } from "./entities.js";
@@ -196,6 +199,8 @@ export class Engine {
     this.stalactites = [];
     this.crumbles = [];
     this.meteors = [];
+    this.volcanoes = [];
+    this.lavaRocks = [];
     for (const s of this.level.spawns) {
       if (s.type === "coin") this.coins.push(createCoin(s.x, s.y));
       else if (s.type === "enemy") this.enemies.push(createEnemy(s.x, s.y));
@@ -205,6 +210,7 @@ export class Engine {
       else if (s.type === "lava") this.lava.push(createLava(s.x, s.y));
       else if (s.type === "stalactite")
         this.stalactites.push(createStalactite(s.x, s.y));
+      else if (s.type === "volcano") this.volcanoes.push(createVolcano(s.x, s.y));
       else if (s.type === "crumble")
         this.crumbles.push({ tx: s.tx, ty: s.ty, x: s.x, y: s.y, state: "idle", t: 0 });
       else if (s.type === "checkpoint")
@@ -239,6 +245,11 @@ export class Engine {
     for (const c of this.coins) if (!c.gone) updateCoin(c, dt);
     for (const s of this.stalactites) updateStalactite(s, this.level, p, dt);
     for (const m of this.meteors) if (!m.gone) updateMeteor(m, this.level, dt);
+    for (const v of this.volcanoes) updateVolcano(v, dt, this.lavaRocks);
+    for (const r of this.lavaRocks) if (!r.gone) updateLavaRock(r, this.level, dt);
+    if (this.lavaRocks.length > 60) {
+      this.lavaRocks = this.lavaRocks.filter((r) => !r.gone);
+    }
     this.updateCrumbles(dt);
     if (this.meteorsOn) this.updateMeteorSpawner(dt);
 
@@ -252,6 +263,7 @@ export class Engine {
         lava: this.lava,
         stalactites: this.stalactites,
         meteors: this.meteors,
+        lavaRocks: this.lavaRocks,
         checkpoints: this.checkpoints,
         flags: this.flags,
       },
@@ -471,11 +483,15 @@ export class Engine {
       this.drawSprite(ctx, "coin", coinFrame(c), c.x - ox, c.y + c.riseY - oy);
       ctx.globalAlpha = 1;
     }
+    for (const v of this.volcanoes) this.drawVolcano(ctx, v, ox, oy);
     for (const s of this.stalactites) {
       if (!s.gone) this.drawStalactite(ctx, s, ox, oy);
     }
     for (const m of this.meteors) {
       if (!m.gone) this.drawMeteor(ctx, m, ox, oy);
+    }
+    for (const r of this.lavaRocks) {
+      if (!r.gone) this.drawLavaRock(ctx, r, ox, oy);
     }
     for (const e of this.enemies) {
       if (e.gone) continue;
@@ -620,6 +636,34 @@ export class Engine {
     } else if (this.theme.decor === "grassland" || this.theme.decor === "forest") {
       this.renderGroundDecor(ctx, ox, oy, this.theme.decor);
     } else if (this.theme.decor === "cave") {
+      // Distant volcano silhouettes against the cave gloom (PG-58),
+      // on a slow parallax so they read as far background.
+      const vpar = 0.25;
+      const vsx = ox * vpar;
+      const SPACING = 170;
+      const t = performance.now() / 1000;
+      for (let g = Math.floor(vsx / SPACING) - 1; g <= Math.floor((vsx + VIEW_W) / SPACING) + 1; g++) {
+        if (hash2(g, 555) < 0.4) continue;
+        const px = Math.round(g * SPACING + hash2(g, 9) * 60 - vsx);
+        const base = 152 + Math.round(hash2(g, 13) * 10);
+        const w = 34 + Math.round(hash2(g, 21) * 22);
+        const h = 26 + Math.round(hash2(g, 27) * 14);
+        ctx.fillStyle = "rgba(90, 60, 90, 0.28)";
+        ctx.beginPath();
+        ctx.moveTo(px - w, base);
+        ctx.lineTo(px - 5, base - h);
+        ctx.lineTo(px + 5, base - h);
+        ctx.lineTo(px + w, base);
+        ctx.closePath();
+        ctx.fill();
+        // pulsing crater glow
+        const glow = 0.25 + 0.2 * (0.5 + 0.5 * Math.sin(t * 1.5 + g * 2.1));
+        ctx.fillStyle = `rgba(255, 120, 40, ${glow.toFixed(2)})`;
+        ctx.beginPath();
+        ctx.ellipse(px, base - h, 5, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       // Faint glowing crystals scattered in the background rock.
       const par = 0.5;
       const sx = ox * par;
@@ -873,6 +917,60 @@ export class Engine {
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // Erupting volcano mound (PG-58). The crater glow charges up as the
+  // next eruption approaches, telegraphing it to the player.
+  drawVolcano(ctx, v, ox, oy) {
+    const x = Math.round(v.x - ox);
+    const yb = Math.round(v.y + 8 - oy); // mound base sits on the tile bottom
+    // cone
+    ctx.fillStyle = "#3a2430";
+    ctx.beginPath();
+    ctx.moveTo(x - 13, yb);
+    ctx.lineTo(x - 4, yb - 16);
+    ctx.lineTo(x + 4, yb - 16);
+    ctx.lineTo(x + 13, yb);
+    ctx.closePath();
+    ctx.fill();
+    // ridge highlight
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - 10, yb - 2);
+    ctx.lineTo(x - 3, yb - 15);
+    ctx.stroke();
+    // crater glow: brightens as the eruption charges
+    const charge = 1 - Math.max(0, v.timer) / (v.interval || 1);
+    const flicker = 0.85 + 0.15 * Math.sin(v.animT * 9);
+    ctx.fillStyle = `rgba(255, ${Math.round(120 + 60 * charge)}, 40, ${(
+      (0.35 + 0.55 * charge) * flicker
+    ).toFixed(2)})`;
+    ctx.beginPath();
+    ctx.ellipse(x, yb - 16, 4.5, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // embers rising when nearly ready
+    if (charge > 0.7) {
+      ctx.fillStyle = "rgba(255, 200, 90, 0.8)";
+      const e1 = (v.animT * 22) % 10;
+      ctx.fillRect(x - 2, yb - 18 - e1, 1, 1);
+      ctx.fillRect(x + 2, yb - 16 - ((v.animT * 30 + 4) % 8), 1, 1);
+    }
+  }
+
+  drawLavaRock(ctx, r, ox, oy) {
+    const x = Math.round(r.x - ox);
+    const y = Math.round(r.y - oy);
+    ctx.fillStyle = "rgba(255, 140, 30, 0.35)"; // glow halo
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ff7a1a";
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffd95a";
+    ctx.fillRect(x - 1, y - 1, 2, 2);
   }
 
   drawBat(ctx, e, ox, oy) {

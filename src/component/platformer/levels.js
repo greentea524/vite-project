@@ -151,7 +151,7 @@ const LEVEL_3_1 = [
 
 // Level 3-2 — Deeper cave (PG-41). Wider lava (with a stepping stone),
 // more bats, falling stalactites that drop when the player passes under,
-// and a mid-level checkpoint.
+// an erupting volcano (PG-58), and a mid-level checkpoint.
 // 80 columns. Ground segments 0-19, 24-45, 49-79 (lava pits 4 and 3 wide).
 const LEVEL_3_2 = [
   r(".", 34) + "CCC" + r(".", 43),
@@ -160,13 +160,13 @@ const LEVEL_3_2 = [
   r(".", 21) + "CC" + r(".", 57),
   r(".", 21) + "BB" + r(".", 57),
   r(".", 14) + "V" + r(".", 30) + "V" + r(".", 34),
-  "..P.....C....E......" + "...." + ".....C....K.....E....." + "..." + ".....C.......E........F........",
+  "..P.....C....E......" + "...." + ".....C....K.....E....." + "..." + ".....C..O....E........F........",
   r("G", 20) + "LLLL" + r("G", 22) + "LLL" + r("G", 31),
 ].join("\n");
 
 // Level 3-3 — Underworld finale (PG-42). Lava everywhere, a swarm of
-// bats, stalactites, and a crumbling-platform bridge over a wide lava
-// pit. Two checkpoints.
+// bats, stalactites, an erupting volcano (PG-58), and a
+// crumbling-platform bridge over a wide lava pit. Two checkpoints.
 // 96 columns. Ground segments 0-15, 19-34, 40-59, 63-95 (lava 3,5,3 wide;
 // the 5-wide pit is crossed by crumbling platforms one row up).
 const LEVEL_3_3 = [
@@ -176,7 +176,7 @@ const LEVEL_3_3 = [
   r(".", 20) + "CC" + r(".", 74),
   r(".", 20) + "BB" + r(".", 74),
   r(".", 35) + "XXXXX" + r(".", 8) + "V" + r(".", 20) + "V" + r(".", 26),
-  "..P....C....E..." + "..." + "...K....C....E.." + "....." + ".....C......E......." + "..." + "....K.....C.......E......F.......",
+  "..P....C....E..." + "..." + "...K....C....E.." + "....." + ".....C......E..O...." + "..." + "....K.....C.......E......F.......",
   r("G", 16) + "LLL" + r("G", 16) + "LLLLL" + r("G", 20) + "LLL" + r("G", 33),
 ].join("\n");
 

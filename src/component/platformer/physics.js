@@ -69,6 +69,9 @@ export function buildLevel(layout) {
         case "T": // stalactite — drops when the player passes beneath
           spawns.push({ type: "stalactite", ...pos });
           break;
+        case "O": // volcano — periodically erupts lava rocks (PG-58)
+          spawns.push({ type: "volcano", ...pos });
+          break;
         case "X": // crumbling platform — solid until stood on, then falls
           tiles.set(`${x},${y}`, BLOCK);
           spawns.push({ type: "crumble", tx: x, ty: y, ...pos });
