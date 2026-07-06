@@ -2,7 +2,11 @@ export function buildJoinLink(
   code,
   href = typeof window !== "undefined" ? window.location.href : "",
 ) {
-  if (!code || !href) return "";
+  console.log("buildJoinLink called with:", { code, href });
+  if (!code || !href) {
+    console.log("buildJoinLink returning empty - code or href missing");
+    return "";
+  }
 
   const url = new URL(href);
   const currentPath = url.pathname.replace(/\/+$/, "") || "/";
@@ -13,5 +17,6 @@ export function buildJoinLink(
   url.pathname = targetPath.endsWith("/") ? targetPath : `${targetPath}/`;
   url.searchParams.set("join", code);
   url.hash = "";
-  return url.toString();
-}
+  const result = url.toString();
+  console.log("buildJoinLink result:", result);
+  return result;

@@ -334,6 +334,13 @@ function Platformer() {
     }
     const nextRoomCode = roomCode || network?.roomCode || "";
     const nextLink = buildJoinLink(nextRoomCode, window.location.href);
+    console.log("QR Debug:", {
+      roomCode,
+      networkRoomCode: network?.roomCode,
+      nextRoomCode,
+      nextLink,
+      href: window.location.href,
+    });
     setJoinLink(nextLink);
     let cancelled = false;
     QRCode.toDataURL(nextLink, {
@@ -455,7 +462,9 @@ function Platformer() {
   const hostRace = async () => {
     setMpError("");
     const res = await network.createRoom(playerName || "Host", avatar);
+    console.log("hostRace response:", res);
     if (res?.ok) {
+      console.log("Setting roomCode to:", res.code);
       setRoomCode(res.code);
       setLobbyMode("room");
     } else {
