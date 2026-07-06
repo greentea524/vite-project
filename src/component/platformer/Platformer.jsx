@@ -202,7 +202,7 @@ function Platformer() {
   const [roster, setRoster] = useState([]);
   const [mpError, setMpError] = useState("");
   // Relay connection status for the lobby (KAN-53). Free hosting naps
-  // when idle, so the first connection can take ~30-60s:
+  // when idle, so the first connection can take ~10s:
   // connecting -> waking (after a grace period or the first
   // connect_error) -> connected, or failed after ~90s.
   const [connStatus, setConnStatus] = useState("connecting");
@@ -210,7 +210,7 @@ function Platformer() {
   const [standings, setStandings] = useState([]);
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1
   const autoOpenLobbyRef = useRef(false); // pending: open the lobby from the menu
-  const autoJoinRef = useRef(false);       // pending: auto-submit the join code
+  const autoJoinRef = useRef(false); // pending: auto-submit the join code
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -221,11 +221,18 @@ function Platformer() {
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.delete("join");
     window.history.replaceState({}, "", nextUrl);
-    // Two-step auto-join: first open the lobby, then submit the code.
-    // Keep these as separate flags so each effect fires independently.
+    // Eagerly start the relay connection so it's warming up while we
+    // wait for the menu to mount. Without this, connect() is never
+    // called until openMultiplayer() runs, keeping connStatus stuck at
+    // "connecting" forever and breaking the auto-join gate.
+    Network.warmUp();
+    network?.connect();
+    // Two-step auto-join: open the lobby (from menu), then submit the
+    // join code (once in the lobby). Separate flags so each effect
+    // fires independently without consuming the other's flag.
     autoOpenLobbyRef.current = true;
     autoJoinRef.current = true;
-  }, []);
+  }, [network]);
 
   useEffect(() => {
     const engine = new Engine(canvasRef.current, state, labelCanvasRef.current);
@@ -357,28 +364,31 @@ function Platformer() {
   }, [roomCode, network?.roomCode]);
 
   useEffect(() => {
-    if (
-      !autoOpenLobbyRef.current ||
-      !network ||
-      connStatus !== "connected" ||
-      screen !== "menu"
-    )
-      return;
+    // Open the lobby immediately when a ?join= link is scanned — don't
+    // wait for connStatus=connected. openMultiplayer() calls
+    // network.connect() itself, and the lobby's own "Connecting…" /
+    // "Waking…" UI handles the relay warm-up wait gracefully.
+    if (!autoOpenLobbyRef.current || !network || screen !== "menu") return;
     autoOpenLobbyRef.current = false;
     openMultiplayer();
-  }, [network, connStatus, screen]);
+  }, [network, screen]);
 
   useEffect(() => {
+    // Wait for the relay to be connected before sending joinRoom \u2014
+    // mirrors the manual Join button being disabled until connected.
+    // Without this, the socket emit fires during the relay warm-up and
+    // burns the entire 10s ACK timeout before the user sees an error.
     if (
       !autoJoinRef.current ||
       screen !== "lobby" ||
       lobbyMode !== "choose" ||
+      connStatus !== "connected" ||
       !joinCode.trim()
     )
       return;
     autoJoinRef.current = false;
     void joinRace();
-  }, [screen, lobbyMode, joinCode]);
+  }, [screen, lobbyMode, joinCode, connStatus]);
 
   const retryConnect = () => {
     Network.warmUp();
@@ -748,7 +758,7 @@ function Platformer() {
                   <p className="plat-text plat-conn">
                     <span className="plat-spinner" aria-hidden="true"></span>
                     Waking up the race server — free hosting naps when idle,
-                    this can take ~30–60s…
+                    this can take ~10s…
                   </p>
                 )}
                 {connStatus === "connecting" && (
