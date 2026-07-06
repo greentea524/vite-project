@@ -66,5 +66,5 @@ jobs:
         continue-on-error: true
 
       - name: Fail if deployment still failed
-        if: steps.deployment.outcome == 'failure' || steps.retry_deployment.outcome == 'failure'
+        if: steps.deployment.outcome == 'failure' && steps.retry_deployment.outcome == 'failure'
         run: exit 1
