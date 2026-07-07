@@ -717,18 +717,17 @@ function Platformer() {
           <div className="plat-overlay">
             <h3 className="plat-title">Platform Game</h3>
             <div className="plat-world-previews">
-              {WORLD_PREVIEWS.map((w, i) => {
-                const unlocked = i === 0 || state.levelsCompleted >= state.flatIndex(i, 0);
-                return (
-                  <div key={i} className={`plat-world-preview ${unlocked ? "unlocked" : "locked"}`}>
-                    <div className="plat-world-icon">{unlocked ? w.icon : "🔒"}</div>
-                    <div className="plat-world-info">
-                      <div className="plat-world-title">{w.title}</div>
-                      <div className="plat-world-desc">{unlocked ? w.desc : "Locked until previous world is completed."}</div>
-                    </div>
+              {/* All worlds are freely previewable — progression still
+                  runs level by level, this panel is informational. */}
+              {WORLD_PREVIEWS.map((w, i) => (
+                <div key={i} className="plat-world-preview unlocked">
+                  <div className="plat-world-icon">{w.icon}</div>
+                  <div className="plat-world-info">
+                    <div className="plat-world-title">{w.title}</div>
+                    <div className="plat-world-desc">{w.desc}</div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
             <div className="plat-help">
               <p className="plat-text">
@@ -739,7 +738,7 @@ function Platformer() {
                   size={12}
                   aspect={2}
                 />{" "}
-                to clear each level — six levels across two worlds.
+                to clear each level — twelve levels across four worlds.
               </p>
               <p className="plat-text">
                 Grab coins{" "}
