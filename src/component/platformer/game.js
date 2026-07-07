@@ -457,10 +457,10 @@ export class Engine {
     const ox = this.cam.x - VIEW_W / 2; // world coords of the view origin
     const oy = this.cam.y - VIEW_H / 2;
 
-    // Themed backdrop: cave glow or space starfield (PG-40/PG-43).
-    if (this.theme.decor) this.renderDecor(ctx, ox, oy);
     // Space skips clouds; other worlds keep the parallax layers.
     if (this.theme.clouds !== false) this.renderClouds(ctx, ox, oy);
+    // Themed backdrop: cave glow or space starfield (PG-40/PG-43).
+    if (this.theme.decor) this.renderDecor(ctx, ox, oy);
     this.renderTiles(ctx, ox, oy);
     this.renderLava(ctx, ox, oy);
     this.renderCrumbleFx(ctx, ox, oy);
