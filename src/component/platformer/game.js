@@ -164,11 +164,7 @@ export class Engine {
       acc += Math.min((now - last) / 1000, MAX_FRAME);
       last = now;
 
-      // ESC toggles the pause menu (PG-29).
-      if (this.input.justPressed("pause")) {
-        if (this.state.screen === "playing") this.state.pause();
-        else if (this.state.screen === "paused") this.state.resume();
-      }
+      // Pause menu toggling is now handled centrally by React in Platformer.jsx
 
       if (this.state.screen === "playing" && this.level) {
         while (acc >= DT) {
