@@ -78,10 +78,14 @@ const isWhite = ([r, g, b]) => r === 1 && g === 1 && b === 1;
 
 // Stable per-cell pseudo-random in [0,1) for procedural decor (stars,
 // crystals) so the backdrop doesn't jitter as the camera moves.
+// Math.imul keeps the multiplies in 32-bit — a plain float multiply
+// overflows 2^53 and truncates the low bits, which made outputs
+// cluster near 0 for some seeds (#53: cave props barely spawned).
 function hash2(x, y) {
-  let h = (x | 0) * 374761393 + (y | 0) * 668265263;
-  h = (h ^ (h >> 13)) * 1274126177;
-  return ((h ^ (h >> 16)) >>> 0) / 4294967296;
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h = Math.imul(h ^ (h >>> 15), 2246822519);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
 // Frame for a ghost given only its anim name (we don't track a remote
@@ -606,12 +610,16 @@ export class Engine {
   // Themed parallax backdrop drawn behind the clouds/tiles.
   renderDecor(ctx, ox, oy) {
     if (this.theme.decor === "space") {
-      // Starfield (parallax) + a couple of distant planets.
-      const par = 0.35;
-      const sx = ox * par;
-      const sy = oy * par;
-      const CELL = 22;
+      // Layered space backdrop (#52): stars scroll slowest, planets in
+      // the mid layer, satellites/debris closest — classic parallax
+      // depth ordering.
       const now = performance.now() / 1000;
+
+      // Stars — farthest layer.
+      const spar = 0.15;
+      const sx = ox * spar;
+      const sy = oy * spar;
+      const CELL = 22;
       for (let gy = Math.floor(sy / CELL) - 1; gy <= Math.floor((sy + VIEW_H) / CELL) + 1; gy++) {
         for (let gx = Math.floor(sx / CELL) - 1; gx <= Math.floor((sx + VIEW_W) / CELL) + 1; gx++) {
           const h = hash2(gx, gy);
@@ -623,19 +631,77 @@ export class Engine {
           ctx.fillRect(px, py, h > 0.85 ? 2 : 1, h > 0.85 ? 2 : 1);
         }
       }
-      const planets = [
-        { x: 60, y: 40, r: 14, c: "#6c5ce7" },
-        { x: 250, y: 70, r: 20, c: "#c0562e" },
-      ];
-      for (const pl of planets) {
-        const x = pl.x - ox * 0.2;
-        const y = pl.y - oy * 0.2;
-        ctx.globalAlpha = 0.5;
-        ctx.fillStyle = pl.c;
+
+      // Planets — mid layer, repeating with varied size/color; roughly
+      // every third gets a ring.
+      const PLANET_COLORS = ["#6c5ce7", "#c0562e", "#3fa7a3", "#b06ab3", "#8898b0"];
+      const ppar = 0.3;
+      const pxo = ox * ppar;
+      const PSPACE = 340;
+      for (let g = Math.floor(pxo / PSPACE) - 1; g <= Math.floor((pxo + VIEW_W) / PSPACE) + 1; g++) {
+        const h = hash2(g, 77);
+        if (h < 0.25) continue;
+        const x = Math.round(g * PSPACE + hash2(g, 3) * 200 - pxo);
+        const y = 24 + Math.round(hash2(g, 11) * 70);
+        const r = 8 + Math.round(hash2(g, 19) * 16);
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = PLANET_COLORS[Math.floor(h * PLANET_COLORS.length)];
         ctx.beginPath();
-        ctx.arc(x, y, pl.r, 0, Math.PI * 2);
+        ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
+        // shading crescent
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.beginPath();
+        ctx.arc(x + r * 0.3, y + r * 0.2, r * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+        if (hash2(g, 23) > 0.6) {
+          ctx.strokeStyle = "rgba(220,220,240,0.5)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(x, y, r * 1.7, r * 0.45, -0.35, 0, Math.PI * 2);
+          ctx.stroke();
+        }
         ctx.globalAlpha = 1;
+      }
+
+      // Satellites — near layer, slowly drifting with a blinking light.
+      const napar = 0.5;
+      const nxo = ox * napar;
+      const SATSPACE = 420;
+      for (let g = Math.floor(nxo / SATSPACE) - 1; g <= Math.floor((nxo + VIEW_W) / SATSPACE) + 1; g++) {
+        if (hash2(g, 91) < 0.45) continue;
+        const drift = (now * 3) % SATSPACE;
+        const x = Math.round(g * SATSPACE + hash2(g, 5) * 260 + drift - nxo);
+        const y = 18 + Math.round(hash2(g, 29) * 55);
+        ctx.fillStyle = "#9aa4b8";
+        ctx.fillRect(x - 2, y - 2, 4, 4); // body
+        ctx.fillStyle = "#5b7fd4";
+        ctx.fillRect(x - 8, y - 1, 5, 2); // solar panels
+        ctx.fillRect(x + 3, y - 1, 5, 2);
+        if (Math.sin(now * 5 + g) > 0.4) {
+          ctx.fillStyle = "#ff5d5d";
+          ctx.fillRect(x - 1, y - 4, 1, 1); // blinking beacon
+        }
+      }
+
+      // Floating rock debris — closest layer, slowly tumbling.
+      const dxo = ox * napar;
+      const dyo = oy * napar;
+      const DCELL = 90;
+      for (let gy = Math.floor(dyo / DCELL) - 1; gy <= Math.floor((dyo + VIEW_H) / DCELL) + 1; gy++) {
+        for (let gx = Math.floor(dxo / DCELL) - 1; gx <= Math.floor((dxo + VIEW_W) / DCELL) + 1; gx++) {
+          const h = hash2(gx, gy + 500);
+          if (h < 0.7) continue;
+          const px = gx * DCELL + hash2(gx + 1, gy) * DCELL - dxo;
+          const py = gy * DCELL + hash2(gx, gy + 1) * DCELL - dyo;
+          const size = 2 + h * 3;
+          ctx.save();
+          ctx.translate(Math.round(px), Math.round(py));
+          ctx.rotate(now * (0.3 + h) * (h > 0.85 ? 1 : -1));
+          ctx.fillStyle = "rgba(150,150,165,0.6)";
+          ctx.fillRect(-size / 2, -size / 2, size, size * 0.8);
+          ctx.restore();
+        }
       }
     } else if (this.theme.decor === "grassland" || this.theme.decor === "forest") {
       this.renderGroundDecor(ctx, ox, oy, this.theme.decor);
@@ -689,6 +755,30 @@ export class Engine {
           ctx.fill();
         }
       }
+
+      // Ceiling stalactites (#53): silhouettes hanging from the cave
+      // roof on the same background layer (decorative only — the
+      // gameplay ones that fall are level entities, legend T).
+      const SSTEP = 26;
+      const roofY = -oy * par; // layer world-top mapped to the screen
+      for (let g = Math.floor(sx / SSTEP) - 1; g <= Math.floor((sx + VIEW_W) / SSTEP) + 1; g++) {
+        const h = hash2(g, 321);
+        if (h < 0.35) continue;
+        const px = Math.round(g * SSTEP + hash2(g, 7) * 14 - sx);
+        const len = 6 + Math.round(h * 20);
+        const wid = 2 + Math.round(hash2(g, 15) * 3);
+        ctx.fillStyle = "rgba(70, 50, 80, 0.5)";
+        ctx.beginPath();
+        ctx.moveTo(px - wid, roofY);
+        ctx.lineTo(px + wid, roofY);
+        ctx.lineTo(px, roofY + len);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Ground-anchored cave props: torches, skull piles, stalagmites,
+      // bright crystal clusters (#53).
+      this.renderGroundDecor(ctx, ox, oy, "cave");
     }
   }
 
@@ -723,14 +813,20 @@ export class Engine {
       }
     }
 
+    const cave = kind === "cave";
     for (let gx = gx0; gx <= gx1; gx++) {
-      if (hash2(gx, forest ? 41 : 17) < 0.45) continue; // sparse scatter
+      if (hash2(gx, forest ? 41 : cave ? 63 : 17) < 0.45) continue; // sparse scatter
       const wx = gx * STEP + hash2(gx, 3) * (STEP - 10);
       if (!solidAt(this.level, Math.floor(wx / TILE), groundRow)) continue;
       const x = Math.round(wx - ox);
       const y = Math.round(groundY - oy);
-      const pick = hash2(gx, forest ? 71 : 29);
-      if (forest) {
+      const pick = hash2(gx, forest ? 71 : cave ? 83 : 29);
+      if (cave) {
+        if (pick < 0.3) this.drawTorch(ctx, x, y);
+        else if (pick < 0.55) this.drawSkullPile(ctx, x, y);
+        else if (pick < 0.8) this.drawStalagmite(ctx, x, y, gx);
+        else this.drawCrystalCluster(ctx, x, y, gx);
+      } else if (forest) {
         if (pick < 0.42) this.drawTallTree(ctx, x, y);
         else if (pick < 0.68) this.drawMushroom(ctx, x, y);
         else this.drawLog(ctx, x, y);
@@ -820,6 +916,86 @@ export class Engine {
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.fillRect(x - 2, yb - 7, 1, 1);
     ctx.fillRect(x + 1, yb - 8, 1, 1);
+  }
+
+  // Wall torch with a subtle flame flicker (#53).
+  drawTorch(ctx, x, yb) {
+    const t = performance.now() / 1000;
+    ctx.fillStyle = "#5a4632";
+    ctx.fillRect(x - 1, yb - 12, 2, 12); // pole
+    ctx.fillStyle = "#3a2e20";
+    ctx.fillRect(x - 2, yb - 13, 4, 2); // bracket
+    const f = 0.7 + 0.3 * Math.sin(t * 11 + x * 0.7); // flicker
+    ctx.fillStyle = `rgba(255, 160, 40, ${(0.45 * f).toFixed(2)})`; // glow halo
+    ctx.beginPath();
+    ctx.arc(x, yb - 16, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ff9c2a";
+    ctx.beginPath();
+    ctx.ellipse(x, yb - 16, 2, 3 * f + 1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillRect(x - 1, yb - 17, 1, 2);
+  }
+
+  // Small pile of skulls (#53).
+  drawSkullPile(ctx, x, yb) {
+    const skull = (sx, sy, r) => {
+      ctx.fillStyle = "#ddd5c4";
+      ctx.beginPath();
+      ctx.arc(sx, sy - r * 0.3, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(sx - r * 0.6, sy - r * 0.2, r * 1.2, r * 0.7);
+      ctx.fillStyle = "#241c28";
+      ctx.fillRect(sx - r * 0.55, sy - r * 0.5, r * 0.4, r * 0.45); // eyes
+      ctx.fillRect(sx + r * 0.15, sy - r * 0.5, r * 0.4, r * 0.45);
+    };
+    skull(x - 4, yb - 2, 3);
+    skull(x + 4, yb - 2, 3);
+    skull(x, yb - 7, 3.5); // one on top
+  }
+
+  // Floor stalagmite — the upward twin of the ceiling silhouettes (#53).
+  drawStalagmite(ctx, x, yb, seed) {
+    const h = 8 + Math.round(hash2(seed, 6) * 10);
+    ctx.fillStyle = "#4c3a58";
+    ctx.beginPath();
+    ctx.moveTo(x - 5, yb);
+    ctx.lineTo(x, yb - h);
+    ctx.lineTo(x + 5, yb);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.1)";
+    ctx.beginPath();
+    ctx.moveTo(x - 2, yb);
+    ctx.lineTo(x, yb - h + 2);
+    ctx.lineTo(x, yb);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Bright glowing crystal cluster on the cave floor (#53).
+  drawCrystalCluster(ctx, x, yb, seed) {
+    const t = performance.now() / 1000;
+    const green = hash2(seed, 44) > 0.5;
+    const pulse = 0.7 + 0.3 * Math.sin(t * 2 + seed);
+    const shard = (sx, h, lean) => {
+      ctx.beginPath();
+      ctx.moveTo(sx - 3, yb);
+      ctx.lineTo(sx + lean, yb - h);
+      ctx.lineTo(sx + 3, yb);
+      ctx.closePath();
+      ctx.fill();
+    };
+    ctx.fillStyle = green
+      ? `rgba(110, 235, 175, ${(0.75 * pulse).toFixed(2)})`
+      : `rgba(170, 130, 240, ${(0.75 * pulse).toFixed(2)})`;
+    shard(x - 4, 8, -2);
+    shard(x + 4, 7, 2);
+    ctx.fillStyle = green
+      ? `rgba(180, 255, 220, ${pulse.toFixed(2)})`
+      : `rgba(215, 190, 255, ${pulse.toFixed(2)})`;
+    shard(x, 12, 0);
   }
 
   drawLog(ctx, x, yb) {
