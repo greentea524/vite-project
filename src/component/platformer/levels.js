@@ -225,6 +225,106 @@ const LEVEL_4_3 = [
   r("G", 16) + r(".", 4) + r("G", 24) + r(".", 5) + r("G", 28) + r(".", 4) + r("G", 27),
 ].join("\n");
 
+// World 5 Frozen Peaks theme (issue #54). Pale blue sky, icy tiles.
+const ICE_SKY = [0.72, 0.85, 0.95];
+const ICE_TILE = [0.78, 0.88, 0.96];
+
+// World 6 Neon Factory theme (issue #55). Dark industrial with neon.
+const FACTORY_SKY = [0.06, 0.04, 0.1];
+const FACTORY_TILE = [0.55, 0.55, 0.65];
+
+// Legend additions for World 5/6:
+// I  ice ground tile       Y  yeti enemy
+// W  freezing water        >  conveyor right
+// <  conveyor left         Z  laser
+// R  drone
+
+// Level 5-1 — Ice intro (issue #54). Gentle sliding platforms on full
+// ice ground. No death hazards, just coins and a single yeti.
+// 64 columns. Ground segment 0-63 (continuous ice).
+const LEVEL_5_1 = [
+  r(".", 28) + "CCC" + r(".", 33),
+  r(".", 27) + "BBBBB" + r(".", 32),
+  "",
+  r(".", 18) + "CC" + r(".", 22) + "CC" + r(".", 20),
+  r(".", 17) + "BBBB" + r(".", 20) + "BBBB" + r(".", 19),
+  "",
+  "..P.....C...C.C..." + ".........." + "..Y......." + "....C.C......F....",
+  r("I", 64),
+].join("\n");
+
+// Level 5-2 — Deeper ice (issue #54). Freezing water pools (3-wide),
+// falling icicles, crumbling platforms over one water gap, 2 yetis.
+// 80 columns. Ground segments 0-19, 23-44, 48-79 (water gaps 3-wide).
+const LEVEL_5_2 = [
+  r(".", 35) + "CCC" + r(".", 42),
+  r(".", 34) + "BBBBB" + r(".", 41),
+  r(".", 25) + "T" + r(".", 24) + "T" + r(".", 14) + "T" + r(".", 14),
+  r(".", 21) + "CC" + r(".", 57),
+  r(".", 20) + "BBBB" + r(".", 56),
+  r(".", 18) + "XXX" + r(".", 34) + "V" + r(".", 24),
+  "..P.....C....Y......" + "..." + "...K....C.....Y.........." + "..." + "....C........C......F...........",
+  r("I", 20) + "WWW" + r("I", 22) + "WWW" + r("I", 32),
+].join("\n");
+
+// Level 5-3 — Blizzard finale (issue #54). Multiple freezing water
+// gaps, icicles, crumbling ice bridges, yetis, and two checkpoints.
+// 96 columns. Ground segments 0-15, 19-38, 43-63, 67-95 (water 3,4,3 wide).
+const LEVEL_5_3 = [
+  r(".", 44) + "CCC" + r(".", 49),
+  r(".", 43) + "BBBBB" + r(".", 48),
+  r(".", 22) + "T" + r(".", 18) + "T" + r(".", 25) + "T" + r(".", 15) + "T" + r(".", 12),
+  r(".", 20) + "CC" + r(".", 74),
+  r(".", 20) + "BB" + r(".", 74),
+  r(".", 16) + "XXX" + r(".", 23) + "XXXX" + r(".", 15) + "V" + r(".", 18) + "V" + r(".", 16),
+  "..P....C....Y..." + "..." + "...K....C....Y......." + "...." + ".....C......Y..K...." + "..." + "....C.........Y.......F........",
+  r("I", 16) + "WWW" + r("I", 20) + "WWWW" + r("I", 21) + "WWW" + r("I", 29),
+].join("\n");
+
+// Level 6-1 — Factory intro (issue #55). Normal ground with conveyor
+// belts, drones patrolling, coins. No death hazards except gaps.
+// 72 columns. Ground segments 0-23, 28-49, 53-71 (4- and 3-wide voids).
+const LEVEL_6_1 = [
+  r(".", 30) + "CCC" + r(".", 39),
+  r(".", 29) + "BBBBB" + r(".", 38),
+  "",
+  r(".", 22) + "CC" + r(".", 48),
+  r(".", 22) + "BBB" + r(".", 22) + "BBB" + r(".", 22),
+  r(".", 15) + "R" + r(".", 30) + "R" + r(".", 25),
+  "..P......C..E.." + r(">", 4) + r("<", 4) + "." + "...." + ".C.." + r(">", 3) + "..E......C.." + "..." + "...C..." + r("<", 4) + "...E..F....",
+  r("G", 10) + r(">", 6) + r("<", 4) + r("G", 4) + r(".", 4) + r("G", 8) + r(">", 6) + r("G", 8) + r(".", 3) + r("G", 6) + r("<", 4) + r("G", 9),
+].join("\n");
+
+// Level 6-2 — Laser gauntlet (issue #55). Ground with conveyors,
+// lasers across paths, drones, and a checkpoint. Conveyor puzzles.
+// 88 columns. Ground segments 0-19, 24-51, 56-87 (4- and 4-wide voids).
+const LEVEL_6_2 = [
+  r(".", 40) + "CCC" + r(".", 45),
+  r(".", 39) + "BBBBB" + r(".", 44),
+  "",
+  r(".", 22) + "CC" + r(".", 64),
+  r(".", 22) + "BBBB" + r(".", 25) + "BBB" + r(".", 34),
+  r(".", 12) + "R" + r(".", 28) + "R" + r(".", 22) + "R" + r(".", 23),
+  "..P.....C..Z..E....." + "...." + "..K...C.." + r(">", 4) + "..Z..E.......C.." + "...." + "...C." + r("<", 4) + "..Z...E.........F.........",
+  r("G", 8) + r(">", 6) + r("G", 6) + r(".", 4) + r("G", 10) + r(">", 6) + r("<", 4) + r("G", 8) + r(".", 4) + r("G", 8) + r("<", 6) + r("G", 18),
+].join("\n");
+
+// Level 6-3 — Ultimate finale (issue #55). Everything combined:
+// conveyors, lasers, drones, two checkpoints. The final level of the
+// game; completing it triggers the You-Win screen.
+// 108 columns. Ground segments 0-17, 22-47, 53-78, 83-107 (voids 4,5,4).
+const LEVEL_6_3 = [
+  r(".", 52) + "CCC" + r(".", 53),
+  r(".", 51) + "BBBBB" + r(".", 52),
+  "",
+  r(".", 28) + "CCC" + r(".", 77),
+  r(".", 16) + "BBB" + r(".", 24) + "BBBB" + r(".", 24) + "BBB" + r(".", 34),
+  r(".", 10) + "R" + r(".", 28) + "R" + r(".", 28) + "R" + r(".", 25) + "R" + r(".", 13),
+  "..P....C..Z..E.." + "...." + "..K..C." + r(">", 4) + ".Z..E........C.." + "....." + "..C." + r("<", 4) + "..Z...E.......C." + "...." + "..K..C." + r(">", 4) + "..Z..E.....F....",
+  r("G", 6) + r(">", 6) + r("G", 6) + r(".", 4) + r("G", 8) + r(">", 6) + r("<", 4) + r("G", 8) + r(".", 5) + r("G", 8) + r("<", 6) + r("G", 12) + r(".", 4) + r("G", 6) + r(">", 6) + r("<", 4) + r("G", 9),
+].join("\n");
+
+
 // Levels grouped by world, mirroring GameManager.WORLDS. The HUD
 // shows the level as "world-stage" (1-1 ... 4-3).
 export const WORLDS = [
@@ -259,6 +359,18 @@ export const WORLDS = [
     { layout: LEVEL_4_1, sky: SPACE_SKY, tileTint: SPACE_TILE, cloudTint: WHITE, clouds: false, decor: "space", gravity: 0.55 },
     { layout: LEVEL_4_2, sky: SPACE_SKY, tileTint: SPACE_TILE, cloudTint: WHITE, clouds: false, decor: "space", gravity: 0.55, meteors: true },
     { layout: LEVEL_4_3, sky: [0.03, 0.01, 0.08], tileTint: [0.6, 0.55, 0.72], cloudTint: WHITE, clouds: false, decor: "space", gravity: 0.55, meteors: true },
+  ],
+  // World 5 — Frozen Peaks (issue #54): ice physics, icicles, yetis.
+  [
+    { layout: LEVEL_5_1, sky: ICE_SKY, tileTint: ICE_TILE, cloudTint: WHITE, decor: "ice", ice: true },
+    { layout: LEVEL_5_2, sky: ICE_SKY, tileTint: ICE_TILE, cloudTint: WHITE, decor: "ice", ice: true },
+    { layout: LEVEL_5_3, sky: [0.6, 0.75, 0.88], tileTint: [0.7, 0.82, 0.92], cloudTint: WHITE, decor: "ice", ice: true },
+  ],
+  // World 6 — Neon Factory (issue #55): conveyors, lasers, drones.
+  [
+    { layout: LEVEL_6_1, sky: FACTORY_SKY, tileTint: FACTORY_TILE, cloudTint: WHITE, clouds: false, decor: "factory" },
+    { layout: LEVEL_6_2, sky: FACTORY_SKY, tileTint: FACTORY_TILE, cloudTint: WHITE, clouds: false, decor: "factory" },
+    { layout: LEVEL_6_3, sky: [0.08, 0.05, 0.12], tileTint: [0.5, 0.48, 0.6], cloudTint: WHITE, clouds: false, decor: "factory" },
   ],
 ];
 

@@ -10,6 +10,7 @@ export const GRAVITY = 980;
 export const GRASS = 0;
 export const DIRT = 1;
 export const BLOCK = 2;
+export const ICE = 0; // Reuse GRASS sprite, it will be tinted by theme
 
 // Builds the tile grid and entity spawn list from an ASCII layout.
 // Mirrors level.gd::_build/_place, including the two dirt rows
@@ -75,6 +76,31 @@ export function buildLevel(layout) {
         case "X": // crumbling platform — solid until stood on, then falls
           tiles.set(`${x},${y}`, BLOCK);
           spawns.push({ type: "crumble", tx: x, ty: y, ...pos });
+          break;
+        case "I": // ice ground — slippery (World 5)
+          tiles.set(`${x},${y}`, ICE);
+          tiles.set(`${x},${y + 1}`, DIRT);
+          tiles.set(`${x},${y + 2}`, DIRT);
+          break;
+        case "Y": // yeti — patrol enemy (World 5)
+          spawns.push({ type: "yeti", ...pos });
+          break;
+        case "W": // freezing water — deadly pool (World 5)
+          spawns.push({ type: "freezingwater", ...pos });
+          break;
+        case ">": // conveyor belt right (World 6)
+          tiles.set(`${x},${y}`, BLOCK);
+          spawns.push({ type: "conveyor", tx: x, ty: y, ...pos, dir: 1 });
+          break;
+        case "<": // conveyor belt left (World 6)
+          tiles.set(`${x},${y}`, BLOCK);
+          spawns.push({ type: "conveyor", tx: x, ty: y, ...pos, dir: -1 });
+          break;
+        case "Z": // laser emitter (World 6)
+          spawns.push({ type: "laser", ...pos });
+          break;
+        case "R": // drone — flying patrol enemy (World 6)
+          spawns.push({ type: "drone", ...pos });
           break;
         case "P":
           playerStart = pos;

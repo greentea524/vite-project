@@ -234,10 +234,10 @@ describe("buildLevel new legend", () => {
 });
 
 describe("worlds wiring", () => {
-  it("exposes four worlds of three levels each", () => {
-    expect(WORLDS).toHaveLength(4);
+  it("exposes six worlds of three levels each", () => {
+    expect(WORLDS).toHaveLength(6);
     for (const world of WORLDS) expect(world).toHaveLength(3);
-    expect(LEVELS).toHaveLength(12);
+    expect(LEVELS).toHaveLength(18);
   });
 
   it("labels the new levels 3-1..4-3 and every level is completable-shaped", () => {

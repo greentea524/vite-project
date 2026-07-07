@@ -34,6 +34,12 @@ export function createAlien(x, y) {
   return { ...createEnemy(x, y), kind: "alien" };
 }
 
+// Yeti (World 5): same ground-patrol AI as the walker, with a bulky
+// procedural render. Reuses updateEnemy.
+export function createYeti(x, y) {
+  return { ...createEnemy(x, y), kind: "yeti" };
+}
+
 // Bat (World 3): flies a fixed horizontal patrol with a gentle vertical
 // bob, ignoring gravity and floors. Reverses at walls or at the edges of
 // its patrol span. Stompable via the shared rule in entities.js.
@@ -54,6 +60,12 @@ export function createBat(x, y) {
     kind: "bat",
     homeX: x, baseY: y, bobT: Math.random() * Math.PI * 2,
   };
+}
+
+// Drone (World 6): same flying patrol as the bat, with a mechanical
+// procedural render. Reuses updateBat.
+export function createDrone(x, y) {
+  return { ...createBat(x, y), kind: "drone" };
 }
 
 export function batFrame(e) {

@@ -24,6 +24,8 @@ import {
   createBat,
   updateBat,
   batFrame,
+  createYeti,
+  createDrone,
 } from "./enemy.js";
 import {
   createCoin,
@@ -34,11 +36,14 @@ import {
   createStalactite,
   createMeteor,
   createVolcano,
+  createFreezingWater,
+  createLaser,
   updateCoin,
   updateStalactite,
   updateMeteor,
   updateVolcano,
   updateLavaRock,
+  updateLaser,
   coinFrame,
   processInteractions,
 } from "./entities.js";
@@ -59,6 +64,7 @@ const GAME_OVER_DELAY = 1.0;
 // Crumbling platform timings (World 3, PG-42).
 const CRUMBLE_SHAKE = 0.4; // wobble time before it drops
 const CRUMBLE_RESPAWN = 3.0; // time before it returns
+const CONVEYOR_DRIFT = 60; // px/s nudge on conveyor belts (World 6)
 
 // Two looping cloud layers at different scroll speeds and sizes give
 // the background depth (PG-31). From level.gd::_add_clouds.
@@ -205,22 +211,33 @@ export class Engine {
     this.meteors = [];
     this.volcanoes = [];
     this.lavaRocks = [];
+    this.freezingWater = [];
+    this.lasers = [];
+    this.conveyors = [];
     for (const s of this.level.spawns) {
       if (s.type === "coin") this.coins.push(createCoin(s.x, s.y));
       else if (s.type === "enemy") this.enemies.push(createEnemy(s.x, s.y));
       else if (s.type === "alien") this.enemies.push(createAlien(s.x, s.y));
       else if (s.type === "bat") this.enemies.push(createBat(s.x, s.y));
+      else if (s.type === "yeti") this.enemies.push(createYeti(s.x, s.y));
+      else if (s.type === "drone") this.enemies.push(createDrone(s.x, s.y));
       else if (s.type === "spikes") this.spikes.push(createSpikes(s.x, s.y));
       else if (s.type === "lava") this.lava.push(createLava(s.x, s.y));
+      else if (s.type === "freezingwater") this.freezingWater.push(createFreezingWater(s.x, s.y));
       else if (s.type === "stalactite")
         this.stalactites.push(createStalactite(s.x, s.y));
       else if (s.type === "volcano") this.volcanoes.push(createVolcano(s.x, s.y));
+      else if (s.type === "laser") this.lasers.push(createLaser(s.x, s.y));
+      else if (s.type === "conveyor")
+        this.conveyors.push({ tx: s.tx, ty: s.ty, x: s.x, y: s.y, dir: s.dir });
       else if (s.type === "crumble")
         this.crumbles.push({ tx: s.tx, ty: s.ty, x: s.x, y: s.y, state: "idle", t: 0 });
       else if (s.type === "checkpoint")
         this.checkpoints.push(createCheckpoint(s.x, s.y));
       else if (s.type === "flag") this.flags.push(createFlag(s.x, s.y));
     }
+    // Ice physics flag (World 5): makes the player slide.
+    this.level.ice = !!data.ice;
     // Meteor shower (World 4): spawn on a randomized timer across the
     // visible span. Disabled unless the theme opts in.
     this.meteorsOn = !!data.meteors;
@@ -243,7 +260,7 @@ export class Engine {
     updatePlayer(p, this.input, this.level, dt, this.sfx);
     for (const e of this.enemies) {
       if (e.gone) continue;
-      if (e.kind === "bat") updateBat(e, this.level, dt);
+      if (e.kind === "bat" || e.kind === "drone") updateBat(e, this.level, dt);
       else updateEnemy(e, this.level, dt);
     }
     for (const c of this.coins) if (!c.gone) updateCoin(c, dt);
@@ -255,6 +272,8 @@ export class Engine {
       this.lavaRocks = this.lavaRocks.filter((r) => !r.gone);
     }
     this.updateCrumbles(dt);
+    for (const l of this.lasers) updateLaser(l, dt);
+    this.updateConveyorDrift(dt);
     if (this.meteorsOn) this.updateMeteorSpawner(dt);
 
     processInteractions(
@@ -265,9 +284,11 @@ export class Engine {
         enemies: this.enemies,
         spikes: this.spikes,
         lava: this.lava,
+        freezingWater: this.freezingWater,
         stalactites: this.stalactites,
         meteors: this.meteors,
         lavaRocks: this.lavaRocks,
+        lasers: this.lasers,
         checkpoints: this.checkpoints,
         flags: this.flags,
       },
@@ -395,6 +416,23 @@ export class Engine {
     }
   }
 
+  // World 6 conveyor belt drift: when the player stands on a conveyor tile,
+  // apply a constant horizontal nudge.
+  updateConveyorDrift(dt) {
+    const p = this.player;
+    if (!p.onFloor) return;
+    const pr = bodyRect(p);
+    const feetTy = Math.floor((pr.bottom + 0.01) / TILE);
+    const txMin = Math.floor(pr.left / TILE);
+    const txMax = Math.floor((pr.right - 0.001) / TILE);
+    for (const c of this.conveyors) {
+      if (feetTy === c.ty && c.tx >= txMin && c.tx <= txMax) {
+        p.x += c.dir * CONVEYOR_DRIFT * dt;
+        break; // only apply once if straddling two belts
+      }
+    }
+  }
+
   cameraTarget() {
     const halfW = VIEW_W / 2;
     const halfH = VIEW_H / 2;
@@ -463,7 +501,10 @@ export class Engine {
     if (this.theme.decor) this.renderDecor(ctx, ox, oy);
     this.renderTiles(ctx, ox, oy);
     this.renderLava(ctx, ox, oy);
+    this.renderFreezingWater(ctx, ox, oy);
+    this.renderConveyors(ctx, ox, oy);
     this.renderCrumbleFx(ctx, ox, oy);
+    this.renderLasers(ctx, ox, oy);
 
     for (const s of this.spikes)
       this.drawSprite(ctx, "spike", 0, s.x - ox, s.y - oy);
@@ -505,6 +546,8 @@ export class Engine {
       if (e.gone) continue;
       if (e.kind === "bat") this.drawBat(ctx, e, ox, oy);
       else if (e.kind === "alien") this.drawAlien(ctx, e, ox, oy);
+      else if (e.kind === "yeti") this.drawYeti(ctx, e, ox, oy);
+      else if (e.kind === "drone") this.drawDrone(ctx, e, ox, oy);
       else
         this.drawFrame(ctx, this.images.enemy, enemyFrame(e), e.x - ox, e.y - oy, {
           flip: e.dir > 0,
@@ -532,6 +575,8 @@ export class Engine {
     if (this.network && this.state.multiplayer && this.network.selfName) {
       this.drawNameLabel(this.network.selfName, p.x - ox, p.y - oy);
     }
+
+    this.renderProgressBar();
   }
 
   renderGhosts(ctx, ox, oy) {
@@ -566,6 +611,66 @@ export class Engine {
     lc.fillStyle = "rgba(255,255,255,0.95)";
     lc.fillText(name, px, py);
     lc.textAlign = "left";
+  }
+
+  renderProgressBar() {
+    if (!this.flags.length || !this.labelCtx || this.state.screen !== "playing") return;
+    const lc = this.labelCtx;
+    const S = LABEL_SCALE;
+    const startX = this.level.playerStart?.x ?? 0;
+    const flagX = this.flags[0].x;
+    
+    // Bar dimensions
+    const barW = VIEW_W - 40;
+    const barH = 2;
+    const bx = Math.round(20 * S);
+    const by = Math.round(24 * S);
+    const bw = Math.round(barW * S);
+    const bh = Math.round(barH * S);
+
+    // Track
+    lc.fillStyle = "rgba(0,0,0,0.4)";
+    lc.fillRect(bx, by, bw, bh);
+
+    // Helpers
+    const getProg = (x) => Math.max(0, Math.min(1, (x - startX) / (flagX - startX)));
+    const getPx = (prog) => bx + Math.round(prog * bw);
+
+    // Checkpoints
+    for (const k of this.checkpoints) {
+      const px = getPx(getProg(k.x));
+      lc.fillStyle = k.activated ? "rgb(140,255,140)" : "rgba(255,255,255,0.3)";
+      lc.fillRect(px - S, by - S, S * 2, bh + S * 2);
+    }
+
+    // Goal
+    lc.fillStyle = "rgb(255,210,50)";
+    lc.fillRect(bx + bw, by - S, S * 2, bh + S * 2);
+
+    // Multiplayer ghosts
+    const now = performance.now();
+    for (const ghost of this.ghosts.values()) {
+      const v = sampleGhost(ghost, now);
+      if (!v || v.level !== this.state.currentLevel) continue;
+      const prog = getProg(v.x);
+      const px = getPx(prog);
+      lc.fillStyle = "rgba(200,200,255,0.7)";
+      lc.beginPath();
+      lc.arc(px, by + S, S * 2, 0, Math.PI * 2);
+      lc.fill();
+    }
+
+    // Local player
+    const prog = getProg(this.player.x);
+    const px = getPx(prog);
+    lc.fillStyle = "rgb(255,255,255)";
+    lc.beginPath();
+    lc.arc(px, by + S, S * 3, 0, Math.PI * 2);
+    lc.fill();
+    lc.fillStyle = "rgb(50,150,255)";
+    lc.beginPath();
+    lc.arc(px, by + S, S * 1.5, 0, Math.PI * 2);
+    lc.fill();
   }
 
   renderClouds(ctx, ox, oy) {
@@ -779,6 +884,104 @@ export class Engine {
       // Ground-anchored cave props: torches, skull piles, stalagmites,
       // bright crystal clusters (#53).
       this.renderGroundDecor(ctx, ox, oy, "cave");
+    } else if (this.theme.decor === "ice") {
+      const now = performance.now() / 1000;
+      
+      // Distant mountains
+      const mpar = 0.2;
+      const mx = ox * mpar;
+      const MSTEP = 200;
+      for (let g = Math.floor(mx / MSTEP) - 1; g <= Math.floor((mx + VIEW_W) / MSTEP) + 1; g++) {
+        if (hash2(g, 101) < 0.3) continue;
+        const px = Math.round(g * MSTEP + hash2(g, 13) * 80 - mx);
+        const w = 60 + Math.round(hash2(g, 21) * 40);
+        const h = 50 + Math.round(hash2(g, 29) * 30);
+        const base = VIEW_H - 10;
+        ctx.fillStyle = "rgba(160, 190, 210, 0.4)";
+        ctx.beginPath();
+        ctx.moveTo(px - w, base);
+        ctx.lineTo(px, base - h);
+        ctx.lineTo(px + w, base);
+        ctx.fill();
+        // snow cap
+        ctx.fillStyle = "rgba(230, 245, 255, 0.5)";
+        ctx.beginPath();
+        ctx.moveTo(px - w*0.3, base - h*0.7);
+        ctx.lineTo(px, base - h);
+        ctx.lineTo(px + w*0.3, base - h*0.7);
+        ctx.lineTo(px + w*0.1, base - h*0.6);
+        ctx.lineTo(px - w*0.1, base - h*0.65);
+        ctx.fill();
+      }
+
+      // Aurora bands
+      ctx.globalCompositeOperation = "screen";
+      for (let i = 0; i < 3; i++) {
+        const speed = 0.5 + i * 0.2;
+        const offset = now * speed + i * 100;
+        const y = 30 + i * 25;
+        const wave = Math.sin(offset * 0.5) * 15;
+        ctx.fillStyle = i === 1 ? "rgba(120, 255, 180, 0.15)" : "rgba(180, 120, 255, 0.12)";
+        ctx.beginPath();
+        ctx.ellipse(VIEW_W / 2 + Math.cos(offset * 0.3) * 50, y + wave, VIEW_W * 0.8, 20 + i * 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = "source-over";
+
+      // Snowflakes
+      const spar = 0.8;
+      const sx = ox * spar;
+      const sy = oy * spar - now * 30; // drifting down
+      const SCELL = 40;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      for (let gy = Math.floor(sy / SCELL) - 1; gy <= Math.floor((sy + VIEW_H) / SCELL) + 1; gy++) {
+        for (let gx = Math.floor(sx / SCELL) - 1; gx <= Math.floor((sx + VIEW_W) / SCELL) + 1; gx++) {
+          const h = hash2(gx, gy + 888);
+          if (h < 0.4) continue;
+          const drift = Math.sin(now * 2 + h * 10) * 10;
+          const px = Math.round(gx * SCELL + hash2(gx + 1, gy) * SCELL - sx + drift);
+          const py = Math.round(gy * SCELL + hash2(gx, gy + 1) * SCELL - sy);
+          ctx.fillRect(px, py, h > 0.8 ? 2 : 1, h > 0.8 ? 2 : 1);
+        }
+      }
+
+      this.renderGroundDecor(ctx, ox, oy, "ice");
+    } else if (this.theme.decor === "factory") {
+      const now = performance.now() / 1000;
+      
+      // City skyline
+      const cpar = 0.15;
+      const cx = ox * cpar;
+      const CSTEP = 40;
+      const base = VIEW_H;
+      for (let g = Math.floor(cx / CSTEP) - 1; g <= Math.floor((cx + VIEW_W) / CSTEP) + 1; g++) {
+        const h = hash2(g, 404);
+        const px = Math.round(g * CSTEP + hash2(g, 5) * 10 - cx);
+        const w = 20 + Math.floor(h * 30);
+        const ht = 40 + Math.floor(hash2(g, 9) * 80);
+        ctx.fillStyle = "rgba(20, 15, 30, 0.8)";
+        ctx.fillRect(px, base - ht, w, ht);
+        
+        // Windows
+        ctx.fillStyle = "rgba(255, 220, 100, 0.4)";
+        for (let wy = base - ht + 10; wy < base - 10; wy += 12) {
+          for (let wx = px + 4; wx < px + w - 8; wx += 8) {
+            if (hash2(g + wx, wy) > 0.3) ctx.fillRect(wx, wy, 4, 6);
+          }
+        }
+        
+        // Antenna/beacon
+        if (h > 0.7) {
+          ctx.fillStyle = "rgba(20, 15, 30, 0.8)";
+          ctx.fillRect(px + w/2 - 1, base - ht - 20, 2, 20);
+          if (Math.sin(now * 4 + g) > 0) {
+            ctx.fillStyle = "#ff4444";
+            ctx.fillRect(px + w/2 - 1, base - ht - 22, 2, 2);
+          }
+        }
+      }
+
+      this.renderGroundDecor(ctx, ox, oy, "factory");
     }
   }
 
@@ -814,13 +1017,15 @@ export class Engine {
     }
 
     const cave = kind === "cave";
+    const ice = kind === "ice";
+    const factory = kind === "factory";
     for (let gx = gx0; gx <= gx1; gx++) {
-      if (hash2(gx, forest ? 41 : cave ? 63 : 17) < 0.45) continue; // sparse scatter
+      if (hash2(gx, forest ? 41 : cave ? 63 : ice ? 82 : factory ? 55 : 17) < 0.45) continue; // sparse scatter
       const wx = gx * STEP + hash2(gx, 3) * (STEP - 10);
       if (!solidAt(this.level, Math.floor(wx / TILE), groundRow)) continue;
       const x = Math.round(wx - ox);
       const y = Math.round(groundY - oy);
-      const pick = hash2(gx, forest ? 71 : cave ? 83 : 29);
+      const pick = hash2(gx, forest ? 71 : cave ? 83 : ice ? 19 : factory ? 33 : 29);
       if (cave) {
         if (pick < 0.3) this.drawTorch(ctx, x, y);
         else if (pick < 0.55) this.drawSkullPile(ctx, x, y);
@@ -830,6 +1035,14 @@ export class Engine {
         if (pick < 0.42) this.drawTallTree(ctx, x, y);
         else if (pick < 0.68) this.drawMushroom(ctx, x, y);
         else this.drawLog(ctx, x, y);
+      } else if (ice) {
+        if (pick < 0.4) this.drawPineTree(ctx, x, y);
+        else if (pick < 0.7) this.drawSnowman(ctx, x, y);
+        else this.drawIceCrystals(ctx, x, y, gx);
+      } else if (factory) {
+        if (pick < 0.3) this.drawMachineBox(ctx, x, y, gx);
+        else if (pick < 0.6) this.drawPipes(ctx, x, y, gx);
+        else this.drawGirder(ctx, x, y);
       } else {
         if (pick < 0.4) this.drawTree(ctx, x, y);
         else if (pick < 0.62) this.drawBush(ctx, x, y);
@@ -1229,5 +1442,345 @@ export class Engine {
     ctx.scale(flip ? -scaleX : scaleX, scaleY);
     ctx.drawImage(sheet, frame * 16, 0, 16, 16, -8, -8, 16, 16);
     ctx.restore();
+  }
+
+  // --- World 5 & 6 Helpers ---
+
+  renderFreezingWater(ctx, ox, oy) {
+    if (!this.freezingWater.length) return;
+    const t = performance.now() / 1000;
+    for (const w of this.freezingWater) {
+      const x = Math.round(w.x - TILE / 2 - ox);
+      const y = Math.round(w.y - TILE / 2 - oy);
+      ctx.fillStyle = "#1b4d8a";
+      ctx.fillRect(x, y, TILE, TILE);
+      const g = ctx.createLinearGradient(0, y, 0, y + TILE);
+      g.addColorStop(0, "#8ac4ff");
+      g.addColorStop(0.45, "#469df5");
+      g.addColorStop(1, "#1858a8");
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y + 2, TILE, TILE - 2);
+      // chunks of floating ice instead of embers
+      const drift = Math.sin(t * 1.5 + w.x * 0.5);
+      ctx.fillStyle = "rgba(220, 240, 255, 0.8)";
+      ctx.fillRect(x + 4 + Math.round(drift * 3), y + 3, 4, 2);
+      ctx.fillRect(x + 10 - Math.round(drift * 2), y + 7, 3, 2);
+    }
+  }
+
+  renderLasers(ctx, ox, oy) {
+    if (!this.lasers.length) return;
+    const now = performance.now() / 1000;
+    for (const l of this.lasers) {
+      const x = Math.round(l.x - ox);
+      const y = Math.round(l.y - oy);
+      
+      // Emitter
+      ctx.fillStyle = "#333";
+      ctx.fillRect(x - 5, y, 10, 6);
+      ctx.fillStyle = "#111";
+      ctx.fillRect(x - 3, y + 6, 6, 4);
+
+      if (l.state === "cooldown") continue;
+      
+      if (l.state === "charging") {
+        const pulse = 0.5 + 0.5 * Math.sin(now * 30);
+        ctx.fillStyle = `rgba(255, 50, 50, ${pulse})`;
+        ctx.beginPath();
+        ctx.arc(x, y + 10, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = `rgba(255, 50, 50, ${pulse * 0.3})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 10);
+        ctx.lineTo(x, y - 160);
+        ctx.stroke();
+      } else if (l.state === "active") {
+        const pulse = 0.8 + 0.2 * Math.sin(now * 50);
+        // Outer glow
+        ctx.strokeStyle = `rgba(255, 100, 100, ${pulse * 0.5})`;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 10);
+        ctx.lineTo(x, y - 160);
+        ctx.stroke();
+        // Inner core
+        ctx.strokeStyle = `rgba(255, 200, 200, ${pulse})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.fillStyle = `rgba(255, 200, 200, ${pulse})`;
+        ctx.beginPath();
+        ctx.arc(x, y + 10, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  renderConveyors(ctx, ox, oy) {
+    if (!this.conveyors.length) return;
+    const t = (performance.now() / 1000) * 2;
+    for (const c of this.conveyors) {
+      const x = Math.round(c.x - TILE / 2 - ox);
+      const y = Math.round(c.y - TILE / 2 - oy);
+      ctx.fillStyle = "#3a3a45";
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = "#222";
+      ctx.fillRect(x, y + 2, TILE, TILE - 4);
+      
+      ctx.strokeStyle = "#555";
+      ctx.lineWidth = 1;
+      const offset = (t * 10 * c.dir) % 8;
+      for (let i = -8; i <= TILE; i += 8) {
+        const ax = x + i + (offset > 0 ? offset : 8 + offset);
+        if (ax > x + 2 && ax < x + TILE - 2) {
+          ctx.beginPath();
+          if (c.dir > 0) {
+            ctx.moveTo(ax, y + 4);
+            ctx.lineTo(ax + 3, y + TILE/2);
+            ctx.lineTo(ax, y + TILE - 4);
+          } else {
+            ctx.moveTo(ax + 3, y + 4);
+            ctx.lineTo(ax, y + TILE/2);
+            ctx.lineTo(ax + 3, y + TILE - 4);
+          }
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  drawYeti(ctx, e, ox, oy) {
+    const x = Math.round(e.x - ox);
+    const y = Math.round(e.y - oy);
+    const squish = e.scaleY;
+    const isStep = Math.sin(e.animT * 12) > 0;
+    
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(e.dir < 0 ? 1 : -1, squish);
+    
+    // Body (bulky fur)
+    ctx.fillStyle = "#e0e6ed";
+    ctx.beginPath();
+    ctx.moveTo(-7, -8);
+    ctx.lineTo(7, -8);
+    ctx.lineTo(9, 3);
+    ctx.lineTo(-9, 3);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Ears/horns
+    ctx.fillStyle = "#b0bac5";
+    ctx.fillRect(-8, -10, 2, 4);
+    ctx.fillRect(6, -10, 2, 4);
+    
+    // Face plate
+    ctx.fillStyle = "#7b8998";
+    ctx.fillRect(-4, -4, 8, 5);
+    
+    // Eyes
+    ctx.fillStyle = "#ff3333";
+    ctx.fillRect(-2, -2, 2, 1);
+    ctx.fillRect(2, -2, 2, 1);
+    
+    // Legs
+    ctx.fillStyle = "#b0bac5";
+    if (e.onFloor) {
+      ctx.fillRect(-6, 3, 4, isStep ? 3 : 5);
+      ctx.fillRect(2, 3, 4, isStep ? 5 : 3);
+    } else {
+      ctx.fillRect(-6, 3, 4, 3);
+      ctx.fillRect(2, 3, 4, 3);
+    }
+    ctx.restore();
+  }
+
+  drawDrone(ctx, e, ox, oy) {
+    const x = Math.round(e.x - ox);
+    const y = Math.round(e.y - oy);
+    const squish = e.scaleY;
+    const now = performance.now() / 1000;
+    
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(e.dir < 0 ? 1 : -1, squish);
+    
+    // Rotor blades
+    ctx.strokeStyle = "#888";
+    ctx.lineWidth = 1;
+    const rT = now * 20;
+    ctx.beginPath();
+    ctx.moveTo(-6 + Math.cos(rT) * 4, -5);
+    ctx.lineTo(-6 + Math.cos(rT + Math.PI) * 4, -5);
+    ctx.moveTo(6 + Math.cos(rT) * 4, -5);
+    ctx.lineTo(6 + Math.cos(rT + Math.PI) * 4, -5);
+    ctx.stroke();
+    
+    // Chassis
+    ctx.fillStyle = "#333b44";
+    ctx.beginPath();
+    ctx.moveTo(-7, -3);
+    ctx.lineTo(7, -3);
+    ctx.lineTo(5, 3);
+    ctx.lineTo(-5, 3);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Eye/Sensor
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-4, -1, 4, 3);
+    if (Math.sin(now * 10) > 0) {
+      ctx.fillStyle = "#ff3333";
+      ctx.fillRect(-3, 0, 2, 1);
+    }
+    
+    ctx.restore();
+  }
+
+  drawPineTree(ctx, x, yb) {
+    ctx.fillStyle = "#2d4432";
+    ctx.fillRect(x - 2, yb - 10, 4, 10);
+    ctx.fillStyle = "#436a4a";
+    ctx.beginPath();
+    ctx.moveTo(x - 10, yb - 8);
+    ctx.lineTo(x + 10, yb - 8);
+    ctx.lineTo(x, yb - 20);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x - 8, yb - 16);
+    ctx.lineTo(x + 8, yb - 16);
+    ctx.lineTo(x, yb - 28);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x - 6, yb - 24);
+    ctx.lineTo(x + 6, yb - 24);
+    ctx.lineTo(x, yb - 36);
+    ctx.fill();
+    
+    // Snow highlights
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.beginPath();
+    ctx.moveTo(x + 2, yb - 24);
+    ctx.lineTo(x + 6, yb - 24);
+    ctx.lineTo(x, yb - 32);
+    ctx.fill();
+  }
+
+  drawSnowman(ctx, x, yb) {
+    ctx.fillStyle = "#e0ecf5";
+    ctx.beginPath();
+    ctx.arc(x, yb - 6, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, yb - 15, 4, 0, Math.PI * 2);
+    ctx.fill();
+    // Eyes
+    ctx.fillStyle = "#222";
+    ctx.fillRect(x - 2, yb - 16, 1, 1);
+    ctx.fillRect(x + 1, yb - 16, 1, 1);
+    // Carrot
+    ctx.fillStyle = "#f58a36";
+    ctx.beginPath();
+    ctx.moveTo(x, yb - 14);
+    ctx.lineTo(x - 4, yb - 13);
+    ctx.lineTo(x, yb - 12);
+    ctx.fill();
+    // Arms
+    ctx.strokeStyle = "#5a4328";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, yb - 7);
+    ctx.lineTo(x - 12, yb - 9);
+    ctx.moveTo(x + 6, yb - 7);
+    ctx.lineTo(x + 12, yb - 9);
+    ctx.stroke();
+  }
+
+  drawIceCrystals(ctx, x, yb, seed) {
+    const h1 = 6 + Math.round(hash2(seed, 2) * 8);
+    const h2 = 4 + Math.round(hash2(seed, 3) * 6);
+    ctx.fillStyle = "rgba(160, 220, 255, 0.6)";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, yb);
+    ctx.lineTo(x - 2, yb - h2);
+    ctx.lineTo(x, yb);
+    ctx.fill();
+    ctx.fillStyle = "rgba(190, 240, 255, 0.8)";
+    ctx.beginPath();
+    ctx.moveTo(x - 1, yb);
+    ctx.lineTo(x + 2, yb - h1);
+    ctx.lineTo(x + 5, yb);
+    ctx.fill();
+  }
+
+  drawMachineBox(ctx, x, yb, seed) {
+    const w = 16 + Math.round(hash2(seed, 1) * 8);
+    const h = 12 + Math.round(hash2(seed, 2) * 12);
+    ctx.fillStyle = "#333b44";
+    ctx.fillRect(x - w/2, yb - h, w, h);
+    ctx.fillStyle = "#4a5360";
+    ctx.fillRect(x - w/2 + 2, yb - h + 2, w - 4, h - 4);
+    
+    // Warning stripes
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x - w/2, yb - h, w, 4);
+    ctx.clip();
+    ctx.fillStyle = "#e5b530";
+    ctx.fillRect(x - w/2, yb - h, w, 4);
+    ctx.fillStyle = "#222";
+    for (let i = x - w/2 - 4; i < x + w/2; i += 8) {
+      ctx.beginPath();
+      ctx.moveTo(i, yb - h);
+      ctx.lineTo(i + 4, yb - h);
+      ctx.lineTo(i - 2, yb - h + 4);
+      ctx.lineTo(i - 6, yb - h + 4);
+      ctx.fill();
+    }
+    ctx.restore();
+    
+    // Blinking light
+    if (hash2(seed, 3) > 0.5) {
+      const now = performance.now() / 1000;
+      const on = Math.sin(now * 4 + seed) > 0;
+      ctx.fillStyle = on ? "#ff4444" : "#441111";
+      ctx.fillRect(x - 2, yb - Math.round(h/2) - 2, 4, 4);
+    }
+  }
+
+  drawPipes(ctx, x, yb, seed) {
+    const h = 20 + Math.round(hash2(seed, 1) * 20);
+    ctx.fillStyle = "#556372";
+    ctx.fillRect(x - 4, yb - h, 8, h);
+    ctx.fillStyle = "#3e4854";
+    ctx.fillRect(x - 4, yb - h, 2, h);
+    
+    // Joints
+    ctx.fillStyle = "#222a33";
+    ctx.fillRect(x - 5, yb - h/2 - 2, 10, 4);
+    ctx.fillRect(x - 5, yb - h + 2, 10, 4);
+  }
+
+  drawGirder(ctx, x, yb) {
+    ctx.fillStyle = "#222";
+    ctx.fillRect(x - 8, yb - 30, 16, 30);
+    ctx.fillStyle = "#444";
+    ctx.fillRect(x - 6, yb - 28, 12, 28);
+    // Cross beams
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, yb - 28);
+    ctx.lineTo(x + 6, yb - 14);
+    ctx.moveTo(x + 6, yb - 28);
+    ctx.lineTo(x - 6, yb - 14);
+    
+    ctx.moveTo(x - 6, yb - 14);
+    ctx.lineTo(x + 6, yb);
+    ctx.moveTo(x + 6, yb - 14);
+    ctx.lineTo(x - 6, yb);
+    ctx.stroke();
   }
 }

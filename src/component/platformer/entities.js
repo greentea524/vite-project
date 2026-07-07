@@ -129,6 +129,43 @@ export function updateLavaRock(r, level, dt) {
   }
 }
 
+// Freezing water (World 5): visually distinct from lava but same
+// kill-on-contact mechanic.
+export function createFreezingWater(x, y) {
+  return { type: "freezingwater", x, y, animT: 0 };
+}
+
+export function freezingWaterRect(l) {
+  return { left: l.x - TILE / 2, top: l.y - 4, right: l.x + TILE / 2, bottom: l.y + TILE / 2 };
+}
+
+// Laser (World 6): toggling vertical kill-beam on a timer.
+// States: charging (0.5s) → active (2s) → cooldown (2s) → repeat.
+export const LASER_CHARGE = 0.5;
+export const LASER_ACTIVE = 2.0;
+export const LASER_COOLDOWN = 2.0;
+export function createLaser(x, y) {
+  return {
+    type: "laser", x, y,
+    state: "cooldown", // start in cooldown so they don't all fire at once
+    timer: Math.random() * LASER_COOLDOWN, // stagger
+  };
+}
+
+export function updateLaser(l, dt) {
+  l.timer -= dt;
+  if (l.timer <= 0) {
+    if (l.state === "cooldown") { l.state = "charging"; l.timer = LASER_CHARGE; }
+    else if (l.state === "charging") { l.state = "active"; l.timer = LASER_ACTIVE; }
+    else { l.state = "cooldown"; l.timer = LASER_COOLDOWN; }
+  }
+}
+
+// Laser beam hitbox: tall vertical column above the emitter.
+export function laserRect(l) {
+  return { left: l.x - 3, top: l.y - 160, right: l.x + 3, bottom: l.y };
+}
+
 export function coinFrame(c) {
   return COIN_SPIN_FRAMES[Math.floor(c.animT * COIN_SPIN_FPS) % COIN_SPIN_FRAMES.length];
 }
@@ -216,6 +253,12 @@ export function processInteractions(world, ev) {
       return;
     }
   }
+  for (const fw of world.freezingWater ?? []) {
+    if (rectsOverlap(pr, freezingWaterRect(fw))) {
+      ev.onPlayerDeath();
+      return;
+    }
+  }
   for (const s of world.stalactites ?? []) {
     if (!s.gone && rectsOverlap(pr, stalactiteRect(s))) {
       ev.onPlayerDeath();
@@ -230,6 +273,12 @@ export function processInteractions(world, ev) {
   }
   for (const r of world.lavaRocks ?? []) {
     if (!r.gone && rectsOverlap(pr, lavaRockRect(r))) {
+      ev.onPlayerDeath();
+      return;
+    }
+  }
+  for (const l of world.lasers ?? []) {
+    if (l.state === "active" && rectsOverlap(pr, laserRect(l))) {
       ev.onPlayerDeath();
       return;
     }

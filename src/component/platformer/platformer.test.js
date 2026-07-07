@@ -448,6 +448,12 @@ describe("game state flow", () => {
       "4-1",
       "4-2",
       "4-3",
+      "5-1",
+      "5-2",
+      "5-3",
+      "6-1",
+      "6-2",
+      "6-3",
     ]);
     expect(s.isLastInWorld(2)).toBe(true);
     expect(s.isLastInWorld(1)).toBe(false);

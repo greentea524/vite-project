@@ -12,7 +12,9 @@ const WORLD_PREVIEWS = [
   { title: "World 1 – Grasslands", icon: "🌿", desc: "A bright and sunny adventure through open fields and rolling hills. The perfect place to find your footing." },
   { title: "World 2 – Dark Forest", icon: "🌲", desc: "The trees grow tall and the path grows narrow. Watch your step — enemies lurk in the shadows." },
   { title: "World 3 – Underworld", icon: "🌋", desc: "Deep beneath the surface lies a world of lava, caves, and darkness. Only the brave survive." },
-  { title: "World 4 – Space", icon: "🚀", desc: "Gravity is just a suggestion up here. Jump between asteroids and dodge meteors in the final frontier." }
+  { title: "World 4 – Space", icon: "🚀", desc: "Gravity is just a suggestion up here. Jump between asteroids and dodge meteors in the final frontier." },
+  { title: "World 5 – Frozen Peaks", icon: "❄️", desc: "Slippery ice, falling stalactites, and freezing waters await. Keep moving to stay warm!" },
+  { title: "World 6 – Neon Factory", icon: "⚙️", desc: "A mechanized labyrinth of conveyor belts and deadly lasers. Timing is everything." }
 ];
 
 // mm:ss.d for the leaderboard/results (PLAT-24).
@@ -319,12 +321,19 @@ function Platformer() {
   // a plain listener. The win screen is deliberately excluded — Enter
   // out of habit would dismiss the race results.
   useEffect(() => {
-    if (screen !== "worldmap" && screen !== "gameover" && screen !== "paused") return undefined;
+    const activeScreens = ["worldmap", "gameover", "paused", "playing"];
+    if (!activeScreens.includes(screen)) return undefined;
     const onKey = (e) => {
-      if (e.key !== "Enter" || e.repeat) return;
-      e.preventDefault();
-      if (screen === "worldmap") state.continueFromWorldMap();
-      else if (screen === "gameover") state.retryLevel();
+      if (e.repeat) return;
+      if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        if (screen === "playing") state.pause();
+        else if (screen === "paused") state.resume();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (screen === "worldmap") state.continueFromWorldMap();
+        else if (screen === "gameover") state.retryLevel();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

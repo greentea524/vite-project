@@ -107,7 +107,18 @@ export function updatePlayer(p, input, level, dt, fx) {
   if (input.justReleased("jump") && p.vy < 0) p.vy *= JUMP_CUT_MULTIPLIER;
 
   const direction = input.axis();
-  p.vx = direction * SPEED;
+  const targetVx = direction * SPEED;
+  if (level.ice && p.onFloor) {
+    // Slippery ice: lerp toward target instead of snapping
+    const ICE_ACCEL = 4; // lower = more slippery
+    p.vx += (targetVx - p.vx) * ICE_ACCEL * dt;
+    // Apply friction when no input
+    if (direction === 0) {
+      p.vx *= (1 - 2 * dt); // gradual deceleration
+    }
+  } else {
+    p.vx = targetVx;
+  }
 
   moveBody(level, p, dt);
 
