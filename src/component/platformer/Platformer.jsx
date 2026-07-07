@@ -198,6 +198,7 @@ function Platformer() {
   const [lives, setLives] = useState(state.lives);
   const [avatar, setAvatar] = useState(state.selectedAvatar);
   const [levelIndex, setLevelIndex] = useState(state.currentLevel);
+  const [showPauseMap, setShowPauseMap] = useState(false);
 
   // Multiplayer UI state (PLAT-23/24).
   const [playerName, setPlayerName] = useState("");
@@ -318,16 +319,21 @@ function Platformer() {
   // a plain listener. The win screen is deliberately excluded — Enter
   // out of habit would dismiss the race results.
   useEffect(() => {
-    if (screen !== "worldmap" && screen !== "gameover") return undefined;
+    if (screen !== "worldmap" && screen !== "gameover" && screen !== "paused") return undefined;
     const onKey = (e) => {
       if (e.key !== "Enter" || e.repeat) return;
       e.preventDefault();
       if (screen === "worldmap") state.continueFromWorldMap();
-      else state.retryLevel();
+      else if (screen === "gameover") state.retryLevel();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [screen, state]);
+
+  // Reset the pause map when leaving the pause screen (e.g. by pressing Esc)
+  useEffect(() => {
+    if (screen !== "paused") setShowPauseMap(false);
+  }, [screen]);
 
   // Grace/fail timers while waiting for the relay in the lobby
   // (KAN-53): after 4s of silence assume it's a cold start ("waking"),
@@ -976,28 +982,86 @@ function Platformer() {
 
         {screen === "paused" && (
           <div className="plat-overlay plat-overlay-dim">
-            <h4 className="plat-title">Paused</h4>
-            <button
-              type="button"
-              className="plat-btn"
-              onClick={() => state.resume()}
-            >
-              Resume
-            </button>
-            <button
-              type="button"
-              className="plat-btn"
-              onClick={() => state.restartLevel()}
-            >
-              Restart
-            </button>
-            <button
-              type="button"
-              className="plat-btn"
-              onClick={() => state.mainMenu()}
-            >
-              Quit to menu
-            </button>
+            <h4 className="plat-title">{showPauseMap ? "World Map" : "Paused"}</h4>
+            {showPauseMap ? (
+              <>
+                <div className="plat-map">
+                  {WORLDS.map((world, w) => (
+                    <div className="plat-map-row" key={w}>
+                      <span className="plat-map-world">World {w + 1}</span>
+                      {world.map((_, s) => {
+                        const index = state.flatIndex(w, s);
+                        const done = state.isCompleted(index);
+                        const next = index === state.levelsCompleted;
+                        return (
+                          <span
+                            key={s}
+                            className={`plat-map-cell${done ? " plat-map-done" : ""}${
+                              !done && !next ? " plat-map-locked" : ""
+                            }`}
+                          >
+                            {done && (
+                              <SpriteIcon
+                                sheet={IMAGE_URLS.coin}
+                                frames={2}
+                                size={20}
+                              />
+                            )}
+                            {next && (
+                              <SpriteIcon
+                                sheet={AVATAR_SHEETS[avatar]}
+                                frames={8}
+                                size={20}
+                              />
+                            )}
+                            {!done && !next && <span className="plat-icon-blank" />}
+                            {w + 1}-{s + 1}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowPauseMap(false)}
+                >
+                  Back
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => state.resume()}
+                >
+                  Resume
+                </button>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowPauseMap(true)}
+                >
+                  View Map
+                </button>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => state.restartLevel()}
+                >
+                  Restart
+                </button>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => state.mainMenu()}
+                >
+                  Quit to menu
+                </button>
+              </>
+            )}
           </div>
         )}
 
