@@ -661,3 +661,59 @@ body.plat-no-select {
 .plat-map-locked {
   color: #8a8a90;
 }
+
+.plat-world-previews {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  max-width: 480px;
+  text-align: left;
+}
+
+.plat-world-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: opacity 0.2s;
+}
+
+.plat-world-preview.locked {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+.plat-world-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.plat-world-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plat-world-title {
+  font-weight: bold;
+  font-size: 13px;
+  color: #ffd95a;
+}
+.plat-world-preview.locked .plat-world-title {
+  color: #8a8a90;
+}
+
+.plat-world-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.9;
+  color: #fff;
+}

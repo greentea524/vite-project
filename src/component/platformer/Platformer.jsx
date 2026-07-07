@@ -8,6 +8,13 @@ import { WORLDS } from "./levels.js";
 import { Network, MAX_PLAYERS } from "./network.js";
 import { buildJoinLink } from "./joinLink.js";
 
+const WORLD_PREVIEWS = [
+  { title: "World 1 – Grasslands", icon: "🌿", desc: "A bright and sunny adventure through open fields and rolling hills. The perfect place to find your footing." },
+  { title: "World 2 – Dark Forest", icon: "🌲", desc: "The trees grow tall and the path grows narrow. Watch your step — enemies lurk in the shadows." },
+  { title: "World 3 – Underworld", icon: "🌋", desc: "Deep beneath the surface lies a world of lava, caves, and darkness. Only the brave survive." },
+  { title: "World 4 – Space", icon: "🚀", desc: "Gravity is just a suggestion up here. Jump between asteroids and dodge meteors in the final frontier." }
+];
+
 // mm:ss.d for the leaderboard/results (PLAT-24).
 function formatTime(ms) {
   const total = Math.max(0, Math.floor(ms));
@@ -703,6 +710,20 @@ function Platformer() {
         {screen === "menu" && (
           <div className="plat-overlay">
             <h3 className="plat-title">Platform Game</h3>
+            <div className="plat-world-previews">
+              {WORLD_PREVIEWS.map((w, i) => {
+                const unlocked = i === 0 || state.levelsCompleted >= state.flatIndex(i, 0);
+                return (
+                  <div key={i} className={`plat-world-preview ${unlocked ? "unlocked" : "locked"}`}>
+                    <div className="plat-world-icon">{unlocked ? w.icon : "🔒"}</div>
+                    <div className="plat-world-info">
+                      <div className="plat-world-title">{w.title}</div>
+                      <div className="plat-world-desc">{unlocked ? w.desc : "Locked until previous world is completed."}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             <div className="plat-help">
               <p className="plat-text">
                 Reach the flag{" "}
@@ -756,7 +777,7 @@ function Platformer() {
               className="plat-btn"
               onClick={() => state.startGame()}
             >
-              Start
+              Start Game
             </button>
             <button
               type="button"
