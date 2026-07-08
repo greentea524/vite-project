@@ -648,7 +648,8 @@ function Platformer() {
   // the production build bakes in the Render relay (PLAT-27), local dev
   // sets it in .env.local. The old LAN-only gate predated the public
   // relay and would have kept the button dead on the deployed site.
-  const raceFriendEnabled = true;
+  const isLocalhost = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  const raceFriendEnabled = !isLocalhost;
   const activeRoomCode = roomCode || network?.roomCode || "";
 
   return (
@@ -855,10 +856,11 @@ function Platformer() {
             <button
               type="button"
               className="plat-btn"
-              onClick={openMultiplayer}
-              title="Race a friend"
+              onClick={raceFriendEnabled ? openMultiplayer : undefined}
+              disabled={!raceFriendEnabled}
+              title={raceFriendEnabled ? "Race a friend" : "Only available on the deployed site"}
             >
-              Race a friend
+              Race a friend{!raceFriendEnabled && " (Online only)"}
             </button>
           </div>
         )}
