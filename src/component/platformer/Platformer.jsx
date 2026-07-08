@@ -4,7 +4,8 @@ import "./platformer.css";
 import { GameState, AVATAR_NAMES, START_LIVES } from "./state.js";
 import { Engine, VIEW_W, VIEW_H, LABEL_SCALE } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
-import { WORLDS } from "./levels.js";
+import { WORLDS, LEVELS } from "./levels.js";
+import { WorldMap } from "./WorldMap.jsx";
 import { Network, MAX_PLAYERS } from "./network.js";
 import { buildJoinLink } from "./joinLink.js";
 
@@ -201,6 +202,7 @@ function Platformer() {
   const [avatar, setAvatar] = useState(state.selectedAvatar);
   const [levelIndex, setLevelIndex] = useState(state.currentLevel);
   const [showPauseMap, setShowPauseMap] = useState(false);
+  const [showMenuMap, setShowMenuMap] = useState(false);
 
   // Multiplayer UI state (PLAT-23/24).
   const [playerName, setPlayerName] = useState("");
@@ -339,9 +341,10 @@ function Platformer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [screen, state]);
 
-  // Reset the pause map when leaving the pause screen (e.g. by pressing Esc)
+  // Reset the maps when leaving their respective screens
   useEffect(() => {
     if (screen !== "paused") setShowPauseMap(false);
+    if (screen !== "menu") setShowMenuMap(false);
   }, [screen]);
 
   // Grace/fail timers while waiting for the relay in the lobby
@@ -645,7 +648,7 @@ function Platformer() {
   // the production build bakes in the Render relay (PLAT-27), local dev
   // sets it in .env.local. The old LAN-only gate predated the public
   // relay and would have kept the button dead on the deployed site.
-  const raceFriendEnabled = Boolean(network);
+  const raceFriendEnabled = true;
   const activeRoomCode = roomCode || network?.roomCode || "";
 
   return (
@@ -726,17 +729,28 @@ function Platformer() {
           <div className="plat-overlay">
             <h3 className="plat-title">Platform Game</h3>
             <div className="plat-world-previews">
-              {/* All worlds are freely previewable — progression still
-                  runs level by level, this panel is informational. */}
-              {WORLD_PREVIEWS.map((w, i) => (
-                <div key={i} className="plat-world-preview unlocked">
-                  <div className="plat-world-icon">{w.icon}</div>
-                  <div className="plat-world-info">
-                    <div className="plat-world-title">{w.title}</div>
-                    <div className="plat-world-desc">{w.desc}</div>
-                  </div>
-                </div>
-              ))}
+              {WORLD_PREVIEWS.map((w, i) => {
+                const firstLevelIndex = state.flatIndex(i, 0);
+                const isUnlocked = state.levelsCompleted >= firstLevelIndex;
+                return (
+                  <button
+                    type="button"
+                    key={i}
+                    className={`plat-world-preview ${isUnlocked ? "unlocked plat-map-clickable" : "locked"}`}
+                    onClick={isUnlocked ? () => state.playStage(firstLevelIndex) : undefined}
+                    disabled={!isUnlocked}
+                  >
+                    <div className="plat-world-icon">{w.icon}</div>
+                    <div className="plat-world-info">
+                      <div className="plat-world-title">
+                        {w.title}
+                        {isUnlocked && <span style={{ float: 'right' }}>➔</span>}
+                      </div>
+                      <div className="plat-world-desc">{w.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <div className="plat-help">
               <p className="plat-text">
@@ -786,21 +800,65 @@ function Platformer() {
                 </button>
               ))}
             </div>
+            {showMenuMap ? (
+              <>
+                <WorldMap state={state} avatar={avatar} onSelectStage={(index) => state.playStage(index)} />
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowMenuMap(false)}
+                >
+                  Back
+                </button>
+              </>
+            ) : (
+              <>
+                {state.levelsCompleted > 0 ? (
+                  <>
+                    <button
+                      type="button"
+                      className="plat-btn"
+                      onClick={() => state.continueGame()}
+                    >
+                      Continue
+                    </button>
+                    <button
+                      type="button"
+                      className="plat-btn"
+                      onClick={() => setShowMenuMap(true)}
+                    >
+                      Stage Select
+                    </button>
+                    <button
+                      type="button"
+                      className="plat-btn plat-btn-subtle"
+                      onClick={() => {
+                        if (window.confirm("This will erase your saved progress. Are you sure?")) {
+                          state.resetProgress();
+                        }
+                      }}
+                    >
+                      New Game
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="plat-btn"
+                    onClick={() => state.playStage(0)}
+                  >
+                    Start Game
+                  </button>
+                )}
+              </>
+            )}
             <button
               type="button"
               className="plat-btn"
-              onClick={() => state.startGame()}
+              onClick={openMultiplayer}
+              title="Race a friend"
             >
-              Start Game
-            </button>
-            <button
-              type="button"
-              className="plat-btn"
-              onClick={raceFriendEnabled ? openMultiplayer : undefined}
-              disabled={!raceFriendEnabled}
-              title={raceFriendEnabled ? "Race a friend" : "Work in progress"}
-            >
-              {raceFriendEnabled ? "Race a friend" : "Work in progress"}
+              Race a friend
             </button>
           </div>
         )}
@@ -993,43 +1051,7 @@ function Platformer() {
             <h4 className="plat-title">{showPauseMap ? "World Map" : "Paused"}</h4>
             {showPauseMap ? (
               <>
-                <div className="plat-map">
-                  {WORLDS.map((world, w) => (
-                    <div className="plat-map-row" key={w}>
-                      <span className="plat-map-world">World {w + 1}</span>
-                      {world.map((_, s) => {
-                        const index = state.flatIndex(w, s);
-                        const done = state.isCompleted(index);
-                        const next = index === state.levelsCompleted;
-                        return (
-                          <span
-                            key={s}
-                            className={`plat-map-cell${done ? " plat-map-done" : ""}${
-                              !done && !next ? " plat-map-locked" : ""
-                            }`}
-                          >
-                            {done && (
-                              <SpriteIcon
-                                sheet={IMAGE_URLS.coin}
-                                frames={2}
-                                size={20}
-                              />
-                            )}
-                            {next && (
-                              <SpriteIcon
-                                sheet={AVATAR_SHEETS[avatar]}
-                                frames={8}
-                                size={20}
-                              />
-                            )}
-                            {!done && !next && <span className="plat-icon-blank" />}
-                            {w + 1}-{s + 1}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
+                <WorldMap state={state} avatar={avatar} onSelectStage={(index) => state.playStage(index)} />
                 <button
                   type="button"
                   className="plat-btn"
@@ -1101,43 +1123,7 @@ function Platformer() {
                 : `Level ${state.levelLabel()} complete!`}
             </h4>
             <p className="plat-text">Coins collected: {coins}</p>
-            <div className="plat-map">
-              {WORLDS.map((world, w) => (
-                <div className="plat-map-row" key={w}>
-                  <span className="plat-map-world">World {w + 1}</span>
-                  {world.map((_, s) => {
-                    const index = state.flatIndex(w, s);
-                    const done = state.isCompleted(index);
-                    const next = index === state.levelsCompleted;
-                    return (
-                      <span
-                        key={s}
-                        className={`plat-map-cell${done ? " plat-map-done" : ""}${
-                          !done && !next ? " plat-map-locked" : ""
-                        }`}
-                      >
-                        {done && (
-                          <SpriteIcon
-                            sheet={IMAGE_URLS.coin}
-                            frames={2}
-                            size={20}
-                          />
-                        )}
-                        {next && (
-                          <SpriteIcon
-                            sheet={AVATAR_SHEETS[avatar]}
-                            frames={8}
-                            size={20}
-                          />
-                        )}
-                        {!done && !next && <span className="plat-icon-blank" />}
-                        {w + 1}-{s + 1}
-                      </span>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+            <WorldMap state={state} avatar={avatar} />
             <button
               type="button"
               className="plat-btn"

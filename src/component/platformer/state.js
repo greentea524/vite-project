@@ -6,6 +6,7 @@
 // current level scene).
 
 import { WORLDS, LEVELS } from "./levels.js";
+import { loadSave, writeSave } from "./save.js";
 
 export const START_LIVES = 3;
 
@@ -17,13 +18,14 @@ export class GameState {
   constructor() {
     this._listeners = new Map();
     this.screen = "menu";
-    this.selectedAvatar = 0;
+    const save = loadSave();
+    this.selectedAvatar = save.selectedAvatar;
     this.coins = 0;
     this.lives = START_LIVES;
     this.currentLevel = 0;
     this.respawn = { x: 0, y: 0 };
     // Number of consecutively completed levels; drives the world map.
-    this.levelsCompleted = 0;
+    this.levelsCompleted = save.levelsCompleted;
     // Ghost-race multiplayer (PLAT-19). runTimeMs accumulates playing
     // time across the whole run for the leaderboard.
     this.multiplayer = false;
@@ -46,15 +48,63 @@ export class GameState {
     this._emit("screen", screen);
   }
 
-  startGame() {
+  _persist() {
+    // Only persist if we aren't in a multiplayer race
+    if (!this.multiplayer) {
+      writeSave({
+        levelsCompleted: this.levelsCompleted,
+        selectedAvatar: this.selectedAvatar,
+      });
+    }
+  }
+
+  // Set avatar and persist
+  setAvatar(index) {
+    this.selectedAvatar = index;
+    this._persist();
+  }
+
+  // Wipes progress completely and starts from 1-1
+  resetProgress() {
+    this.multiplayer = false;
+    this.levelsCompleted = 0;
+    this._persist();
     this.coins = 0;
     this.lives = START_LIVES;
-    this.levelsCompleted = 0;
     this.runTimeMs = 0;
     this.finished = false;
     this._emit("coins", this.coins);
     this._emit("lives", this.lives);
     this.gotoLevel(0);
+  }
+
+  // Resumes the game from the furthest unlocked stage
+  continueGame() {
+    this.multiplayer = false;
+    this.coins = 0;
+    this.lives = START_LIVES;
+    this.runTimeMs = 0;
+    this.finished = false;
+    this._emit("coins", this.coins);
+    this._emit("lives", this.lives);
+    this.gotoLevel(this.levelsCompleted);
+  }
+
+  // Plays a specific stage without wiping progress
+  playStage(index) {
+    this.multiplayer = false;
+    this.coins = 0;
+    this.lives = START_LIVES;
+    this.runTimeMs = 0;
+    this.finished = false;
+    this._emit("coins", this.coins);
+    this._emit("lives", this.lives);
+    this.gotoLevel(index);
+  }
+
+  // Legacy entry point, used for multiplayer or backwards compat
+  startGame() {
+    this.playStage(0);
   }
 
   // Multiplayer lobby (PLAT-23): choose create/join before starting.
@@ -141,10 +191,11 @@ export class GameState {
   }
 
   levelComplete() {
-    this.levelsCompleted = Math.max(this.levelsCompleted, this.currentLevel + 1);
-    // Show the world map after every level (PLAT-25); it highlights
-    // completed stages and marks the next one. Continue then routes to
-    // the next unfinished level or the win screen.
+    this.levelsCompleted = Math.max(
+      this.levelsCompleted,
+      this.currentLevel + 1,
+    );
+    this._persist();
     this._setScreen("worldmap");
   }
 
