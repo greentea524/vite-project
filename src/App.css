@@ -41,6 +41,16 @@
   color: #888;
 }
 
+.home {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem 1rem;
+}
+
 .home-logos {
   display: flex;
   justify-content: center;
@@ -401,10 +411,20 @@ button.game-link {
 .tabs-shell > .tab-content {
   min-height: 620px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .tabs-shell > .tab-content > .tab-pane {
   width: 100%;
+}
+
+/* Stretch the active pane (the light "well") to fill the whole tab area
+   so short content like the Home tab doesn't leave a large empty gap. */
+.tabs-shell > .tab-content > .tab-pane.active {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
 }
 
 .fuel-calculator-window {
