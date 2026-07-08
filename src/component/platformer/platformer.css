@@ -1,4 +1,4 @@
-.plat-shell {
+﻿.plat-shell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -717,6 +717,38 @@ body.plat-no-select {
   opacity: 0.9;
   color: #fff;
 }
-. p l a t - m a p - c l i c k a b l e   {   c u r s o r :   p o i n t e r ;   t r a n s i t i o n :   t r a n s f o r m   0 . 1 s ;   }   . p l a t - m a p - c l i c k a b l e : h o v e r   {   t r a n s f o r m :   s c a l e ( 1 . 1 ) ;   }   . p l a t - m a p - c l i c k a b l e : a c t i v e   {   t r a n s f o r m :   s c a l e ( 0 . 9 5 ) ;   }  
- b u t t o n . p l a t - w o r l d - p r e v i e w   {   b a c k g r o u n d :   n o n e ;   b o r d e r :   n o n e ;   t e x t - a l i g n :   l e f t ;   f o n t - f a m i l y :   i n h e r i t ;   c o l o r :   i n h e r i t ;   w i d t h :   1 0 0 % ;   p a d d i n g :   0 ;   }   b u t t o n . p l a t - w o r l d - p r e v i e w . l o c k e d   {   o p a c i t y :   0 . 5 ;   f i l t e r :   g r a y s c a l e ( 1 ) ;   }   b u t t o n . p l a t - w o r l d - p r e v i e w . u n l o c k e d   {   c u r s o r :   p o i n t e r ;   t r a n s i t i o n :   t r a n s f o r m   0 . 1 s ;   }   b u t t o n . p l a t - w o r l d - p r e v i e w . u n l o c k e d : h o v e r   {   t r a n s f o r m :   s c a l e ( 1 . 0 2 ) ;   }   b u t t o n . p l a t - w o r l d - p r e v i e w . u n l o c k e d : a c t i v e   {   t r a n s f o r m :   s c a l e ( 0 . 9 8 ) ;   }  
- 
+
+.plat-map-clickable {
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.plat-map-clickable:hover {
+  transform: scale(1.1);
+}
+.plat-map-clickable:active {
+  transform: scale(0.95);
+}
+
+button.plat-world-preview {
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+  padding: 0;
+}
+button.plat-world-preview.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+button.plat-world-preview.unlocked {
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+button.plat-world-preview.unlocked:hover {
+  transform: scale(1.02);
+}
+button.plat-world-preview.unlocked:active {
+  transform: scale(0.98);
+}
