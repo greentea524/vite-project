@@ -67,7 +67,7 @@ const WEB_GAMES = [
     title: "Platformer (Standalone)",
     href: `${import.meta.env.BASE_URL}platformer/`,
     description:
-      "The platformer on its own full page — same game, no app UI around it.",
+      "The platformer on its own full page, featuring a 2D side-scrolling adventure and a multiplayer 'Race a friend' mode.",
   },
 ];
 
