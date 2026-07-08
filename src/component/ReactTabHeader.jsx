@@ -8,16 +8,9 @@ import DataAnalytics from "./DataAnalytics.jsx";
 import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 import Sudoku from "./Sudoku.jsx";
-import Platformer from "./platformer/Platformer.jsx";
 import RubiksCubeSolver from "./rubiks/RubiksCubeSolver.jsx";
 
 const LOCAL_GAMES = [
-  {
-    key: "platformer",
-    title: "Platformer",
-    icon: "fa-gamepad",
-    description: "Run, double-jump, and stomp through six levels across two worlds.",
-  },
   {
     key: "minesweeper",
     title: "Minesweeper",
@@ -78,63 +71,26 @@ const WEB_GAMES = [
   },
 ];
 
-// Deep link so the platformer can be opened directly by URL, e.g.
-// .../vite-project/#/platformer. Hash routing needs no server config,
-// which suits GitHub Pages project sites.
-const PLATFORMER_HASH = "#/platformer";
 
 class ReactTabHeader extends Component {
   constructor(props) {
     super(props);
-    const onPlatformer =
-      typeof window !== "undefined" && window.location.hash === PLATFORMER_HASH;
     this.state = {
-      // Land straight in the Games tab on the platformer when deep-linked.
-      activeKey: onPlatformer ? "othergames" : "home",
-      selectedGame: onPlatformer ? "platformer" : null,
+      activeKey: "home",
+      selectedGame: null,
     };
   }
 
-  componentDidMount() {
-    window.addEventListener("hashchange", this.syncFromHash);
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener("hashchange", this.syncFromHash);
-  }
-
-  // Keep the view in sync with browser back/forward and manual URL edits.
-  syncFromHash = () => {
-    if (window.location.hash === PLATFORMER_HASH) {
-      this.setState({ activeKey: "othergames", selectedGame: "platformer" });
-    } else if (this.state.selectedGame === "platformer") {
-      this.setState({ selectedGame: null });
-    }
-  };
-
-  setPlatformerHash = (on) => {
-    if (on) {
-      if (window.location.hash !== PLATFORMER_HASH) window.location.hash = PLATFORMER_HASH;
-    } else if (window.location.hash === PLATFORMER_HASH) {
-      // Drop the hash without adding a new history entry.
-      history.replaceState(null, "", window.location.pathname + window.location.search);
-    }
-  };
-
   handleTabSelect = (key) => {
     this.setState({ activeKey: key });
-    // Leaving the Games tab closes the platformer deep link.
-    if (key !== "othergames") this.setPlatformerHash(false);
   };
 
   selectGame = (key) => {
     this.setState({ selectedGame: key });
-    this.setPlatformerHash(key === "platformer");
   };
 
   clearSelectedGame = () => {
     this.setState({ selectedGame: null });
-    this.setPlatformerHash(false);
   };
 
   renderActiveGame() {
@@ -147,8 +103,6 @@ class ReactTabHeader extends Component {
         return <DiceBlackjack />;
       case "sudoku":
         return <Sudoku />;
-      case "platformer":
-        return <Platformer />;
       default:
         return null;
     }
