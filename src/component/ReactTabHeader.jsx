@@ -64,10 +64,10 @@ const WEB_GAMES = [
     description: "A role-playing boxing game where you train and fight opponents.",
   },
   {
-    title: "Platformer (Standalone)",
+    title: "Platformer",
     href: `${import.meta.env.BASE_URL}platformer/`,
     description:
-      "The platformer on its own full page, featuring a 2D side-scrolling adventure and a multiplayer 'Race a friend' mode.",
+      "A 2D side-scrolling adventure featuring a multiplayer 'Race a friend' mode.",
   },
 ];
 
