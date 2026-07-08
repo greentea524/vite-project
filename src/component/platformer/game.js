@@ -566,6 +566,7 @@ export class Engine {
       scaleX: p.scaleX,
       scaleY: p.scaleY,
     });
+    this.drawPlayerCostume(ctx, Math.round(p.x - ox), Math.round(p.y - oy), p.facing);
     ctx.globalAlpha = 1;
     // Own name tag in a race, so it's easy to tell who's who.
     if (this.network && this.state.multiplayer && this.network.selfName) {
@@ -585,6 +586,7 @@ export class Engine {
       const gy = v.y - oy;
       ctx.globalAlpha = 0.5;
       this.drawFrame(ctx, sheet, animFrameFor(v.anim), gx, gy, { flip: v.facing < 0 });
+      this.drawPlayerCostume(ctx, Math.round(gx), Math.round(gy), v.facing);
       ctx.globalAlpha = 1;
       this.drawNameLabel(v.name, gx, gy);
     }
@@ -684,6 +686,11 @@ export class Engine {
   }
 
   renderTiles(ctx, ox, oy) {
+    // Frozen Peaks (World 5) reuses the grass atlas tile for its ground
+    // (physics.js: ICE === GRASS), and a pale-blue multiply tint over
+    // green grass still reads as green. Draw snow procedurally instead
+    // so the floor actually looks wintry (#54 follow-up).
+    const ice = this.theme.decor === "ice";
     const tiles = this.tinted("tiles", this.theme.tileTint);
     const tx0 = Math.floor(ox / TILE);
     const tx1 = Math.floor((ox + VIEW_W) / TILE);
@@ -693,18 +700,48 @@ export class Engine {
       for (let tx = tx0; tx <= tx1; tx++) {
         const id = this.level.tiles.get(`${tx},${ty}`);
         if (id === undefined) continue;
-        ctx.drawImage(
-          tiles,
-          id * TILE,
-          0,
-          TILE,
-          TILE,
-          Math.round(tx * TILE - ox),
-          Math.round(ty * TILE - oy),
-          TILE,
-          TILE,
-        );
+        const sx = Math.round(tx * TILE - ox);
+        const sy = Math.round(ty * TILE - oy);
+        if (ice) {
+          // A tile is a "surface" when nothing sits directly above it —
+          // that's where the fresh-snow cap goes (ground top and the top
+          // of block platforms).
+          const surface = !this.level.tiles.has(`${tx},${ty - 1}`);
+          this.drawIceTile(ctx, sx, sy, id, surface);
+        } else {
+          ctx.drawImage(tiles, id * TILE, 0, TILE, TILE, sx, sy, TILE, TILE);
+        }
       }
+    }
+  }
+
+  // Snowy tile for World 5. id 0 = snow surface, id 1 = packed ice
+  // (backfilled under the ground), id 2 = icy block platform. Surface
+  // tiles get a bright, softly-scalloped snow cap.
+  drawIceTile(ctx, x, y, id, surface) {
+    if (id === 1) ctx.fillStyle = "#a9bcd0"; // packed ice/rock below
+    else if (id === 2) ctx.fillStyle = "#c3d7ea"; // icy block
+    else ctx.fillStyle = "#dceaf5"; // snow body
+    ctx.fillRect(x, y, TILE, TILE);
+
+    // Vertical shading for a little depth.
+    const g = ctx.createLinearGradient(0, y, 0, y + TILE);
+    g.addColorStop(0, "rgba(255,255,255,0.35)");
+    g.addColorStop(1, "rgba(120,150,180,0.28)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, TILE, TILE);
+
+    if (surface) {
+      // Faint blue shadow just beneath the snow line.
+      ctx.fillStyle = "rgba(150,180,210,0.55)";
+      ctx.fillRect(x, y + 4, TILE, 2);
+      // Bright fresh snow with two rounded humps so the line isn't flat.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x, y, TILE, 4);
+      ctx.beginPath();
+      ctx.arc(x + 4, y + 4, 3.2, 0, Math.PI * 2);
+      ctx.arc(x + 12, y + 4, 3.2, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
@@ -1437,6 +1474,60 @@ export class Engine {
     ctx.translate(Math.round(x), Math.round(y));
     ctx.scale(flip ? -scaleX : scaleX, scaleY);
     ctx.drawImage(sheet, frame * 16, 0, 16, 16, -8, -8, 16, 16);
+    ctx.restore();
+  }
+
+  // Theme-based player accessories drawn over the avatar sprite:
+  // an astronaut helmet in Space (World 4) and skis in Frozen Peaks
+  // (World 5). (cx, cy) is the sprite centre in screen pixels; the
+  // 16x16 avatar spans cx-8..cx+8 with feet near cy+8.
+  drawPlayerCostume(ctx, cx, cy, facing) {
+    const decor = this.theme?.decor;
+    if (decor === "space") this.drawSpaceHelmet(ctx, cx, cy);
+    else if (decor === "ice") this.drawSkis(ctx, cx, cy, facing);
+  }
+
+  drawSpaceHelmet(ctx, cx, cy) {
+    const hy = cy - 4; // head sits in the top half of the sprite
+    // Glass dome — translucent so the face still reads through it.
+    ctx.beginPath();
+    ctx.arc(cx, hy, 7, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(150, 210, 255, 0.22)";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(235, 248, 255, 0.92)";
+    ctx.stroke();
+    // Neck ring / collar.
+    ctx.fillStyle = "#e2e9f0";
+    ctx.fillRect(cx - 6, hy + 5, 12, 2);
+    // Highlight glint.
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath();
+    ctx.arc(cx - 3, hy - 3, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawSkis(ctx, cx, cy, facing) {
+    const y = cy + 8; // ground line under the feet
+    const dir = facing < 0 ? -1 : 1;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    // Two parallel skis, slightly staggered for a 3/4 read, each with
+    // an upturned tip pointing the way the player faces.
+    for (const off of [-3, 1]) {
+      const bx = cx + off;
+      ctx.strokeStyle = "#d0392b";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bx - dir * 6, y);
+      ctx.lineTo(bx + dir * 7, y);
+      ctx.lineTo(bx + dir * 9, y - 2.5);
+      ctx.stroke();
+      // Binding nub where the boot meets the ski.
+      ctx.fillStyle = "#3a3f45";
+      ctx.fillRect(bx - 1, y - 2, 2, 2);
+    }
     ctx.restore();
   }
 
