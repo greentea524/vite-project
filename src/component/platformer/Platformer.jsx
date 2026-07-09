@@ -934,76 +934,95 @@ function Platformer() {
         )}
 
         {screen === "lobby" && (
-          <div className="plat-overlay plat-transparent-bg">
-            <h4 className="plat-title">Race a friend</h4>
+          <div className="plat-overlay plat-menu-bg">
+            <h3 className="plat-title">Race a friend</h3>
             {lobbyMode === "choose" && (
-              <div className="plat-lobby">
-                {connStatus === "waking" && (
-                  <p className="plat-text plat-conn">
-                    <span className="plat-spinner" aria-hidden="true"></span>
-                    Waking up the race server — free hosting naps when idle,
-                    this can take ~10s…
-                  </p>
+              <div className="plat-lobby plat-lobby-split">
+                {(connStatus === "waking" || connStatus === "connecting" || connStatus === "failed") && (
+                  <div className="plat-conn-status">
+                    {connStatus === "waking" && (
+                      <p className="plat-text plat-conn">
+                        <span className="plat-spinner" aria-hidden="true"></span>
+                        Waking up the race server — free hosting naps when idle,
+                        this can take ~10s…
+                      </p>
+                    )}
+                    {connStatus === "connecting" && (
+                      <p className="plat-text plat-conn">Connecting…</p>
+                    )}
+                    {connStatus === "failed" && (
+                      <p className="plat-text plat-error">
+                        Couldn't reach the race server.{" "}
+                        <button
+                          type="button"
+                          className="plat-btn plat-btn-subtle plat-retry-btn"
+                          onClick={retryConnect}
+                        >
+                          Retry
+                        </button>
+                      </p>
+                    )}
+                  </div>
                 )}
-                {connStatus === "connecting" && (
-                  <p className="plat-text plat-conn">Connecting…</p>
-                )}
-                {connStatus === "failed" && (
-                  <p className="plat-text plat-error">
-                    Couldn't reach the race server.{" "}
+                
+                <div className="plat-lobby-cards">
+                  <div className="plat-lobby-card">
+                    <h5 className="plat-card-title">Host Game</h5>
+                    <label className="plat-field">
+                      <span className="plat-field-label">Your name</span>
+                      <input
+                        className="plat-input plat-input-dark"
+                        type="text"
+                        maxLength={16}
+                        placeholder="Player"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                      />
+                    </label>
                     <button
                       type="button"
-                      className="plat-btn plat-btn-subtle plat-retry-btn"
-                      onClick={retryConnect}
+                      className="plat-btn plat-btn-primary"
+                      disabled={connStatus !== "connected"}
+                      onClick={hostRace}
                     >
-                      Retry
+                      Create room
                     </button>
-                  </p>
-                )}
-                <label className="plat-field">
-                  <span className="plat-field-label">Your name</span>
-                  <input
-                    className="plat-input"
-                    type="text"
-                    maxLength={16}
-                    placeholder="Player"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="plat-btn"
-                  disabled={connStatus !== "connected"}
-                  onClick={hostRace}
-                >
-                  Create room
-                </button>
-                <div className="plat-lobby-divider">or join a room</div>
-                <input
-                  className="plat-input plat-input-code"
-                  type="text"
-                  inputMode="text"
-                  autoCapitalize="characters"
-                  maxLength={4}
-                  placeholder="CODE"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                />
-                <button
-                  type="button"
-                  className="plat-btn"
-                  disabled={
-                    connStatus !== "connected" || joinCode.trim().length < 4
-                  }
-                  onClick={joinRace}
-                >
-                  Join room
-                </button>
+                  </div>
+                  
+                  <div className="plat-lobby-divider">OR</div>
+                  
+                  <div className="plat-lobby-card">
+                    <h5 className="plat-card-title">Join Game</h5>
+                    <label className="plat-field">
+                      <span className="plat-field-label">Room Code</span>
+                      <input
+                        className="plat-input plat-input-dark plat-input-code"
+                        type="text"
+                        inputMode="text"
+                        autoCapitalize="characters"
+                        maxLength={4}
+                        placeholder="CODE"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="plat-btn plat-btn-primary"
+                      disabled={
+                        connStatus !== "connected" || joinCode.trim().length < 4
+                      }
+                      onClick={joinRace}
+                    >
+                      Join room
+                    </button>
+                  </div>
+                </div>
                 {mpError && <p className="plat-text plat-error">{mpError}</p>}
                 <button
                   type="button"
-                  className="plat-btn plat-btn-subtle"
+                  className="plat-btn"
+                  style={{ marginTop: '16px' }}
                   onClick={() => state.mainMenu()}
                 >
                   Back
@@ -1018,7 +1037,7 @@ function Platformer() {
                 <label className="plat-field">
                   <span className="plat-field-label">Your name</span>
                   <input
-                    className="plat-input"
+                    className="plat-input plat-input-dark"
                     type="text"
                     maxLength={16}
                     placeholder="Player"
@@ -1026,30 +1045,24 @@ function Platformer() {
                     onChange={(e) => changeName(e.target.value)}
                   />
                 </label>
-                <div className="plat-avatar-picker">
-                  <button
-                    type="button"
-                    className="plat-btn plat-btn-subtle"
+                
+                <div className="plat-hero-avatar">
+                  <button 
+                    type="button" 
+                    className="plat-carousel-nav"
                     onClick={() => cycleAvatar(-1)}
                   >
-                    ←
+                    ◀
                   </button>
-                  <div className="plat-avatar-preview">
-                    <SpriteIcon
-                      sheet={AVATAR_SHEETS[avatar] ?? AVATAR_SHEETS[0]}
-                      frames={8}
-                      size={32}
-                    />
-                    <span className="plat-avatar-name">
-                      {AVATAR_NAMES[avatar] ?? AVATAR_NAMES[0]}
-                    </span>
+                  <div className="plat-hero-sprite" title={AVATAR_NAMES[avatar] ?? AVATAR_NAMES[0]}>
+                    <SpriteIcon sheet={AVATAR_SHEETS[avatar] ?? AVATAR_SHEETS[0]} frames={8} size={48} />
                   </div>
-                  <button
-                    type="button"
-                    className="plat-btn plat-btn-subtle"
+                  <button 
+                    type="button" 
+                    className="plat-carousel-nav"
                     onClick={() => cycleAvatar(1)}
                   >
-                    →
+                    ▶
                   </button>
                 </div>
                 {qrDataUrl && (

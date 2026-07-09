@@ -289,6 +289,19 @@ body.plat-no-select {
   min-height: 40px;
 }
 
+.plat-input-dark {
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.plat-input-dark:focus {
+  border-bottom-color: #a4e5ff;
+}
+
 .plat-input-code {
   text-transform: uppercase;
   letter-spacing: 8px;
@@ -908,3 +921,42 @@ button.plat-world-preview.unlocked:active {
   transform: scale(0.98);
 }
 .plat-transparent-bg { background: transparent !important; }
+
+.plat-lobby-split {
+  max-width: 500px;
+  width: 100%;
+}
+
+.plat-lobby-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: stretch;
+  width: 100%;
+}
+
+.plat-lobby-card {
+  flex: 1;
+  min-width: 200px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.plat-card-title {
+  margin: 0;
+  font-family: "Courier New", monospace;
+  font-size: 18px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 8px;
+  text-align: center;
+}
