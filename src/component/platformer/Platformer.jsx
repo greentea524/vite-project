@@ -205,6 +205,7 @@ function Platformer() {
   const [levelIndex, setLevelIndex] = useState(state.currentLevel);
   const [showPauseMap, setShowPauseMap] = useState(false);
   const [showMenuMap, setShowMenuMap] = useState(false);
+  const [tutorialMsg, setTutorialMsg] = useState(null);
 
   // Multiplayer UI state (PLAT-23/24).
   const [playerName, setPlayerName] = useState("");
@@ -267,6 +268,12 @@ function Platformer() {
       state.on("coins", setCoins),
       state.on("lives", setLives),
       state.on("level", setLevelIndex),
+      state.on("showTutorial", (type) => {
+        if (type === "doubleJump") {
+          setTutorialMsg("Press Jump twice to Double Jump!");
+          setTimeout(() => setTutorialMsg(null), 4000);
+        }
+      }),
     ];
     if (network) {
       engine.attachNetwork(network);
@@ -702,6 +709,13 @@ function Platformer() {
               })}
             </span>
             <span>Lives: {lives}</span>
+          </div>
+        )}
+
+        {inGame && tutorialMsg && (
+          <div className="plat-tutorial-overlay">
+            <span className="plat-tutorial-text">{tutorialMsg}</span>
+            <span className="plat-tutorial-icon">⏫</span>
           </div>
         )}
 

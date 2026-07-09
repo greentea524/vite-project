@@ -953,10 +953,247 @@ button.plat-world-preview.unlocked:active {
   margin: 0;
   font-family: "Courier New", monospace;
   font-size: 18px;
+}
+
+.plat-map-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  min-width: 34px;
+}
+
+.plat-map-done {
+  color: #ffd95a;
+}
+
+.plat-map-locked {
+  color: #8a8a90;
+}
+
+.plat-world-previews-carousel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.plat-carousel-nav {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.plat-carousel-nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+.plat-carousel-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.plat-carousel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.plat-carousel-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.plat-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.plat-carousel-dot:hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: scale(1.2);
+}
+.plat-carousel-dot.active {
+  background: #fff;
+}
+
+.plat-world-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: opacity 0.2s;
+}
+
+.plat-world-preview.locked {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+.plat-world-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.plat-world-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plat-world-title {
+  font-weight: bold;
+  font-size: 13px;
+  color: #ffd95a;
+}
+.plat-world-preview.locked .plat-world-title {
+  color: #8a8a90;
+}
+
+.plat-world-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.9;
+  color: #fff;
+}
+
+.plat-map-clickable {
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.plat-map-clickable:hover {
+  transform: scale(1.1);
+}
+.plat-map-clickable:active {
+  transform: scale(0.95);
+}
+
+button.plat-world-preview {
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+  padding: 0;
+}
+button.plat-world-preview.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+button.plat-world-preview.unlocked {
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+button.plat-world-preview.unlocked:hover {
+  transform: scale(1.02);
+}
+button.plat-world-preview.unlocked:active {
+  transform: scale(0.98);
+}
+.plat-transparent-bg { background: transparent !important; }
+
+.plat-lobby-split {
+  max-width: 500px;
+  width: 100%;
+}
+
+.plat-lobby-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: stretch;
+  width: 100%;
+}
+
+.plat-lobby-card {
+  flex: 1;
+  min-width: 200px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.plat-card-title {
+  margin: 0;
+  font-family: "Courier New", monospace;
+  font-size: 18px;
   color: #fff;
   text-transform: uppercase;
   letter-spacing: 1px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding-bottom: 8px;
   text-align: center;
+}
+
+/* Tutorial Overlay (PG-60) */
+.plat-tutorial-overlay {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  animation: tutorial-fade-in 0.3s ease-out;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.plat-tutorial-text {
+  font-size: 16px;
+  text-shadow: 1px 1px 2px #000;
+}
+
+.plat-tutorial-icon {
+  font-size: 24px;
+  animation: tutorial-bounce 1s infinite alternate ease-in-out;
+}
+
+@keyframes tutorial-fade-in {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes tutorial-bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
 }

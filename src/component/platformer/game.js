@@ -150,6 +150,11 @@ export class Engine {
         pushSnapshot(ghost, snap, performance.now());
       }),
       network.on("playerLeft", ({ id }) => this.ghosts.delete(id)),
+      network.on("enemyKilled", (enemyId) => {
+        if (!this.enemies) return;
+        const e = this.enemies.find((x) => x.id === enemyId);
+        if (e && !e.gone) e.gone = true;
+      }),
     );
   }
 
@@ -237,6 +242,16 @@ export class Engine {
         this.checkpoints.push(createCheckpoint(s.x, s.y));
       else if (s.type === "flag") this.flags.push(createFlag(s.x, s.y));
     }
+
+    // Assign deterministic IDs to enemies for multiplayer sync (PG-61)
+    for (let i = 0; i < this.enemies.length; i++) {
+      const e = this.enemies[i];
+      e.id = `enemy_${i}`;
+      if (this.network?.deadEnemies?.has(e.id)) {
+        e.gone = true;
+      }
+    }
+
     // Ice physics flag (World 5): makes the player slide.
     this.level.ice = !!data.ice;
     // Meteor shower (World 4): spawn on a randomized timer across the
@@ -298,7 +313,12 @@ export class Engine {
           this.state.addCoin();
           this.sfx.play("coin");
         },
-        onStomp: () => this.sfx.play("stomp"),
+        onStomp: (e) => {
+          this.sfx.play("stomp");
+          if (this.network && this.state.multiplayer) {
+            this.network.sendEnemyKill(e.id);
+          }
+        },
         onCheckpoint: (k) => this.state.setCheckpoint({ x: k.x, y: k.y }),
         onFlag: () => {
           // Jingle plays on goal contact, before the UI transition (PG-27).
@@ -317,6 +337,15 @@ export class Engine {
         this._pending = null;
         fn();
       }
+    }
+
+    if (
+      this.state.currentLevel === 0 &&
+      !this.state.tutorialDoubleJumpShown &&
+      p.x >= 280
+    ) {
+      this.state.markTutorialShown();
+      this.state._emit("showTutorial", "doubleJump");
     }
 
     // Multiplayer: accumulate the run timer (playing time only, so

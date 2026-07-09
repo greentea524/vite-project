@@ -41,6 +41,7 @@ export class Network {
     this.selfName = "";
     this.selfSlot = 0; // spawn-fan slot assigned by the server
     this.roster = [];
+    this.deadEnemies = new Set();
     this._lastSent = 0;
   }
 
@@ -102,6 +103,10 @@ export class Network {
       this._emit("roster", this.roster);
       this._emit("playerUpdated", { id, avatar, name });
     });
+    socket.on("enemyKilled", (enemyId) => {
+      this.deadEnemies.add(enemyId);
+      this._emit("enemyKilled", enemyId);
+    });
     socket.on("remoteState", (snap) => this._emit("remoteState", snap));
     socket.on("raceStart", (info) => this._emit("raceStart", info));
     socket.on("hostChanged", ({ hostId }) => {
@@ -129,6 +134,7 @@ export class Network {
     this.hostId = res.hostId ?? null;
     this.selfName = name;
     this.selfSlot = res.roster.find((r) => r.id === res.playerId)?.slot ?? 0;
+    this.deadEnemies = new Set(res.deadEnemies || []);
     this._setRoster(res.roster);
   }
 
@@ -206,10 +212,16 @@ export class Network {
     this.socket.emit("finished", { totalTimeMs });
   }
 
+  sendEnemyKill(enemyId) {
+    if (!this.socket || !this.roomCode) return;
+    this.socket.emit("enemyKilled", { enemyId });
+  }
+
   leave() {
     if (this.socket && this.roomCode) this.socket.emit("leaveRoom");
     this.roomCode = null;
     this.roster = [];
+    this.deadEnemies.clear();
   }
 
   destroy() {

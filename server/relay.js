@@ -115,10 +115,10 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     socket.on("createRoom", (payload = {}, ack) => {
       const code = makeCode(rooms);
       // The creator is the host (PLAT-30).
-      const room = { players: new Map(), nextSlot: 0, hostId: socket.id };
+      const room = { players: new Map(), nextSlot: 0, hostId: socket.id, deadEnemies: new Set() };
       rooms.set(code, room);
       join(socket, room, code, payload);
-      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room) });
+      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies) });
     });
 
     socket.on("joinRoom", (payload = {}, ack) => {
@@ -133,7 +133,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
         return;
       }
       const player = join(socket, room, code, payload);
-      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room) });
+      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies) });
       // Tell everyone else who joined.
       socket.to(code).emit("playerJoined", {
         id: player.id, name: player.name, avatar: player.avatar, slot: player.slot,
@@ -148,6 +148,14 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       if (!player || !Number.isInteger(avatar)) return;
       player.avatar = avatar;
       io.to(code).emit("playerUpdated", { id: socket.id, avatar });
+    });
+
+    socket.on("enemyKilled", ({ enemyId } = {}) => {
+      const code = socket.data.roomCode;
+      const room = rooms.get(code);
+      if (!room || !enemyId) return;
+      room.deadEnemies.add(enemyId);
+      socket.to(code).emit("enemyKilled", enemyId);
     });
 
     // Name changed in the room lobby: same deal as setAvatar, with the

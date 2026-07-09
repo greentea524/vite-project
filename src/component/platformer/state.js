@@ -20,6 +20,7 @@ export class GameState {
     this.screen = "menu";
     const save = loadSave();
     this.selectedAvatar = save.selectedAvatar;
+    this.tutorialDoubleJumpShown = save.tutorialDoubleJumpShown;
     this.coins = 0;
     this.lives = START_LIVES;
     this.currentLevel = 0;
@@ -54,8 +55,14 @@ export class GameState {
       writeSave({
         levelsCompleted: this.levelsCompleted,
         selectedAvatar: this.selectedAvatar,
+        tutorialDoubleJumpShown: this.tutorialDoubleJumpShown,
       });
     }
+  }
+
+  markTutorialShown() {
+    this.tutorialDoubleJumpShown = true;
+    this._persist();
   }
 
   // Set avatar and persist
