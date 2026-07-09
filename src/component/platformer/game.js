@@ -480,8 +480,7 @@ export class Engine {
     // Clear the label overlay each frame (labels are redrawn below).
     if (this.labelCtx) this.labelCtx.clearRect(0, 0, this.labelCanvas.width, this.labelCanvas.height);
     if (!this.level) {
-      ctx.fillStyle = css([0.43, 0.72, 0.91]);
-      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      ctx.clearRect(0, 0, VIEW_W, VIEW_H);
       return;
     }
 
