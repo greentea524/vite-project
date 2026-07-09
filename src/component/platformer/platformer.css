@@ -557,6 +557,25 @@ body.plat-no-select {
   background: transparent !important;
 }
 
+.plat-menu-bg {
+  background-color: transparent !important;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 160px 120px, #ddd, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  animation: plat-stars 100s linear infinite;
+}
+
+@keyframes plat-stars {
+  0% { background-position: 0 0; }
+  100% { background-position: -2000px 2000px; }
+}
+
 .plat-help {
   display: flex;
   flex-direction: column;
@@ -581,7 +600,85 @@ body.plat-no-select {
 .plat-title {
   margin: 0;
   font-family: "Courier New", monospace;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #fff 0%, #a4e5ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 0px rgba(0,0,0,0.5));
+  margin-bottom: 8px;
+}
+
+.plat-hero-avatar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 16px 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 8px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.plat-hero-sprite {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: scale(2);
+  image-rendering: pixelated;
+  /* Hover bounce animation */
+  animation: plat-bounce 2s infinite ease-in-out;
+}
+
+@keyframes plat-bounce {
+  0%, 100% { transform: scale(2) translateY(0); }
+  50% { transform: scale(2) translateY(-4px); }
+}
+
+.plat-menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 240px;
+  margin-top: 12px;
+}
+
+.plat-menu-actions .plat-btn {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  font-size: 15px;
+  padding: 12px;
+  text-align: center;
+  text-transform: uppercase;
   letter-spacing: 1px;
+  transition: all 0.2s;
+}
+
+.plat-menu-actions .plat-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.plat-menu-actions .plat-btn-primary {
+  background: rgba(46, 204, 113, 0.4);
+  border-color: rgba(46, 204, 113, 0.8);
+  color: #c8ffdf;
+}
+
+.plat-menu-actions .plat-btn-primary:hover:not(:disabled) {
+  background: rgba(46, 204, 113, 0.6);
+  border-color: #2ecc71;
+  color: #fff;
 }
 
 .plat-text {

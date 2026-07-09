@@ -198,6 +198,7 @@ function Platformer() {
     window.matchMedia("(pointer: coarse)").matches;
   const [screen, setScreen] = useState(state.screen);
   const [previewWorld, setPreviewWorld] = useState(0);
+  const [showHelp, setShowHelp] = useState(false);
   const [coins, setCoins] = useState(state.coins);
   const [lives, setLives] = useState(state.lives);
   const [avatar, setAvatar] = useState(state.selectedAvatar);
@@ -732,110 +733,132 @@ function Platformer() {
         )}
 
         {screen === "menu" && (
-          <div className="plat-overlay plat-transparent-bg">
+          <div className="plat-overlay plat-menu-bg">
             <h3 className="plat-title">Platform Game</h3>
-            <div className="plat-world-previews-carousel">
-              <button 
-                type="button"
-                className="plat-carousel-nav" 
-                onClick={() => setPreviewWorld(Math.max(0, previewWorld - 1))}
-                disabled={previewWorld === 0}
-              >
-                ◀
-              </button>
-              
-              <div className="plat-carousel-content">
-                {(() => {
-                  const w = WORLD_PREVIEWS[previewWorld];
-                  const firstLevelIndex = state.flatIndex(previewWorld, 0);
-                  const isUnlocked = state.levelsCompleted >= firstLevelIndex;
-                  return (
-                    <button
-                      type="button"
-                      className={`plat-world-preview ${isUnlocked ? "unlocked plat-map-clickable" : "locked"}`}
-                      onClick={isUnlocked ? () => state.playStage(firstLevelIndex) : undefined}
-                      disabled={!isUnlocked}
-                    >
-                      <div className="plat-world-icon">{w.icon}</div>
-                      <div className="plat-world-info">
-                        <div className="plat-world-title">
-                          {w.title}
-                          {isUnlocked && <span style={{ float: 'right' }}>➔</span>}
+            {!showMenuMap && !showHelp && (
+              <div className="plat-world-previews-carousel">
+                <button 
+                  type="button"
+                  className="plat-carousel-nav" 
+                  onClick={() => setPreviewWorld(Math.max(0, previewWorld - 1))}
+                  disabled={previewWorld === 0}
+                >
+                  ◀
+                </button>
+                
+                <div className="plat-carousel-content">
+                  {(() => {
+                    const w = WORLD_PREVIEWS[previewWorld];
+                    const firstLevelIndex = state.flatIndex(previewWorld, 0);
+                    const isUnlocked = state.levelsCompleted >= firstLevelIndex;
+                    return (
+                      <button
+                        type="button"
+                        className={`plat-world-preview ${isUnlocked ? "unlocked plat-map-clickable" : "locked"}`}
+                        onClick={isUnlocked ? () => state.playStage(firstLevelIndex) : undefined}
+                        disabled={!isUnlocked}
+                      >
+                        <div className="plat-world-icon">{w.icon}</div>
+                        <div className="plat-world-info">
+                          <div className="plat-world-title">
+                            {w.title}
+                            {isUnlocked && <span style={{ float: 'right' }}>➔</span>}
+                          </div>
+                          <div className="plat-world-desc">{w.desc}</div>
                         </div>
-                        <div className="plat-world-desc">{w.desc}</div>
-                      </div>
-                    </button>
-                  );
-                })()}
-                <div className="plat-carousel-dots">
-                  {WORLD_PREVIEWS.map((_, i) => (
-                    <span 
-                      key={i} 
-                      className={`plat-carousel-dot ${i === previewWorld ? 'active' : ''}`}
-                      onClick={() => setPreviewWorld(i)}
-                    />
-                  ))}
+                      </button>
+                    );
+                  })()}
+                  <div className="plat-carousel-dots">
+                    {WORLD_PREVIEWS.map((_, i) => (
+                      <span 
+                        key={i} 
+                        className={`plat-carousel-dot ${i === previewWorld ? 'active' : ''}`}
+                        onClick={() => setPreviewWorld(i)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <button 
-                type="button"
-                className="plat-carousel-nav" 
-                onClick={() => setPreviewWorld(Math.min(WORLD_PREVIEWS.length - 1, previewWorld + 1))}
-                disabled={previewWorld === WORLD_PREVIEWS.length - 1}
-              >
-                ▶
-              </button>
-            </div>
-            <div className="plat-help">
-              <p className="plat-text">
-                Reach the flag{" "}
-                <SpriteIcon
-                  sheet={IMAGE_URLS.flag}
-                  frames={1}
-                  size={12}
-                  aspect={2}
-                />{" "}
-                to clear each level — twelve levels across four worlds.
-              </p>
-              <p className="plat-text">
-                Grab coins{" "}
-                <SpriteIcon sheet={IMAGE_URLS.coin} frames={2} size={16} /> ·
-                stomp enemies{" "}
-                <SpriteIcon sheet={IMAGE_URLS.enemy} frames={2} size={16} /> by
-                landing on top · checkpoints{" "}
-                <SpriteIcon
-                  sheet={IMAGE_URLS.checkpoint}
-                  frames={1}
-                  size={16}
-                />{" "}
-                set your respawn.
-              </p>
-              <p className="plat-text">
-                Avoid spikes{" "}
-                <SpriteIcon sheet={IMAGE_URLS.spike} frames={1} size={16} /> and
-                falling into pits — you have 3 lives per run.
-              </p>
-              <p className="plat-text">
-                Move with A/D, ◀▶ keys, or the on-screen buttons · jump with
-                Space or ▲ — hold for a higher jump, press again mid-air to
-                double jump · pause with Esc or ❚❚.
-              </p>
-            </div>
-            <div className="plat-avatar-row">
-              {AVATAR_SHEETS.map((sheet, i) => (
+                <button 
+                  type="button"
+                  className="plat-carousel-nav" 
+                  onClick={() => setPreviewWorld(Math.min(WORLD_PREVIEWS.length - 1, previewWorld + 1))}
+                  disabled={previewWorld === WORLD_PREVIEWS.length - 1}
+                >
+                  ▶
+                </button>
+              </div>
+            )}
+
+            {!showMenuMap && !showHelp && (
+              <div className="plat-hero-avatar">
+                <button 
+                  type="button" 
+                  className="plat-carousel-nav"
+                  onClick={() => pickAvatar((avatar - 1 + AVATAR_SHEETS.length) % AVATAR_SHEETS.length)}
+                >
+                  ◀
+                </button>
+                <div className="plat-hero-sprite" title={AVATAR_NAMES[avatar]}>
+                  <SpriteIcon sheet={AVATAR_SHEETS[avatar]} frames={8} size={48} />
+                </div>
+                <button 
+                  type="button" 
+                  className="plat-carousel-nav"
+                  onClick={() => pickAvatar((avatar + 1) % AVATAR_SHEETS.length)}
+                >
+                  ▶
+                </button>
+              </div>
+            )}
+
+            {showHelp && (
+              <div className="plat-help">
+                <p className="plat-text">
+                  Reach the flag{" "}
+                  <SpriteIcon
+                    sheet={IMAGE_URLS.flag}
+                    frames={1}
+                    size={12}
+                    aspect={2}
+                  />{" "}
+                  to clear each level — twelve levels across four worlds.
+                </p>
+                <p className="plat-text">
+                  Grab coins{" "}
+                  <SpriteIcon sheet={IMAGE_URLS.coin} frames={2} size={16} /> ·
+                  stomp enemies{" "}
+                  <SpriteIcon sheet={IMAGE_URLS.enemy} frames={2} size={16} /> by
+                  landing on top · checkpoints{" "}
+                  <SpriteIcon
+                    sheet={IMAGE_URLS.checkpoint}
+                    frames={1}
+                    size={16}
+                  />{" "}
+                  set your respawn.
+                </p>
+                <p className="plat-text">
+                  Avoid spikes{" "}
+                  <SpriteIcon sheet={IMAGE_URLS.spike} frames={1} size={16} /> and
+                  falling into pits — you have 3 lives per run.
+                </p>
+                <p className="plat-text">
+                  Move with A/D, ◀▶ keys, or the on-screen buttons · jump with
+                  Space or ▲ — hold for a higher jump, press again mid-air to
+                  double jump · pause with Esc or ❚❚.
+                </p>
                 <button
                   type="button"
-                  key={AVATAR_NAMES[i]}
-                  title={AVATAR_NAMES[i]}
-                  className={`plat-avatar-btn${i === avatar ? " plat-avatar-selected" : ""}`}
-                  onClick={() => pickAvatar(i)}
+                  className="plat-btn"
+                  onClick={() => setShowHelp(false)}
                 >
-                  <SpriteIcon sheet={sheet} frames={8} />
+                  Back
                 </button>
-              ))}
-            </div>
-            {showMenuMap ? (
+              </div>
+            )}
+
+            {showMenuMap && (
               <>
                 <WorldMap state={state} avatar={avatar} onSelectStage={(index) => state.playStage(index)} />
                 <button
@@ -846,13 +869,15 @@ function Platformer() {
                   Back
                 </button>
               </>
-            ) : (
-              <>
+            )}
+
+            {!showMenuMap && !showHelp && (
+              <div className="plat-menu-actions">
                 {state.levelsCompleted > 0 ? (
                   <>
                     <button
                       type="button"
-                      className="plat-btn"
+                      className="plat-btn plat-btn-primary"
                       onClick={() => state.continueGame()}
                     >
                       Continue
@@ -879,23 +904,32 @@ function Platformer() {
                 ) : (
                   <button
                     type="button"
-                    className="plat-btn"
+                    className="plat-btn plat-btn-primary"
                     onClick={() => state.playStage(0)}
                   >
                     Start Game
                   </button>
                 )}
-              </>
+                
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={raceFriendEnabled ? openMultiplayer : undefined}
+                  disabled={!raceFriendEnabled}
+                  title={raceFriendEnabled ? "Race a friend" : "Only available on the deployed site"}
+                >
+                  Race a friend{!raceFriendEnabled && " (Online only)"}
+                </button>
+
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowHelp(true)}
+                >
+                  How to Play
+                </button>
+              </div>
             )}
-            <button
-              type="button"
-              className="plat-btn"
-              onClick={raceFriendEnabled ? openMultiplayer : undefined}
-              disabled={!raceFriendEnabled}
-              title={raceFriendEnabled ? "Race a friend" : "Only available on the deployed site"}
-            >
-              Race a friend{!raceFriendEnabled && " (Online only)"}
-            </button>
           </div>
         )}
 
