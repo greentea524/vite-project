@@ -654,7 +654,10 @@ function Platformer() {
 
   return (
     <div className="plat-shell" ref={shellRef}>
-      <div className="plat-stage">
+      <div 
+        className="plat-stage" 
+        style={(screen === "menu" || screen === "lobby") ? { background: "transparent" } : undefined}
+      >
         <canvas
           ref={canvasRef}
           width={VIEW_W}
