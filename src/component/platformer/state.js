@@ -196,7 +196,13 @@ export class GameState {
       this.currentLevel + 1,
     );
     this._persist();
-    this._setScreen("worldmap");
+    
+    if (this.currentLevel + 1 >= LEVELS.length) {
+      this.finished = true;
+      this._setScreen("win");
+    } else {
+      this.gotoLevel(this.currentLevel + 1);
+    }
   }
 
   // Continue from the world map: next unfinished level, or the win

@@ -390,33 +390,25 @@ describe("game state flow", () => {
     expect(s.screen).toBe("playing");
     expect(s.lives).toBe(START_LIVES);
     s.levelComplete(); // level 1-1 is not last in world 1
-    expect(s.screen).toBe("worldmap");
-    expect(s.levelsCompleted).toBe(1);
-    // Continue proceeds to the next level (1-2).
-    s.continueFromWorldMap();
+    // It should automatically proceed to the next level (1-2).
     expect(s.screen).toBe("playing");
+    expect(s.levelsCompleted).toBe(1);
     expect(s.currentLevel).toBe(1);
   });
 
-  it("finishing a world shows the world map, then continues", () => {
+  it("finishing a world continues to the next world directly", () => {
     const s = new GameState();
-    s.startGame();
     s.gotoLevel(2); // 1-3, last of world 1
     s.levelComplete();
-    expect(s.screen).toBe("worldmap");
-    s.continueFromWorldMap();
     expect(s.screen).toBe("playing");
     expect(s.currentLevel).toBe(3); // 2-1
   });
 
   it("finishing the last level wins the game", () => {
     const s = new GameState();
-    s.startGame();
     s.gotoLevel(LEVELS.length - 1);
     s.levelsCompleted = LEVELS.length - 1;
     s.levelComplete();
-    expect(s.screen).toBe("worldmap");
-    s.continueFromWorldMap();
     expect(s.screen).toBe("win");
   });
 
