@@ -663,7 +663,8 @@ function Platformer() {
           className="plat-canvas"
           style={{ 
             aspectRatio: `${VIEW_W} / ${VIEW_H}`,
-            background: (screen === "menu" || screen === "lobby") ? "transparent" : undefined
+            background: (screen === "menu" || screen === "lobby") ? "transparent" : undefined,
+            visibility: inGame ? "visible" : "hidden"
           }}
         />
         {/* High-res overlay for crisp name labels over the pixel canvas. */}
