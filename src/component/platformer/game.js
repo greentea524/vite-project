@@ -157,6 +157,11 @@ export class Engine {
     this.images = await loadImages();
     this.input.attach(window);
     this._unsubs.push(this.state.on("level", (index) => this.loadLevel(index)));
+    this._unsubs.push(this.state.on("screen", (screen) => {
+      if (screen === "menu" || screen === "lobby") {
+        this.level = null;
+      }
+    }));
     let last = performance.now();
     let acc = 0;
     const tick = (now) => {

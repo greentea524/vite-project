@@ -197,6 +197,7 @@ function Platformer() {
     typeof window !== "undefined" &&
     window.matchMedia("(pointer: coarse)").matches;
   const [screen, setScreen] = useState(state.screen);
+  const [previewWorld, setPreviewWorld] = useState(0);
   const [coins, setCoins] = useState(state.coins);
   const [lives, setLives] = useState(state.lives);
   const [avatar, setAvatar] = useState(state.selectedAvatar);
@@ -732,29 +733,58 @@ function Platformer() {
         {screen === "menu" && (
           <div className="plat-overlay plat-transparent-bg">
             <h3 className="plat-title">Platform Game</h3>
-            <div className="plat-world-previews">
-              {WORLD_PREVIEWS.map((w, i) => {
-                const firstLevelIndex = state.flatIndex(i, 0);
-                const isUnlocked = state.levelsCompleted >= firstLevelIndex;
-                return (
-                  <button
-                    type="button"
-                    key={i}
-                    className={`plat-world-preview ${isUnlocked ? "unlocked plat-map-clickable" : "locked"}`}
-                    onClick={isUnlocked ? () => state.playStage(firstLevelIndex) : undefined}
-                    disabled={!isUnlocked}
-                  >
-                    <div className="plat-world-icon">{w.icon}</div>
-                    <div className="plat-world-info">
-                      <div className="plat-world-title">
-                        {w.title}
-                        {isUnlocked && <span style={{ float: 'right' }}>➔</span>}
+            <div className="plat-world-previews-carousel">
+              <button 
+                type="button"
+                className="plat-carousel-nav" 
+                onClick={() => setPreviewWorld(Math.max(0, previewWorld - 1))}
+                disabled={previewWorld === 0}
+              >
+                ◀
+              </button>
+              
+              <div className="plat-carousel-content">
+                {(() => {
+                  const w = WORLD_PREVIEWS[previewWorld];
+                  const firstLevelIndex = state.flatIndex(previewWorld, 0);
+                  const isUnlocked = state.levelsCompleted >= firstLevelIndex;
+                  return (
+                    <button
+                      type="button"
+                      className={`plat-world-preview ${isUnlocked ? "unlocked plat-map-clickable" : "locked"}`}
+                      onClick={isUnlocked ? () => state.playStage(firstLevelIndex) : undefined}
+                      disabled={!isUnlocked}
+                    >
+                      <div className="plat-world-icon">{w.icon}</div>
+                      <div className="plat-world-info">
+                        <div className="plat-world-title">
+                          {w.title}
+                          {isUnlocked && <span style={{ float: 'right' }}>➔</span>}
+                        </div>
+                        <div className="plat-world-desc">{w.desc}</div>
                       </div>
-                      <div className="plat-world-desc">{w.desc}</div>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })()}
+                <div className="plat-carousel-dots">
+                  {WORLD_PREVIEWS.map((_, i) => (
+                    <span 
+                      key={i} 
+                      className={`plat-carousel-dot ${i === previewWorld ? 'active' : ''}`}
+                      onClick={() => setPreviewWorld(i)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                className="plat-carousel-nav" 
+                onClick={() => setPreviewWorld(Math.min(WORLD_PREVIEWS.length - 1, previewWorld + 1))}
+                disabled={previewWorld === WORLD_PREVIEWS.length - 1}
+              >
+                ▶
+              </button>
             </div>
             <div className="plat-help">
               <p className="plat-text">
