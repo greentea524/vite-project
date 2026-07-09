@@ -63,7 +63,7 @@ export function applyMoves(facelets, tokens) {
 }
 
 // Invert a move sequence: reverse order, flip modifiers.
-export function invertMoves(tokens) {
+function invertMoves(tokens) {
   return tokens
     .slice()
     .reverse()
