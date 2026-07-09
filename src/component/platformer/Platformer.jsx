@@ -730,7 +730,7 @@ function Platformer() {
         )}
 
         {screen === "menu" && (
-          <div className="plat-overlay">
+          <div className="plat-overlay plat-transparent-bg">
             <h3 className="plat-title">Platform Game</h3>
             <div className="plat-world-previews">
               {WORLD_PREVIEWS.map((w, i) => {
@@ -869,7 +869,7 @@ function Platformer() {
         )}
 
         {screen === "lobby" && (
-          <div className="plat-overlay">
+          <div className="plat-overlay plat-transparent-bg">
             <h4 className="plat-title">Race a friend</h4>
             {lobbyMode === "choose" && (
               <div className="plat-lobby">

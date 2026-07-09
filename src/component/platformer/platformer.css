@@ -1,4 +1,4 @@
-﻿.plat-shell {
+.plat-shell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -553,6 +553,10 @@ body.plat-no-select {
   z-index: 1;
 }
 
+.plat-transparent-bg {
+  background: transparent !important;
+}
+
 .plat-help {
   display: flex;
   flex-direction: column;
@@ -752,3 +756,7 @@ button.plat-world-preview.unlocked:hover {
 button.plat-world-preview.unlocked:active {
   transform: scale(0.98);
 }
+. p l a t - t r a n s p a r e n t - b g  
+   b a c k g r o u n d :   t r a n s p a r e n t   ! i m p o r t a n t ;    
+ 
+.plat-transparent-bg { background: transparent !important; }
