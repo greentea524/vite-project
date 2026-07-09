@@ -8,7 +8,6 @@ const DEFAULT_SAVE = {
   levelsCompleted: 0,
   selectedAvatar: 0,
   playerName: "",
-  tutorialDoubleJumpShown: false,
 };
 
 export function loadSave() {
@@ -27,7 +26,6 @@ export function loadSave() {
       levelsCompleted: Math.max(0, Math.min(Number(parsed.levelsCompleted) || 0, LEVELS.length)),
       selectedAvatar: Math.max(0, Number(parsed.selectedAvatar) || 0),
       playerName: typeof parsed.playerName === "string" ? parsed.playerName : "",
-      tutorialDoubleJumpShown: Boolean(parsed.tutorialDoubleJumpShown),
     };
   } catch (err) {
     console.warn("Failed to load save data, falling back to defaults.", err);

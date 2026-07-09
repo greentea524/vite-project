@@ -20,7 +20,7 @@ export class GameState {
     this.screen = "menu";
     const save = loadSave();
     this.selectedAvatar = save.selectedAvatar;
-    this.tutorialDoubleJumpShown = save.tutorialDoubleJumpShown;
+    this.tutorialDoubleJumpShown = false;
     this.coins = 0;
     this.lives = START_LIVES;
     this.currentLevel = 0;
@@ -55,14 +55,12 @@ export class GameState {
       writeSave({
         levelsCompleted: this.levelsCompleted,
         selectedAvatar: this.selectedAvatar,
-        tutorialDoubleJumpShown: this.tutorialDoubleJumpShown,
       });
     }
   }
 
   markTutorialShown() {
     this.tutorialDoubleJumpShown = true;
-    this._persist();
   }
 
   // Set avatar and persist
@@ -128,6 +126,7 @@ export class GameState {
 
   gotoLevel(index) {
     this.currentLevel = Math.max(0, Math.min(index, LEVELS.length - 1));
+    if (this.currentLevel === 0) this.tutorialDoubleJumpShown = false;
     this._emit("level", this.currentLevel);
     this._setScreen("playing");
   }
