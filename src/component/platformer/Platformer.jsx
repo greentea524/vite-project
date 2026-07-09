@@ -654,16 +654,16 @@ function Platformer() {
 
   return (
     <div className="plat-shell" ref={shellRef}>
-      <div 
-        className="plat-stage" 
-        style={(screen === "menu" || screen === "lobby") ? { background: "transparent" } : undefined}
-      >
+      <div className="plat-stage">
         <canvas
           ref={canvasRef}
           width={VIEW_W}
           height={VIEW_H}
           className="plat-canvas"
-          style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}
+          style={{ 
+            aspectRatio: `${VIEW_W} / ${VIEW_H}`,
+            background: (screen === "menu" || screen === "lobby") ? "transparent" : undefined
+          }}
         />
         {/* High-res overlay for crisp name labels over the pixel canvas. */}
         <canvas
