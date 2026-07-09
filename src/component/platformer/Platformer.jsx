@@ -806,7 +806,7 @@ function Platformer() {
                   <div className="plat-carousel-dots">
                     {WORLD_PREVIEWS.map((_, i) => (
                       <button
-                        key={i}
+                        key={WORLD_PREVIEWS[i].title}
                         type="button"
                         className={`plat-carousel-dot ${i === previewWorld ? 'active' : ''}`}
                         onClick={() => setPreviewWorld(i)}
