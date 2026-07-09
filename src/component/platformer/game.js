@@ -314,6 +314,7 @@ export class Engine {
           this.sfx.play("coin");
         },
         onStomp: (e) => {
+          this.state.addStomp();
           this.sfx.play("stomp");
           if (this.network && this.state.multiplayer) {
             this.network.sendEnemyKill(e.id);

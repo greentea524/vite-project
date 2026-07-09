@@ -6,6 +6,7 @@ import { Engine, VIEW_W, VIEW_H, LABEL_SCALE } from "./game.js";
 import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS, LEVELS } from "./levels.js";
 import { WorldMap } from "./WorldMap.jsx";
+import { AchievementsPanel } from "./Achievements.jsx";
 import { Network, MAX_PLAYERS } from "./network.js";
 import { buildJoinLink } from "./joinLink.js";
 
@@ -205,6 +206,10 @@ function Platformer() {
   const [levelIndex, setLevelIndex] = useState(state.currentLevel);
   const [showPauseMap, setShowPauseMap] = useState(false);
   const [showMenuMap, setShowMenuMap] = useState(false);
+  const [showMenuAch, setShowMenuAch] = useState(false);
+  const [showPauseAch, setShowPauseAch] = useState(false);
+  const [achToast, setAchToast] = useState(null); // achievement def (#66)
+  const achToastTimerRef = useRef(null);
   const [tutorialMsg, setTutorialMsg] = useState(null);
 
   // Multiplayer UI state (PLAT-23/24).
@@ -273,6 +278,11 @@ function Platformer() {
           setTutorialMsg("Press Jump twice to Double Jump!");
           setTimeout(() => setTutorialMsg(null), 4000);
         }
+      }),
+      state.on("achievement", (a) => {
+        setAchToast(a);
+        clearTimeout(achToastTimerRef.current);
+        achToastTimerRef.current = setTimeout(() => setAchToast(null), 2500);
       }),
     ];
     if (network) {
@@ -353,7 +363,9 @@ function Platformer() {
   // Reset the maps when leaving their respective screens
   useEffect(() => {
     if (screen !== "paused") setShowPauseMap(false);
+    if (screen !== "paused") setShowPauseAch(false);
     if (screen !== "menu") setShowMenuMap(false);
+    if (screen !== "menu") setShowMenuAch(false);
   }, [screen]);
 
   // Grace/fail timers while waiting for the relay in the lobby
@@ -719,6 +731,15 @@ function Platformer() {
           </div>
         )}
 
+        {achToast && (
+          <div className="plat-ach-toast">
+            <span className="plat-ach-toast-icon">{achToast.icon}</span>
+            <span className="plat-ach-toast-text">
+              <strong>{achToast.name}</strong> unlocked!
+            </span>
+          </div>
+        )}
+
         {state.multiplayer && inGame && standings.length > 0 && (
           <div className="plat-leaderboard">
             {standings.map((p, i) => (
@@ -748,7 +769,7 @@ function Platformer() {
         {screen === "menu" && (
           <div className="plat-overlay plat-menu-bg">
             <h3 className="plat-title">Platform Game</h3>
-            {!showMenuMap && !showHelp && (
+            {!showMenuMap && !showHelp && !showMenuAch && (
               <div className="plat-world-previews-carousel">
                 <button 
                   type="button"
@@ -804,7 +825,7 @@ function Platformer() {
               </div>
             )}
 
-            {!showMenuMap && !showHelp && (
+            {!showMenuMap && !showHelp && !showMenuAch && (
               <div className="plat-hero-avatar">
                 <button 
                   type="button" 
@@ -836,7 +857,7 @@ function Platformer() {
                     size={12}
                     aspect={2}
                   />{" "}
-                  to clear each level — twelve levels across four worlds.
+                  to clear each level — eighteen levels across six worlds.
                 </p>
                 <p className="plat-text">
                   Grab coins{" "}
@@ -884,7 +905,20 @@ function Platformer() {
               </>
             )}
 
-            {!showMenuMap && !showHelp && (
+            {showMenuAch && (
+              <>
+                <AchievementsPanel state={state} />
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowMenuAch(false)}
+                >
+                  Back
+                </button>
+              </>
+            )}
+
+            {!showMenuMap && !showHelp && !showMenuAch && (
               <div className="plat-menu-actions">
                 {state.levelsCompleted > 0 ? (
                   <>
@@ -932,6 +966,14 @@ function Platformer() {
                   title={raceFriendEnabled ? "Race a friend" : "Only available on the deployed site"}
                 >
                   Race a friend{!raceFriendEnabled && " (Online only)"}
+                </button>
+
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowMenuAch(true)}
+                >
+                  Achievements
                 </button>
 
                 <button
@@ -1144,7 +1186,9 @@ function Platformer() {
 
         {screen === "paused" && (
           <div className="plat-overlay plat-overlay-dim">
-            <h4 className="plat-title">{showPauseMap ? "World Map" : "Paused"}</h4>
+            <h4 className="plat-title">
+              {showPauseMap ? "World Map" : showPauseAch ? "Achievements" : "Paused"}
+            </h4>
             {showPauseMap ? (
               <>
                 <WorldMap state={state} avatar={avatar} onSelectStage={(index) => state.playStage(index)} />
@@ -1152,6 +1196,17 @@ function Platformer() {
                   type="button"
                   className="plat-btn"
                   onClick={() => setShowPauseMap(false)}
+                >
+                  Back
+                </button>
+              </>
+            ) : showPauseAch ? (
+              <>
+                <AchievementsPanel state={state} />
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowPauseAch(false)}
                 >
                   Back
                 </button>
@@ -1171,6 +1226,13 @@ function Platformer() {
                   onClick={() => setShowPauseMap(true)}
                 >
                   View Map
+                </button>
+                <button
+                  type="button"
+                  className="plat-btn"
+                  onClick={() => setShowPauseAch(true)}
+                >
+                  Achievements
                 </button>
                 <button
                   type="button"

@@ -7,6 +7,7 @@
 
 import { WORLDS, LEVELS } from "./levels.js";
 import { loadSave, writeSave } from "./save.js";
+import { ACHIEVEMENTS_BY_ID, evaluate } from "./achievements.js";
 
 export const START_LIVES = 3;
 
@@ -27,6 +28,11 @@ export class GameState {
     this.respawn = { x: 0, y: 0 };
     // Number of consecutively completed levels; drives the world map.
     this.levelsCompleted = save.levelsCompleted;
+    // Lifetime stats + unlocked achievements (#66). Unlike coins/lives
+    // these never reset on a new run — they accrue across playthroughs
+    // and survive resetProgress().
+    this.stats = save.stats;
+    this.achievements = save.achievements;
     // Ghost-race multiplayer (PLAT-19). runTimeMs accumulates playing
     // time across the whole run for the leaderboard.
     this.multiplayer = false;
@@ -55,8 +61,46 @@ export class GameState {
       writeSave({
         levelsCompleted: this.levelsCompleted,
         selectedAvatar: this.selectedAvatar,
+        stats: this.stats,
+        achievements: this.achievements,
       });
     }
+  }
+
+  // The snapshot achievements are judged against: lifetime stats plus
+  // the world-map frontier. Also what the panel reads for progress.
+  achievementStats() {
+    return { ...this.stats, levelsCompleted: this.levelsCompleted };
+  }
+
+  // Marks newly-crossed achievements unlocked and announces each one.
+  // evaluate() only returns ids not yet in this.achievements, so a
+  // given achievement fires its "achievement" event exactly once.
+  _checkAchievements() {
+    if (this.multiplayer) return;
+    for (const id of evaluate(this.achievementStats(), this.achievements)) {
+      this.achievements[id] = Date.now();
+      this._emit("achievement", ACHIEVEMENTS_BY_ID.get(id));
+    }
+  }
+
+  // Lifetime-stat bump + unlock check + save. Races don't count (#66):
+  // stats would inflate from ghost-race runs, so gate like _persist.
+  _bumpStat(key, n = 1) {
+    if (this.multiplayer) return;
+    this.stats[key] = (this.stats[key] || 0) + n;
+    this._checkAchievements();
+    this._persist();
+  }
+
+  // Fashionista tracking: remember each avatar the player has actually
+  // started a level with (menu browsing alone doesn't count).
+  _recordAvatarUse() {
+    if (this.multiplayer) return;
+    if (this.stats.avatarsUsed.includes(this.selectedAvatar)) return;
+    this.stats.avatarsUsed.push(this.selectedAvatar);
+    this._checkAchievements();
+    this._persist();
   }
 
   markTutorialShown() {
@@ -127,6 +171,7 @@ export class GameState {
   gotoLevel(index) {
     this.currentLevel = Math.max(0, Math.min(index, LEVELS.length - 1));
     if (this.currentLevel === 0) this.tutorialDoubleJumpShown = false;
+    this._recordAvatarUse();
     this._emit("level", this.currentLevel);
     this._setScreen("playing");
   }
@@ -186,12 +231,19 @@ export class GameState {
   addCoin() {
     this.coins += 1;
     this._emit("coins", this.coins);
+    this._bumpStat("totalCoins");
+  }
+
+  // Enemy stomped — engine's onStomp hook (#66, Stomper).
+  addStomp() {
+    this._bumpStat("stomps");
   }
 
   // Deducts a life. Returns true when the run is out of lives.
   loseLife() {
     this.lives -= 1;
     this._emit("lives", this.lives);
+    this._bumpStat("deaths");
     return this.lives <= 0;
   }
 
@@ -204,9 +256,14 @@ export class GameState {
       this.levelsCompleted,
       this.currentLevel + 1,
     );
+    const finishedGame = this.currentLevel + 1 >= LEVELS.length;
+    // Bump lifetime counters after levelsCompleted so the unlock check
+    // sees the new frontier (First Steps, World Traveler, Champion...).
+    this._bumpStat("levelsCleared");
+    if (finishedGame) this._bumpStat("gamesCompleted");
     this._persist();
-    
-    if (this.currentLevel + 1 >= LEVELS.length) {
+
+    if (finishedGame) {
       this.finished = true;
       this._setScreen("win");
     } else {

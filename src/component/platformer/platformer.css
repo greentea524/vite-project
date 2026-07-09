@@ -1197,3 +1197,142 @@ button.plat-world-preview.unlocked:active {
   from { transform: translateY(0); }
   to { transform: translateY(-8px); }
 }
+
+/* Achievements panel (#66) — shared by the main menu and pause menu. */
+.plat-ach {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(440px, 92%);
+  /* Own dark backdrop: the pause overlay is only 0.6 alpha, so without
+     this the running level bleeds through the card grid. */
+  background: rgba(12, 15, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.plat-ach-count {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  font-weight: bold;
+  color: #a4e5ff;
+  letter-spacing: 1px;
+}
+
+.plat-ach-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.plat-ach-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.plat-ach-unlocked {
+  background: rgba(120, 200, 120, 0.12);
+  border-color: rgba(140, 255, 140, 0.35);
+}
+
+.plat-ach-locked {
+  opacity: 0.75;
+}
+
+.plat-ach-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.plat-ach-locked .plat-ach-icon {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.plat-ach-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.plat-ach-name {
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.plat-ach-desc {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.plat-ach-date {
+  font-size: 9px;
+  color: rgb(140, 255, 140);
+  margin-top: 2px;
+}
+
+.plat-ach-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.plat-ach-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.plat-ach-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4f9cf5, #a4e5ff);
+}
+
+.plat-ach-frac {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+/* Mid-game unlock toast. */
+.plat-ach-toast {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid rgba(255, 215, 80, 0.6);
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: #fff;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  animation: tutorial-fade-in 0.3s ease-out;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.plat-ach-toast-icon {
+  font-size: 18px;
+}
