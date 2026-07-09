@@ -28,7 +28,7 @@
 }
 
 /* The canvas and the overlay screens share one grid cell, so the
-   stage grows to the taller of the two — on phones the menus extend
+   stage grows to the taller of the two â€” on phones the menus extend
    below the short 16:9 canvas instead of clipping (PLAT-14). */
 .plat-stage {
   position: relative;
@@ -76,7 +76,7 @@
 }
 
 /* Mini stage strip in the HUD center: the current world's stages,
-   world-map style — done gold, current highlighted, rest dimmed. */
+   world-map style â€” done gold, current highlighted, rest dimmed. */
 .plat-hud-stages {
   display: flex;
   gap: 8px;
@@ -141,7 +141,7 @@
   color: #fff;
 }
 
-/* Page-wide selection guard while the game is being played — a held
+/* Page-wide selection guard while the game is being played â€” a held
    control button must not long-press-select text anywhere (PLAT-17). */
 body.plat-no-select {
   user-select: none;
@@ -756,7 +756,4 @@ button.plat-world-preview.unlocked:hover {
 button.plat-world-preview.unlocked:active {
   transform: scale(0.98);
 }
-. p l a t - t r a n s p a r e n t - b g  
-   b a c k g r o u n d :   t r a n s p a r e n t   ! i m p o r t a n t ;    
- 
 .plat-transparent-bg { background: transparent !important; }
