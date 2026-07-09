@@ -1485,6 +1485,10 @@ export class Engine {
     const decor = this.theme?.decor;
     if (decor === "space") this.drawSpaceHelmet(ctx, cx, cy);
     else if (decor === "ice") this.drawSkis(ctx, cx, cy, facing);
+    else if (decor === "grassland") this.drawStrawHat(ctx, cx, cy);
+    else if (decor === "forest") this.drawLantern(ctx, cx, cy, facing);
+    else if (decor === "cave") this.drawMinersHeadlamp(ctx, cx, cy, facing);
+    else if (decor === "factory") this.drawCyberVisor(ctx, cx, cy, facing);
   }
 
   drawSpaceHelmet(ctx, cx, cy) {
@@ -1505,6 +1509,130 @@ export class Engine {
     ctx.beginPath();
     ctx.arc(cx - 3, hy - 3, 1.4, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  drawStrawHat(ctx, cx, cy) {
+    const hy = cy - 6;
+    ctx.fillStyle = "#e6c229"; // straw color
+    
+    // Brim
+    ctx.beginPath();
+    ctx.ellipse(cx, hy + 2, 8, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Crown
+    ctx.beginPath();
+    ctx.arc(cx, hy + 1, 4.5, Math.PI, 0);
+    ctx.fill();
+
+    // Hat band
+    ctx.strokeStyle = "#c1121f"; // red band
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 4.5, hy + 1);
+    ctx.lineTo(cx + 4.5, hy + 1);
+    ctx.stroke();
+  }
+
+  drawLantern(ctx, cx, cy, facing) {
+    // Held slightly in front
+    const lx = cx + facing * 6;
+    const ly = cy + 2;
+
+    // Glow aura
+    const grad = ctx.createRadialGradient(lx, ly, 0, lx, ly, 24);
+    grad.addColorStop(0, "rgba(255, 180, 50, 0.4)");
+    grad.addColorStop(1, "rgba(255, 180, 50, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(lx, ly, 24, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lantern body
+    ctx.fillStyle = "#4a4e69"; // dark metal
+    ctx.fillRect(lx - 2, ly - 3, 4, 1); // top
+    ctx.fillRect(lx - 2, ly + 3, 4, 1); // bottom
+    ctx.fillStyle = "#f4a261"; // glass
+    ctx.fillRect(lx - 1.5, ly - 2, 3, 5); // middle
+
+    // Handle
+    ctx.strokeStyle = "#4a4e69";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(lx - 2, ly - 3);
+    ctx.lineTo(lx, ly - 5);
+    ctx.lineTo(lx + 2, ly - 3);
+    ctx.stroke();
+
+    // Player arm holding it
+    ctx.strokeStyle = "#fff"; // Simple arm representation
+    ctx.beginPath();
+    ctx.moveTo(cx + facing * 2, cy + 1);
+    ctx.lineTo(lx, ly - 5); // Connect to handle
+    ctx.stroke();
+  }
+
+  drawMinersHeadlamp(ctx, cx, cy, facing) {
+    const hy = cy - 5;
+    const strapXOffset = facing * 1;
+    
+    // Strap
+    ctx.fillStyle = "#2b2d42";
+    ctx.fillRect(cx - 5 + strapXOffset, hy - 1, 10, 2.5);
+
+    // Light fixture
+    const fx = cx + facing * 5;
+    ctx.fillStyle = "#8d99ae"; // metal fixture
+    ctx.beginPath();
+    ctx.arc(fx, hy + 0.5, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Bright yellow bulb
+    ctx.fillStyle = "#ffee32";
+    ctx.beginPath();
+    ctx.arc(fx + facing * 0.5, hy + 0.5, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cone of light
+    ctx.fillStyle = "rgba(255, 238, 50, 0.15)";
+    ctx.beginPath();
+    ctx.moveTo(fx + facing * 1, hy + 0.5);
+    ctx.lineTo(fx + facing * 40, hy - 15);
+    ctx.lineTo(fx + facing * 40, hy + 20);
+    ctx.fill();
+  }
+
+  drawCyberVisor(ctx, cx, cy, facing) {
+    const hy = cy - 4;
+    
+    ctx.save();
+    
+    // Create neon glow effect
+    ctx.shadowColor = "#f01c8b";
+    ctx.shadowBlur = 6;
+    ctx.lineCap = "round";
+    
+    // Visor shape
+    ctx.strokeStyle = "#00f0ff"; // Cyan center
+    ctx.lineWidth = 2.5;
+    
+    ctx.beginPath();
+    // Wrap around face slightly based on facing
+    const startX = cx - facing * 2;
+    const endX = cx + facing * 6;
+    
+    ctx.moveTo(startX, hy - 1);
+    // Slight curve down and back up
+    ctx.quadraticCurveTo(cx + facing * 2, hy + 1, endX, hy - 1);
+    ctx.stroke();
+    
+    // Inner white core for extreme brightness
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    ctx.restore();
   }
 
   drawSkis(ctx, cx, cy, facing) {
