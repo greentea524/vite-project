@@ -360,13 +360,13 @@ function Platformer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [screen, state]);
 
-  // Reset the maps when leaving their respective screens
-  useEffect(() => {
-    if (screen !== "paused") setShowPauseMap(false);
-    if (screen !== "paused") setShowPauseAch(false);
-    if (screen !== "menu") setShowMenuMap(false);
-    if (screen !== "menu") setShowMenuAch(false);
-  }, [screen]);
+  // Reset the maps during render when leaving their respective screens
+  const [prevScreen, setPrevScreen] = useState(screen);
+  if (screen !== prevScreen) {
+    setPrevScreen(screen);
+    if (screen !== "paused") { setShowPauseMap(false); setShowPauseAch(false); }
+    if (screen !== "menu") { setShowMenuMap(false); setShowMenuAch(false); }
+  }
 
   // Grace/fail timers while waiting for the relay in the lobby
   // (KAN-53): after 4s of silence assume it's a cold start ("waking"),
