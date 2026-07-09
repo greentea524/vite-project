@@ -90,9 +90,12 @@ export class GameState {
     this.gotoLevel(this.levelsCompleted);
   }
 
-  // Plays a specific stage without wiping progress
-  playStage(index) {
-    this.multiplayer = false;
+  // Plays a specific stage without wiping progress. `multiplayer` must
+  // be set before gotoLevel() so loadLevel() sees it (it reads the flag
+  // synchronously to apply each racer's spawn offset and to enable the
+  // per-frame state broadcast that drives other players' ghosts).
+  playStage(index, multiplayer = false) {
+    this.multiplayer = multiplayer;
     this.coins = 0;
     this.lives = START_LIVES;
     this.runTimeMs = 0;
@@ -102,9 +105,9 @@ export class GameState {
     this.gotoLevel(index);
   }
 
-  // Legacy entry point, used for multiplayer or backwards compat
+  // Multiplayer race entry point: starts at level 0 with multiplayer on.
   startGame() {
-    this.playStage(0);
+    this.playStage(0, true);
   }
 
   // Multiplayer lobby (PLAT-23): choose create/join before starting.

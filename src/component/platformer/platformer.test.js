@@ -396,6 +396,23 @@ describe("game state flow", () => {
     expect(s.currentLevel).toBe(1);
   });
 
+  it("startGame() keeps multiplayer on so racers broadcast ghosts", () => {
+    // Regression: startGame() delegated to playStage(0), which reset
+    // multiplayer to false — so the per-frame state broadcast never
+    // fired and no one saw each other's ghosts.
+    const s = new GameState();
+    s.startGame();
+    expect(s.multiplayer).toBe(true);
+  });
+
+  it("playStage() defaults to single-player", () => {
+    const s = new GameState();
+    s.multiplayer = true;
+    s.playStage(1);
+    expect(s.multiplayer).toBe(false);
+    expect(s.currentLevel).toBe(1);
+  });
+
   it("finishing a world continues to the next world directly", () => {
     const s = new GameState();
     s.gotoLevel(2); // 1-3, last of world 1

@@ -550,8 +550,7 @@ function Platformer() {
   const beginLocalRace = () => {
     remoteLatestRef.current.clear();
     sentFinishRef.current = false;
-    state.multiplayer = true;
-    state.startGame();
+    state.startGame(); // enters level 0 with multiplayer enabled
   };
 
   // Synced start: every client counts down from the same broadcast and
