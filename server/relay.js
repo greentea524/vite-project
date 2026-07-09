@@ -41,8 +41,23 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
   const httpServer = createServer((req, res) => {
     // Tiny health check for hosting platforms (PLAT-27).
     if (req.url === "/health") {
-      res.writeHead(200, { "content-type": "text/plain" });
+      res.writeHead(200, {
+        "content-type": "text/plain",
+        "Access-Control-Allow-Origin": req.headers.origin || "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      });
       res.end("ok");
+      return;
+    }
+    // Also handle preflight requests if needed
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, {
+        "Access-Control-Allow-Origin": req.headers.origin || "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      });
+      res.end();
       return;
     }
     res.writeHead(404);
