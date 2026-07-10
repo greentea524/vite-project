@@ -92,11 +92,11 @@
 
 .bossBarContainer {
   position: absolute;
-  top: 10px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
   width: 60%;
-  height: 16px;
+  height: 8px;
   background: rgba(0, 0, 0, 0.6);
   border: 2px solid #555;
   border-radius: 8px;

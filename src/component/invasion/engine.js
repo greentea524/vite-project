@@ -198,9 +198,9 @@ export class InvasionEngine {
     const maxWidth = Math.max(260, wrapperWidth);
     const maxHeight = Math.max(
       220,
-      window.innerHeight * 0.78 - reservedControlsHeight - verticalPadding,
+      window.innerHeight - reservedControlsHeight - verticalPadding,
     );
-    const aspectRatio = isMobile ? 800 / 900 : 800 / 600;
+    const aspectRatio = isMobile ? 800 / 1200 : 800 / 700;
 
     let newWidth = isMobile ? maxWidth : Math.min(maxWidth, 960);
     let newHeight = newWidth / aspectRatio;
