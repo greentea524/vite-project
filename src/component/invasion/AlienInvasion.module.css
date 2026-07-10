@@ -111,6 +111,21 @@
   transition: width 0.1s linear;
 }
 
+/* Boss name under the aggregate HP bar (#90/#91/#92). */
+.bossLabel {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #ff9c9c;
+  text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 5;
+}
+
 .gameArea {
   position: relative;
   display: flex;

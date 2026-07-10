@@ -151,12 +151,15 @@ export default function AlienInvasion() {
               </div>
             </div>
             {hud.bossMaxHp > 0 && hud.bossHp > 0 && (
-              <div className={styles.bossBarContainer}>
-                <div 
-                  className={styles.bossBarFill} 
-                  style={{ width: `${(hud.bossHp / hud.bossMaxHp) * 100}%` }} 
-                />
-              </div>
+              <>
+                <div className={styles.bossBarContainer}>
+                  <div
+                    className={styles.bossBarFill}
+                    style={{ width: `${(hud.bossHp / hud.bossMaxHp) * 100}%` }}
+                  />
+                </div>
+                <div className={styles.bossLabel}>{hud.bossName}</div>
+              </>
             )}
           </>
         )}
@@ -221,6 +224,10 @@ export default function AlienInvasion() {
               <li>White jet: You</li>
               <li>Green ships: Enemy</li>
               <li>Large dark ship: Boss (multi-hit)</li>
+              <li>Bosses rotate each wave: Octopus, Mothership, Laser Core, Swarm Hive</li>
+              <li>Mothership launches kamikaze ships — shoot them before they ram you</li>
+              <li>Laser Core telegraphs a beam column — dodge before it fires</li>
+              <li>Swarm Hive splits in two when killed — twice</li>
               <li>Red shots: Your bullets</li>
               <li>Cyan crate: Weapon upgrade pickup</li>
               <li>1st pickup: Dual missiles (permanent)</li>

@@ -1325,8 +1325,14 @@ export class InvasionEngine {
       coins: this.coinsCollected,
       shots: this.bulletsShot,
       hits: this.hits,
-      bossHp: this.boss ? this.boss.hp : 0,
-      bossMaxHp: this.boss ? this.boss.maxHp : 0,
+      // Aggregated across all live bosses — the hive splits into
+      // several (#92); each split also has its own on-canvas bar.
+      bossHp: this.bosses.reduce((sum, b) => sum + b.hp, 0),
+      bossMaxHp: this.bosses.reduce((sum, b) => sum + b.maxHp, 0),
+      bossName: this.bosses.length
+        ? BOSS_NAMES[this.bosses[0].type] +
+          (this.bosses.length > 1 ? ` ×${this.bosses.length}` : "")
+        : "",
       comboCount: this.comboTimerFrames > 0 ? this.comboCount : 0,
       comboMultiplier:
         this.comboTimerFrames > 0 ? this._comboMultiplier(this.comboCount) : 1,
@@ -1366,7 +1372,7 @@ export class InvasionEngine {
     this._drawBullets();
     this._drawPowerUps();
     this._drawCoins();
-    this._drawBoss();
+    this._drawBosses();
     this._drawAliens();
     this._drawParticles();
     this._drawScorePopups();
