@@ -61,21 +61,45 @@ function App() {
       )}
       <div className="App" hidden={state.hidden} data-theme={state.theme}>
         <div className="theme-switcher">
-          <section className="field-row">
-            <label htmlFor="theme-switcher-select">Select a theme</label>
-            <select
-              id="theme-switcher-select"
-              onChange={handleThemeChange}
-              value={state.theme}
-            >
-              <option value="98.css">Windows 98</option>
-              <option value="xp.css">Windows XP</option>
-              <option value="7.css">Windows 7</option>
-            </select>
+          <section className="field-row" style={{ gap: '12px' }}>
+            <span style={{ fontWeight: 'bold' }}>Theme:</span>
+            <div className="field-row" style={{ gap: '4px', margin: 0 }}>
+              <input 
+                type="radio" 
+                id="theme-98" 
+                name="theme" 
+                value="98.css" 
+                checked={state.theme === "98.css"} 
+                onChange={handleThemeChange} 
+              />
+              <label htmlFor="theme-98">Windows 98</label>
+            </div>
+            <div className="field-row" style={{ gap: '4px', margin: 0 }}>
+              <input 
+                type="radio" 
+                id="theme-xp" 
+                name="theme" 
+                value="xp.css" 
+                checked={state.theme === "xp.css"} 
+                onChange={handleThemeChange} 
+              />
+              <label htmlFor="theme-xp">Windows XP</label>
+            </div>
+            <div className="field-row" style={{ gap: '4px', margin: 0 }}>
+              <input 
+                type="radio" 
+                id="theme-7" 
+                name="theme" 
+                value="7.css" 
+                checked={state.theme === "7.css"} 
+                onChange={handleThemeChange} 
+              />
+              <label htmlFor="theme-7">Windows 7</label>
+            </div>
             <button 
               type="button" 
               onClick={() => setShowCredits(true)}
-              style={{ marginLeft: '8px', padding: '2px 8px' }}
+              style={{ marginLeft: '4px', padding: '2px 8px' }}
               aria-label="Theme Credits"
             >
               ℹ️ Credits
