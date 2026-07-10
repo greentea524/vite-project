@@ -62,7 +62,6 @@ function App() {
       <div className="App" hidden={state.hidden} data-theme={state.theme}>
         <div className="theme-switcher">
           <section className="field-row" style={{ gap: '12px' }}>
-            <span style={{ fontWeight: 'bold' }}>Theme:</span>
             <div className="field-row" style={{ gap: '4px', margin: 0 }}>
               <input 
                 type="radio" 
@@ -96,14 +95,17 @@ function App() {
               />
               <label htmlFor="theme-7">Windows 7</label>
             </div>
-            <button 
-              type="button" 
+            <span 
               onClick={() => setShowCredits(true)}
-              style={{ marginLeft: '4px', padding: '2px 8px' }}
+              style={{ marginLeft: 'auto', cursor: 'pointer', fontSize: '1.1rem' }}
               aria-label="Theme Credits"
+              title="Theme Credits"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && setShowCredits(true)}
             >
-              ℹ️ Credits
-            </button>
+              ℹ️
+            </span>
           </section>
         </div>
 
