@@ -18,6 +18,12 @@ const stats = (over = {}) => ({
   stomps: 0,
   avatarsUsed: [],
   levelsCompleted: 0,
+  deathFreeClears: 0,
+  deathFreeWorlds: 0,
+  fastClears: 0,
+  lightningClears: 0,
+  world3LavaFree: 0,
+  world5WaterFree: 0,
   ...over,
 });
 
@@ -129,6 +135,119 @@ describe("GameState achievements integration", () => {
     expect(s.stats.stomps).toBe(0);
     expect(s.stats.deaths).toBe(0);
     expect(s.achievements).toEqual({});
+  });
+
+  it("clearing a level without dying unlocks Untouchable", () => {
+    const s = new GameState();
+    s.playStage(0);
+    s.levelComplete();
+    expect(s.stats.deathFreeClears).toBe(1);
+    expect(s.achievements.untouchable).toBeTypeOf("number");
+  });
+
+  it("any death — even with a checkpoint respawn — blocks Untouchable", () => {
+    const s = new GameState();
+    s.playStage(0);
+    s.loseLife("enemy");
+    s.levelComplete();
+    expect(s.stats.deathFreeClears).toBe(0);
+  });
+
+  it("a retry is a fresh level attempt for Untouchable, but the world run stays dirty", () => {
+    const s = new GameState();
+    s.playStage(0);
+    s.loseLife("enemy");
+    s.loseLife("enemy");
+    s.loseLife("enemy"); // game over
+    s.retryLevel();
+    s.levelComplete(); // 1-1 cleared death-free on the retry
+    s.levelComplete(); // 1-2
+    s.levelComplete(); // 1-3 — world 1 done
+    expect(s.stats.deathFreeClears).toBe(3);
+    expect(s.stats.deathFreeWorlds).toBe(0); // deaths before the retry count
+  });
+
+  it("clearing a full world death-free unlocks Flawless, and rolls into the next world", () => {
+    const s = new GameState();
+    s.playStage(0);
+    s.levelComplete(); // 1-1
+    s.levelComplete(); // 1-2
+    s.levelComplete(); // 1-3
+    expect(s.stats.deathFreeWorlds).toBe(1);
+    expect(s.achievements.flawless).toBeTypeOf("number");
+    s.levelComplete(); // 2-1 — natural progression stays eligible
+    s.levelComplete(); // 2-2
+    s.levelComplete(); // 2-3
+    expect(s.stats.deathFreeWorlds).toBe(2);
+  });
+
+  it("stage-selecting into the middle of a world is not Flawless-eligible", () => {
+    const s = new GameState();
+    s.playStage(1); // 1-2
+    s.levelComplete(); // 1-2
+    s.levelComplete(); // 1-3 — world done, but run started mid-world
+    expect(s.stats.deathFreeClears).toBe(2);
+    expect(s.stats.deathFreeWorlds).toBe(0);
+  });
+
+  it("speed clears use the level timer and require it to have run", () => {
+    const s = new GameState();
+    s.playStage(0);
+    s.levelComplete(); // timer never ticked — no speed clear
+    expect(s.stats.fastClears).toBe(0);
+
+    s.addLevelTime(20000);
+    s.levelComplete(); // 20s: Speedrunner but not Lightning Run
+    expect(s.stats.fastClears).toBe(1);
+    expect(s.stats.lightningClears).toBe(0);
+
+    s.addLevelTime(10000);
+    s.levelComplete(); // 10s: both
+    expect(s.stats.fastClears).toBe(2);
+    expect(s.stats.lightningClears).toBe(1);
+
+    s.addLevelTime(40000);
+    s.levelComplete(); // too slow
+    expect(s.stats.fastClears).toBe(2);
+  });
+
+  it("the level timer resets on every level entry", () => {
+    const s = new GameState();
+    s.playStage(0);
+    s.addLevelTime(5000);
+    s.restartLevel();
+    expect(s.levelTimeMs).toBe(0);
+  });
+
+  it("Lava Dodger allows non-lava deaths but not lava ones", () => {
+    const world3Start = 6; // levels 6-8 are World 3
+    const s = new GameState();
+    s.playStage(world3Start);
+    s.loseLife("enemy"); // bats don't count against Lava Dodger
+    s.levelComplete(); // 3-1
+    s.levelComplete(); // 3-2
+    s.levelComplete(); // 3-3
+    expect(s.stats.world3LavaFree).toBe(1);
+    expect(s.stats.deathFreeWorlds).toBe(0); // the enemy death blocks Flawless
+
+    const t = new GameState();
+    t.playStage(world3Start);
+    t.loseLife("lava");
+    t.levelComplete();
+    t.levelComplete();
+    t.levelComplete();
+    expect(t.stats.world3LavaFree).toBe(1); // still 1 from the first run's save
+  });
+
+  it("Ice Legs blocks on freezing-water deaths in World 5", () => {
+    const world5Start = 12; // levels 12-14 are World 5
+    const s = new GameState();
+    s.playStage(world5Start);
+    s.loseLife("freezingwater");
+    s.levelComplete();
+    s.levelComplete();
+    s.levelComplete();
+    expect(s.stats.world5WaterFree).toBe(0);
   });
 
   it("resetProgress wipes the frontier but keeps achievements and stats", () => {

@@ -30,6 +30,12 @@ describe("save.js", () => {
         gamesCompleted: 0,
         stomps: 0,
         avatarsUsed: [],
+        deathFreeClears: 0,
+        deathFreeWorlds: 0,
+        fastClears: 0,
+        lightningClears: 0,
+        world3LavaFree: 0,
+        world5WaterFree: 0,
       },
       achievements: {},
     });

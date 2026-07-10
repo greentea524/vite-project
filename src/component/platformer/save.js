@@ -14,6 +14,14 @@ const DEFAULT_STATS = {
   gamesCompleted: 0,
   stomps: 0,
   avatarsUsed: [],
+  // Phase 2 (#67): per-run performance counts. Missing on older saves;
+  // validStats fills them in, so no schema version bump is needed.
+  deathFreeClears: 0,
+  deathFreeWorlds: 0,
+  fastClears: 0,
+  lightningClears: 0,
+  world3LavaFree: 0,
+  world5WaterFree: 0,
 };
 
 const DEFAULT_SAVE = {
@@ -40,6 +48,12 @@ function validStats(raw) {
     avatarsUsed: Array.isArray(s.avatarsUsed)
       ? [...new Set(s.avatarsUsed.filter((n) => Number.isInteger(n) && n >= 0 && n < AVATAR_COUNT))]
       : [],
+    deathFreeClears: count(s.deathFreeClears),
+    deathFreeWorlds: count(s.deathFreeWorlds),
+    fastClears: count(s.fastClears),
+    lightningClears: count(s.lightningClears),
+    world3LavaFree: count(s.world3LavaFree),
+    world5WaterFree: count(s.world5WaterFree),
   };
 }
 

@@ -327,7 +327,7 @@ export class Engine {
           this.input.clear(); // Clear held input to prevent momentum on next level
           this.state.levelComplete();
         },
-        onPlayerDeath: () => this.onPlayerDeath(),
+        onPlayerDeath: (cause) => this.onPlayerDeath(cause),
       },
     );
 
@@ -348,6 +348,11 @@ export class Engine {
       this.state.markTutorialShown();
       this.state._emit("showTutorial", "doubleJump");
     }
+
+    // Per-level clear timer for the speedrun achievements (#67).
+    // step() only runs while screen === "playing", so pause and menu
+    // time never count.
+    this.state.addLevelTime(dt * 1000);
 
     // Multiplayer: accumulate the run timer (playing time only, so
     // pauses don't count) and broadcast a throttled snapshot.
@@ -371,10 +376,10 @@ export class Engine {
     this.updateCamera(dt);
   }
 
-  onPlayerDeath() {
+  onPlayerDeath(cause) {
     if (!killPlayer(this.player)) return;
     this.input.clear(); // Clear held input to prevent momentum during respawn
-    if (this.state.loseLife()) {
+    if (this.state.loseLife(cause)) {
       this._pending = { t: GAME_OVER_DELAY, fn: () => this.state.gameOver() };
     } else {
       this._pending = {

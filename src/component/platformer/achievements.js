@@ -94,6 +94,57 @@ export const ACHIEVEMENTS = [
     goal: (s) => (Array.isArray(s.avatarsUsed) ? s.avatarsUsed.length : 0),
     target: 6,
   },
+  // --- Phase 2 (#67): per-run performance. Modeled as lifetime counts
+  // ("death-free clears so far") so evaluate() and the panel's
+  // progress bars work unchanged — locked cards read "0 / 1".
+  {
+    id: "untouchable",
+    name: "Untouchable",
+    desc: "Clear a level without dying",
+    icon: "🛡️",
+    goal: (s) => s.deathFreeClears,
+    target: 1,
+  },
+  {
+    id: "flawless",
+    name: "Flawless",
+    desc: "Clear a full world without dying",
+    icon: "💎",
+    goal: (s) => s.deathFreeWorlds,
+    target: 1,
+  },
+  {
+    id: "speedrunner",
+    name: "Speedrunner",
+    desc: "Clear a level in under 30 seconds",
+    icon: "⏱️",
+    goal: (s) => s.fastClears,
+    target: 1,
+  },
+  {
+    id: "lightning_run",
+    name: "Lightning Run",
+    desc: "Clear a level in under 15 seconds",
+    icon: "⚡",
+    goal: (s) => s.lightningClears,
+    target: 1,
+  },
+  {
+    id: "lava_dodger",
+    name: "Lava Dodger",
+    desc: "Clear World 3 without a lava death",
+    icon: "🌋",
+    goal: (s) => s.world3LavaFree,
+    target: 1,
+  },
+  {
+    id: "ice_legs",
+    name: "Ice Legs",
+    desc: "Clear World 5 without a freezing-water death",
+    icon: "🧊",
+    goal: (s) => s.world5WaterFree,
+    target: 1,
+  },
 ];
 
 export const ACHIEVEMENTS_BY_ID = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));

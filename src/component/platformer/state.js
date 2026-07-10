@@ -33,6 +33,14 @@ export class GameState {
     // and survive resetProgress().
     this.stats = save.stats;
     this.achievements = save.achievements;
+    // Per-run performance tracking (#67), never persisted: deaths and
+    // play time on the current level, and the current world run for
+    // the death-free / hazard-free world achievements. A world run is
+    // only `eligible` when it started on the world's first stage —
+    // stage-selecting into 3-2 can't earn a full-world clear.
+    this.levelDeaths = 0;
+    this.levelTimeMs = 0;
+    this.worldRun = { world: -1, eligible: false, deaths: 0, lavaDeaths: 0, waterDeaths: 0 };
     // Ghost-race multiplayer (PLAT-19). runTimeMs accumulates playing
     // time across the whole run for the leaderboard.
     this.multiplayer = false;
@@ -93,6 +101,21 @@ export class GameState {
     this._persist();
   }
 
+  // Starts a fresh world run at `index` (#67). Called from every
+  // fresh-run entry point; levelComplete() rolls the run over itself
+  // when play crosses into the next world, so natural progression
+  // through 4-1 after finishing 3-3 stays eligible.
+  _resetWorldRun(index) {
+    const level = LEVELS[Math.max(0, Math.min(index, LEVELS.length - 1))];
+    this.worldRun = {
+      world: level.world,
+      eligible: level.stage === 0,
+      deaths: 0,
+      lavaDeaths: 0,
+      waterDeaths: 0,
+    };
+  }
+
   // Fashionista tracking: remember each avatar the player has actually
   // started a level with (menu browsing alone doesn't count).
   _recordAvatarUse() {
@@ -124,6 +147,7 @@ export class GameState {
     this.finished = false;
     this._emit("coins", this.coins);
     this._emit("lives", this.lives);
+    this._resetWorldRun(0);
     this.gotoLevel(0);
   }
 
@@ -136,6 +160,7 @@ export class GameState {
     this.finished = false;
     this._emit("coins", this.coins);
     this._emit("lives", this.lives);
+    this._resetWorldRun(this.levelsCompleted);
     this.gotoLevel(this.levelsCompleted);
   }
 
@@ -151,6 +176,7 @@ export class GameState {
     this.finished = false;
     this._emit("coins", this.coins);
     this._emit("lives", this.lives);
+    this._resetWorldRun(index);
     this.gotoLevel(index);
   }
 
@@ -168,9 +194,21 @@ export class GameState {
     this.runTimeMs += ms;
   }
 
+  // Per-level clear timer (#67): ticked by the engine only while
+  // actually playing, so pauses and menus never count.
+  addLevelTime(ms) {
+    this.levelTimeMs += ms;
+  }
+
   gotoLevel(index) {
     this.currentLevel = Math.max(0, Math.min(index, LEVELS.length - 1));
     if (this.currentLevel === 0) this.tutorialDoubleJumpShown = false;
+    // Every level entry is a fresh attempt for the per-level
+    // achievements — including retryLevel/restartLevel, which route
+    // through here. The world run deliberately does NOT reset: deaths
+    // that forced the retry already dirtied it.
+    this.levelDeaths = 0;
+    this.levelTimeMs = 0;
     this._recordAvatarUse();
     this._emit("level", this.currentLevel);
     this._setScreen("playing");
@@ -240,9 +278,17 @@ export class GameState {
   }
 
   // Deducts a life. Returns true when the run is out of lives.
-  loseLife() {
+  // `cause` is what killed the player (see processInteractions) and
+  // feeds the hazard-specific world achievements (#67).
+  loseLife(cause) {
     this.lives -= 1;
     this._emit("lives", this.lives);
+    // Per-run tracking: any death — even a checkpoint respawn — makes
+    // the level and world runs no longer death-free.
+    this.levelDeaths += 1;
+    this.worldRun.deaths += 1;
+    if (cause === "lava" || cause === "lavarock") this.worldRun.lavaDeaths += 1;
+    if (cause === "freezingwater") this.worldRun.waterDeaths += 1;
     this._bumpStat("deaths");
     return this.lives <= 0;
   }
@@ -261,13 +307,36 @@ export class GameState {
     // sees the new frontier (First Steps, World Traveler, Champion...).
     this._bumpStat("levelsCleared");
     if (finishedGame) this._bumpStat("gamesCompleted");
+
+    // Phase 2 (#67): per-run performance achievements. The timer guard
+    // (> 0) skips clears where the engine never ticked. All bumps
+    // no-op during multiplayer races via _bumpStat.
+    if (this.levelDeaths === 0) this._bumpStat("deathFreeClears");
+    if (this.levelTimeMs > 0 && this.levelTimeMs < 30000) this._bumpStat("fastClears");
+    if (this.levelTimeMs > 0 && this.levelTimeMs < 15000) this._bumpStat("lightningClears");
+    if (
+      this.isLastInWorld(this.currentLevel) &&
+      this.worldRun.world === LEVELS[this.currentLevel].world &&
+      this.worldRun.eligible
+    ) {
+      if (this.worldRun.deaths === 0) this._bumpStat("deathFreeWorlds");
+      // World indices are 0-based: 2 = World 3 (Underworld), 4 = World 5.
+      if (this.worldRun.world === 2 && this.worldRun.lavaDeaths === 0)
+        this._bumpStat("world3LavaFree");
+      if (this.worldRun.world === 4 && this.worldRun.waterDeaths === 0)
+        this._bumpStat("world5WaterFree");
+    }
     this._persist();
 
     if (finishedGame) {
       this.finished = true;
       this._setScreen("win");
     } else {
-      this.gotoLevel(this.currentLevel + 1);
+      const next = this.currentLevel + 1;
+      // Crossing into the next world starts a fresh, eligible world
+      // run — natural progression always enters at stage 0 (#67).
+      if (LEVELS[next].world !== this.worldRun.world) this._resetWorldRun(next);
+      this.gotoLevel(next);
     }
   }
 

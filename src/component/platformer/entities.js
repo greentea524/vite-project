@@ -224,8 +224,11 @@ export function lavaRockRect(r) {
 
 // Applies the contact rules for one frame. `world` holds the player,
 // entity lists, and level; `ev` supplies the outcome callbacks:
-//   onCoin(coin), onStomp(enemy), onPlayerDeath(), onCheckpoint(k),
+//   onCoin(coin), onStomp(enemy), onPlayerDeath(cause), onCheckpoint(k),
 //   onFlag(flag)
+// onPlayerDeath receives what killed the player — "spikes", "lava",
+// "freezingwater", "stalactite", "meteor", "lavarock", "laser",
+// "enemy", or "fall" — for the hazard-specific achievements (#67).
 export function processInteractions(world, ev) {
   const p = world.player;
   if (p.dying) return;
@@ -240,7 +243,7 @@ export function processInteractions(world, ev) {
 
   for (const s of world.spikes) {
     if (rectsOverlap(pr, spikesRect(s))) {
-      ev.onPlayerDeath();
+      ev.onPlayerDeath("spikes");
       return;
     }
   }
@@ -249,37 +252,37 @@ export function processInteractions(world, ev) {
   // (World 3/4). Lists are absent on earlier worlds — treat as empty.
   for (const l of world.lava ?? []) {
     if (rectsOverlap(pr, lavaRect(l))) {
-      ev.onPlayerDeath();
+      ev.onPlayerDeath("lava");
       return;
     }
   }
   for (const fw of world.freezingWater ?? []) {
     if (rectsOverlap(pr, freezingWaterRect(fw))) {
-      ev.onPlayerDeath();
+      ev.onPlayerDeath("freezingwater");
       return;
     }
   }
   for (const s of world.stalactites ?? []) {
     if (!s.gone && rectsOverlap(pr, stalactiteRect(s))) {
-      ev.onPlayerDeath();
+      ev.onPlayerDeath("stalactite");
       return;
     }
   }
   for (const m of world.meteors ?? []) {
     if (!m.gone && rectsOverlap(pr, meteorRect(m))) {
-      ev.onPlayerDeath();
+      ev.onPlayerDeath("meteor");
       return;
     }
   }
   for (const r of world.lavaRocks ?? []) {
     if (!r.gone && rectsOverlap(pr, lavaRockRect(r))) {
-      ev.onPlayerDeath();
+      ev.onPlayerDeath("lavarock");
       return;
     }
   }
   for (const l of world.lasers ?? []) {
     if (l.state === "active" && rectsOverlap(pr, laserRect(l))) {
-      ev.onPlayerDeath();
+      ev.onPlayerDeath("laser");
       return;
     }
   }
@@ -293,7 +296,7 @@ export function processInteractions(world, ev) {
         squashEnemy(e);
         ev.onStomp(e);
       } else {
-        ev.onPlayerDeath();
+        ev.onPlayerDeath("enemy");
         return;
       }
     }
@@ -314,5 +317,5 @@ export function processInteractions(world, ev) {
   }
 
   // Falling below the level bounds kills the player (PG-16).
-  if (p.y > world.level.killY) ev.onPlayerDeath();
+  if (p.y > world.level.killY) ev.onPlayerDeath("fall");
 }
