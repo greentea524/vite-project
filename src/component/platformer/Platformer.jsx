@@ -1056,14 +1056,14 @@ function Platformer() {
                   </button>
                 </div>
                 {network?.isHost && (
-                  <label className="plat-field plat-field-checkbox" style={{ marginBottom: "1rem" }}>
-                    <input
-                      type="checkbox"
-                      checked={catchUpShields}
-                      onChange={(e) => network.setCatchUpShields(e.target.checked)}
-                    />
-                    <span className="plat-field-label">Enable catch-up shields</span>
-                  </label>
+                  <button
+                    type="button"
+                    className={`plat-btn ${catchUpShields ? "plat-btn-primary" : "plat-btn-subtle"}`}
+                    onClick={() => network.setCatchUpShields(!catchUpShields)}
+                    style={{ marginBottom: "1rem", width: "100%" }}
+                  >
+                    Catch-up shields: {catchUpShields ? "ON" : "OFF"}
+                  </button>
                 )}
                 {!network?.isHost && catchUpShields && (
                   <p className="plat-text" style={{ fontSize: "0.85rem", color: "#ffd700", marginBottom: "1rem" }}>
