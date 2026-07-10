@@ -115,10 +115,10 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     socket.on("createRoom", (payload = {}, ack) => {
       const code = makeCode(rooms);
       // The creator is the host (PLAT-30).
-      const room = { players: new Map(), nextSlot: 0, hostId: socket.id, deadEnemies: new Set() };
+      const room = { players: new Map(), nextSlot: 0, hostId: socket.id, deadEnemies: new Set(), catchUpShields: false };
       rooms.set(code, room);
       join(socket, room, code, payload);
-      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies) });
+      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies), catchUpShields: room.catchUpShields });
     });
 
     socket.on("joinRoom", (payload = {}, ack) => {
@@ -133,7 +133,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
         return;
       }
       const player = join(socket, room, code, payload);
-      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies) });
+      ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies), catchUpShields: room.catchUpShields });
       // Tell everyone else who joined.
       socket.to(code).emit("playerJoined", {
         id: player.id, name: player.name, avatar: player.avatar, slot: player.slot,
@@ -156,6 +156,14 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       if (!room || !enemyId) return;
       room.deadEnemies.add(enemyId);
       socket.to(code).emit("enemyKilled", enemyId);
+    });
+
+    socket.on("setCatchUpShields", (enabled) => {
+      const code = socket.data.roomCode;
+      const room = rooms.get(code);
+      if (!room || room.hostId !== socket.id) return;
+      room.catchUpShields = Boolean(enabled);
+      io.to(code).emit("catchUpShieldsUpdated", room.catchUpShields);
     });
 
     // Name changed in the room lobby: same deal as setAvatar, with the

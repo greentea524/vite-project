@@ -215,11 +215,14 @@ function Platformer() {
   // Multiplayer UI state (PLAT-23/24).
   const [playerName, setPlayerName] = useState("");
   const [lobbyMode, setLobbyMode] = useState("choose"); // choose | room
+  const [activeRoomCode, setActiveRoomCode] = useState("");
+  const [roster, setRoster] = useState([]);
+  const [catchUpShields, setCatchUpShields] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [roomCode, setRoomCode] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [joinLink, setJoinLink] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
-  const [roster, setRoster] = useState([]);
   const [mpError, setMpError] = useState("");
   // Relay connection status for the lobby (KAN-53). Free hosting naps
   // when idle, so the first connection can take ~10s:
@@ -234,7 +237,7 @@ function Platformer() {
   const [linkCopied, setLinkCopied] = useState(false);
   const copyLinkTimerRef = useRef(null);
 
-  const copyJoinLink = () => {
+  const copyLink = () => {
     if (!joinLink) return;
     navigator.clipboard?.writeText(joinLink).then(() => {
       setLinkCopied(true);
@@ -289,6 +292,7 @@ function Platformer() {
       engine.attachNetwork(network);
       unsubs.push(
         network.on("roster", setRoster),
+        network.on("catchUpShieldsUpdated", setCatchUpShields),
         // Connection lifecycle drives the lobby status. connect_error
         // is routed here too — during a cold start those are expected,
         // so they surface as "waking", not as a raw error message.
@@ -1123,6 +1127,21 @@ function Platformer() {
                     ▶
                   </button>
                 </div>
+                {network?.isHost && (
+                  <label className="plat-field plat-field-checkbox" style={{ marginBottom: "1rem" }}>
+                    <input
+                      type="checkbox"
+                      checked={catchUpShields}
+                      onChange={(e) => network.setCatchUpShields(e.target.checked)}
+                    />
+                    <span className="plat-field-label">Enable catch-up shields</span>
+                  </label>
+                )}
+                {!network?.isHost && catchUpShields && (
+                  <p className="plat-text" style={{ fontSize: "0.85rem", color: "#ffd700", marginBottom: "1rem" }}>
+                    Catch-up shields enabled
+                  </p>
+                )}
                 {qrDataUrl && (
                   <div className="plat-qr-card">
                     <img

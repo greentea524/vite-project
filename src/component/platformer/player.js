@@ -30,6 +30,7 @@ export function createPlayer(x, y) {
     facing: 1, anim: "idle", animT: 0,
     scaleX: 1, scaleY: 1, flairT: 0,
     alpha: 1, fadeT: 0, tint: null,
+    shield: 0, invuln: 0,
   };
 }
 
@@ -46,6 +47,9 @@ export function playerFrame(p) {
 
 // One simulation step. `fx.play(name)` requests a sound effect.
 export function updatePlayer(p, input, level, dt, fx) {
+  if (p.invuln > 0) {
+    p.invuln = Math.max(0, p.invuln - dt);
+  }
   p.animT += dt;
 
   // Respawn fade-in (0.3 -> 1.0 alpha over 0.6s)

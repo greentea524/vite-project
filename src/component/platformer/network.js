@@ -42,6 +42,7 @@ export class Network {
     this.selfSlot = 0; // spawn-fan slot assigned by the server
     this.roster = [];
     this.deadEnemies = new Set();
+    this.catchUpShields = false;
     this._lastSent = 0;
   }
 
@@ -107,6 +108,10 @@ export class Network {
       this.deadEnemies.add(enemyId);
       this._emit("enemyKilled", enemyId);
     });
+    socket.on("catchUpShieldsUpdated", (enabled) => {
+      this.catchUpShields = enabled;
+      this._emit("catchUpShieldsUpdated", enabled);
+    });
     socket.on("remoteState", (snap) => this._emit("remoteState", snap));
     socket.on("raceStart", (info) => this._emit("raceStart", info));
     socket.on("hostChanged", ({ hostId }) => {
@@ -135,6 +140,8 @@ export class Network {
     this.selfName = name;
     this.selfSlot = res.roster.find((r) => r.id === res.playerId)?.slot ?? 0;
     this.deadEnemies = new Set(res.deadEnemies || []);
+    this.catchUpShields = Boolean(res.catchUpShields);
+    this._emit("catchUpShieldsUpdated", this.catchUpShields);
     this._setRoster(res.roster);
   }
 
@@ -217,11 +224,17 @@ export class Network {
     this.socket.emit("enemyKilled", { enemyId });
   }
 
+  setCatchUpShields(enabled) {
+    if (!this.socket || !this.roomCode) return;
+    this.socket.emit("setCatchUpShields", enabled);
+  }
+
   leave() {
     if (this.socket && this.roomCode) this.socket.emit("leaveRoom");
     this.roomCode = null;
     this.roster = [];
     this.deadEnemies.clear();
+    this.catchUpShields = false;
   }
 
   destroy() {

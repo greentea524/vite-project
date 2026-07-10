@@ -266,6 +266,13 @@ export class Engine {
       this.network && this.state.multiplayer ? spawnOffset(this.network.selfSlot) : 0;
     const spawn = { x: start.x + offset, y: start.y };
     this.player = createPlayer(spawn.x, spawn.y);
+    if (this.state.multiplayer && !this.network?.catchUpShields) {
+      this.player.shield = 0;
+    } else if (this.state.consecutiveDeaths >= 6) {
+      this.player.shield = 2;
+    } else if (this.state.consecutiveDeaths >= 3) {
+      this.player.shield = 1;
+    }
     this.state.setCheckpoint(spawn);
     this.cam = { x: 0, y: 0 };
     this.snapCamera();
@@ -377,6 +384,21 @@ export class Engine {
   }
 
   onPlayerDeath(cause) {
+    if (this.player.invuln > 0) return;
+
+    if (this.player.shield > 0) {
+      this.player.shield--;
+      this.player.invuln = 1.5;
+      this.sfx.play("checkpoint");
+      if (cause === "fall") {
+        respawnPlayer(this.player, this.state.respawn);
+      } else {
+        this.player.vy = -300;
+        this.player.vx = -this.player.dir * 150;
+      }
+      return;
+    }
+
     if (!killPlayer(this.player)) return;
     this.input.clear(); // Clear held input to prevent momentum during respawn
     if (this.state.loseLife(cause)) {
@@ -605,6 +627,15 @@ export class Engine {
       scaleX: p.scaleX,
       scaleY: p.scaleY,
     });
+    if (p.shield > 0) {
+      ctx.beginPath();
+      ctx.arc(p.x - ox, p.y - oy, 12, 0, Math.PI * 2);
+      ctx.strokeStyle = p.shield === 2 ? "rgba(255, 215, 0, 0.8)" : "rgba(85, 170, 255, 0.8)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = p.shield === 2 ? "rgba(255, 215, 0, 0.2)" : "rgba(85, 170, 255, 0.2)";
+      ctx.fill();
+    }
     this.drawPlayerCostume(ctx, Math.round(p.x - ox), Math.round(p.y - oy), p.facing);
     ctx.globalAlpha = 1;
     // Own name tag in a race, so it's easy to tell who's who.

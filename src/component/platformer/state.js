@@ -24,6 +24,7 @@ export class GameState {
     this.tutorialDoubleJumpShown = false;
     this.coins = 0;
     this.lives = START_LIVES;
+    this.consecutiveDeaths = 0;
     this.currentLevel = 0;
     this.respawn = { x: 0, y: 0 };
     // Number of consecutively completed levels; drives the world map.
@@ -201,7 +202,9 @@ export class GameState {
   }
 
   gotoLevel(index) {
-    this.currentLevel = Math.max(0, Math.min(index, LEVELS.length - 1));
+    const next = Math.max(0, Math.min(index, LEVELS.length - 1));
+    if (next !== this.currentLevel) this.consecutiveDeaths = 0;
+    this.currentLevel = next;
     if (this.currentLevel === 0) this.tutorialDoubleJumpShown = false;
     // Every level entry is a fresh attempt for the per-level
     // achievements — including retryLevel/restartLevel, which route
@@ -281,7 +284,8 @@ export class GameState {
   // `cause` is what killed the player (see processInteractions) and
   // feeds the hazard-specific world achievements (#67).
   loseLife(cause) {
-    this.lives -= 1;
+    this.consecutiveDeaths++;
+    this.lives = Math.max(0, this.lives - 1);
     this._emit("lives", this.lives);
     // Per-run tracking: any death — even a checkpoint respawn — makes
     // the level and world runs no longer death-free.
