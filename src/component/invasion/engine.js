@@ -360,9 +360,9 @@ export class InvasionEngine {
       this.stars.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * this.canvas.height,
-        r: (Math.random() * 1.5 + 0.5) * scale,
-        opacity: Math.random(),
-        speed: (Math.random() * 0.5 + 0.1) * scale,
+        r: Math.max(1.2, (Math.random() * 1.5 + 0.5) * scale),
+        opacity: Math.random() * 0.6 + 0.4,
+        speed: Math.max(0.2, (Math.random() * 0.5 + 0.1) * scale),
       });
     }
     this.planets.length = 0;
