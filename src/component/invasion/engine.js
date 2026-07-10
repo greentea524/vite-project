@@ -59,6 +59,12 @@ const HIVE_GEN_SCORE = [60, 40, 25];
 const HIVE_GEN_SPEED = [1.2, 2, 2.8];
 const HIVE_CHILD_SIZE = 0.65; // per generation
 
+// Octo Commander ink shots: slow lobbed globs aimed at the player.
+// Dodgeable at wave-1 pace, and shootable for a small bounty.
+const INK_INTERVAL = 170; // frames between shots
+const INK_SPEED = 2.1;
+const INK_SCORE = 10;
+
 const PARTICLE_COUNT = 20;
 const PARTICLE_LIFETIME = 30;
 
@@ -162,6 +168,7 @@ export class InvasionEngine {
     // live entities. Non-splitting waves just hold one.
     this.bosses = [];
     this.spawnlings = []; // Mothership kamikazes (#90)
+    this.inkShots = []; // Octo Commander ink globs
     this.alienDirection = 1;
     this.score = 0;
     this.scoreFlashFrames = 0;
@@ -299,6 +306,7 @@ export class InvasionEngine {
   // wave 1 is always the classic octopus.
   _spawnWaveBoss() {
     this.spawnlings = [];
+    this.inkShots = [];
     const type = BOSS_TYPES[(this.waveNumber - 1) % BOSS_TYPES.length];
     this.bosses = [this._makeBoss(type)];
   }
@@ -323,7 +331,9 @@ export class InvasionEngine {
       gen: over.gen ?? 0, // hive generation (#92)
       phase: "move", // lasercore beam cycle (#91)
       phaseT: BEAM_MOVE,
-      spawnT: SPAWNLING_INTERVAL, // mothership launch timer (#90)
+      // Attack timer: kamikaze launches (mothership) or ink shots
+      // (octopus) share the field — one boss type per entity.
+      spawnT: type === "octopus" ? INK_INTERVAL : SPAWNLING_INTERVAL,
       wobbleT: Math.random() * Math.PI * 2, // hive goo animation
       bodyColor: `hsl(${hue}, 65%, 38%)`,
       highlightColor: `hsl(${hue}, 70%, 62%)`,
@@ -513,6 +523,7 @@ export class InvasionEngine {
     }
 
     this._updateSpawnlings(scale);
+    this._updateInkShots();
     this._collideBullets();
     this._collectPickups();
   }
@@ -565,6 +576,13 @@ export class InvasionEngine {
         }
       } else if (boss.type === "hive") {
         boss.wobbleT += 0.08 + boss.gen * 0.03;
+      } else if (boss.type === "octopus") {
+        // Ink shots: lobbed globs aimed loosely at the player.
+        boss.spawnT--;
+        if (boss.spawnT <= 0) {
+          boss.spawnT = INK_INTERVAL;
+          this._spawnInk(boss);
+        }
       }
 
       if (moving) {
@@ -588,6 +606,45 @@ export class InvasionEngine {
     const cx = boss.x + boss.width / 2;
     const half = boss.width * 0.45;
     return { left: cx - half, right: cx + half, top: boss.y + boss.height };
+  }
+
+  _spawnInk(boss) {
+    const scale = this._scale();
+    const cx = boss.x + boss.width / 2;
+    // Aim toward the player's current side with a gentle drift — the
+    // glob is dodgeable once fired (no homing).
+    const aim =
+      Math.sign(this.player.x + this.player.width / 2 - cx) * 0.6 * scale;
+    this.inkShots.push({
+      x: cx,
+      y: boss.y + boss.height,
+      vx: aim,
+      vy: INK_SPEED * scale,
+      r: Math.max(3, 6 * scale),
+      wobbleT: Math.random() * Math.PI * 2,
+    });
+  }
+
+  // Ink globs: fall with a slight wobble; contact is lethal.
+  _updateInkShots() {
+    const player = this.player;
+    const canvas = this.canvas;
+    for (let i = this.inkShots.length - 1; i >= 0; i--) {
+      const ink = this.inkShots[i];
+      ink.wobbleT += 0.15;
+      ink.x += ink.vx + Math.sin(ink.wobbleT) * 0.4;
+      ink.y += ink.vy;
+
+      if (
+        ink.x + ink.r > player.x &&
+        ink.x - ink.r < player.x + player.width &&
+        ink.y + ink.r > player.y &&
+        ink.y - ink.r < player.y + player.height
+      ) {
+        this.gameOver = true;
+      }
+      if (ink.y - ink.r > canvas.height) this.inkShots.splice(i, 1);
+    }
   }
 
   // Kamikaze spawnlings (#90): dive at constant speed while easing
@@ -674,6 +731,26 @@ export class InvasionEngine {
       }
       if (hitSpawnling || !this.bullets[bIndex]) continue;
 
+      // Ink globs: poppable for a small bounty.
+      let hitInk = false;
+      for (let iIndex = this.inkShots.length - 1; iIndex >= 0; iIndex--) {
+        const ink = this.inkShots[iIndex];
+        if (
+          bullet.x < ink.x + ink.r &&
+          bullet.x + BULLET_WIDTH > ink.x - ink.r &&
+          bullet.y < ink.y + ink.r &&
+          bullet.y + BULLET_HEIGHT > ink.y - ink.r
+        ) {
+          this.inkShots.splice(iIndex, 1);
+          this.bullets.splice(bIndex, 1);
+          this._addScore(INK_SCORE, ink.x, ink.y, "#b48ae0");
+          this.hits++;
+          hitInk = true;
+          break;
+        }
+      }
+      if (hitInk || !this.bullets[bIndex]) continue;
+
       for (let boIndex = this.bosses.length - 1; boIndex >= 0; boIndex--) {
         const boss = this.bosses[boIndex];
         if (
@@ -714,23 +791,31 @@ export class InvasionEngine {
       const sizeMul = HIVE_CHILD_SIZE ** gen;
       const childW = BOSS_STATS.hive.width * this._scale() * sizeMul;
       for (const dir of [-1, 1]) {
-        this.bosses.push(
-          this._makeBoss("hive", {
-            gen,
-            hp,
-            dir,
-            sizeMul,
-            x: Math.max(
-              0,
-              Math.min(
-                cx + dir * boss.width * 0.35 - childW / 2,
-                this.canvas.width - childW,
-              ),
+        const child = this._makeBoss("hive", {
+          gen,
+          hp,
+          dir,
+          sizeMul,
+          x: Math.max(
+            0,
+            Math.min(
+              cx + dir * boss.width * 0.35 - childW / 2,
+              this.canvas.width - childW,
             ),
-            y: boss.y + boss.height * 0.15,
-          }),
-        );
+          ),
+          y: boss.y + boss.height * 0.15,
+        });
+        this.bosses.push(child);
+        // Goo burst at each child so the split reads clearly.
+        this._createFireworks(child.x + child.width / 2, child.y + child.height / 2);
       }
+      this.scorePopups.push({
+        x: cx,
+        y: cy - 14,
+        text: "SPLIT!",
+        life: 40,
+        color: "#8aff8a",
+      });
     }
   }
 
@@ -941,6 +1026,27 @@ export class InvasionEngine {
       if (this.bosses.length > 1) this._drawBossHpBar(boss);
     }
     this._drawSpawnlings();
+    this._drawInkShots();
+  }
+
+  // Octo Commander ink globs: dark wobbling blobs with a glossy sheen.
+  _drawInkShots() {
+    const ctx = this.ctx;
+    for (const ink of this.inkShots) {
+      const squish = 1 + 0.15 * Math.sin(ink.wobbleT * 2);
+      ctx.fillStyle = "rgba(60, 30, 90, 0.45)"; // halo
+      ctx.beginPath();
+      ctx.ellipse(ink.x, ink.y, ink.r * 1.5 * squish, ink.r * 1.5 / squish, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#3a1f57";
+      ctx.beginPath();
+      ctx.ellipse(ink.x, ink.y, ink.r * squish, ink.r / squish, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(216, 180, 255, 0.8)"; // sheen
+      ctx.beginPath();
+      ctx.arc(ink.x - ink.r * 0.3, ink.y - ink.r * 0.3, Math.max(1, ink.r * 0.3), 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   _drawBossHpBar(boss) {

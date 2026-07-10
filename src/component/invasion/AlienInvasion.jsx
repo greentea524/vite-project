@@ -226,6 +226,7 @@ export default function AlienInvasion() {
               <li>Large dark ship: Boss (multi-hit)</li>
               <li>Bosses rotate each wave: Octopus, Mothership, Laser Core, Swarm Hive</li>
               <li>Clear the fleet AND the boss to advance to the next wave</li>
+              <li>Octo Commander lobs ink globs — dodge them or shoot them down</li>
               <li>Mothership launches kamikaze ships — shoot them before they ram you</li>
               <li>Laser Core telegraphs a beam column — dodge before it fires</li>
               <li>Swarm Hive splits in two when killed — twice</li>
