@@ -620,7 +620,7 @@ export class InvasionEngine {
       y: boss.y + boss.height,
       vx: aim,
       vy: INK_SPEED * scale,
-      r: Math.max(3, 6 * scale),
+      r: Math.max(6, 12 * scale),
       wobbleT: Math.random() * Math.PI * 2,
     });
   }
@@ -1034,15 +1034,15 @@ export class InvasionEngine {
     const ctx = this.ctx;
     for (const ink of this.inkShots) {
       const squish = 1 + 0.15 * Math.sin(ink.wobbleT * 2);
-      ctx.fillStyle = "rgba(60, 30, 90, 0.45)"; // halo
+      ctx.fillStyle = "rgba(150, 100, 220, 0.6)"; // halo
       ctx.beginPath();
       ctx.ellipse(ink.x, ink.y, ink.r * 1.5 * squish, ink.r * 1.5 / squish, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#3a1f57";
+      ctx.fillStyle = "#9a6ddb"; // lighter purple core
       ctx.beginPath();
       ctx.ellipse(ink.x, ink.y, ink.r * squish, ink.r / squish, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(216, 180, 255, 0.8)"; // sheen
+      ctx.fillStyle = "rgba(240, 220, 255, 0.9)"; // sheen
       ctx.beginPath();
       ctx.arc(ink.x - ink.r * 0.3, ink.y - ink.r * 0.3, Math.max(1, ink.r * 0.3), 0, Math.PI * 2);
       ctx.fill();
