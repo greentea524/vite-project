@@ -613,6 +613,11 @@ button.game-link {
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
 }
 
+.modern-calculator-card .form-control::placeholder {
+  color: #8a939b; /* clearer placeholder for light mode */
+  opacity: 1;
+}
+
 .modern-calculator-card .form-control:focus {
   background-color: #fff;
   border-color: #e52e71;
@@ -700,7 +705,8 @@ button.game-link {
   }
   
   .modern-calculator-card .form-control::placeholder {
-    color: #6c757d;
+    color: #aeb6bd; /* clearer placeholder for dark mode */
+    opacity: 1;
   }
   
   .modern-calculator-card .form-control:focus {
