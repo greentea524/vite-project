@@ -1188,6 +1188,19 @@ button.plat-world-preview.unlocked:active {
   animation: tutorial-bounce 1s infinite alternate ease-in-out;
 }
 
+@media (max-width: 768px) {
+  .plat-tutorial-overlay {
+    padding: 8px 16px;
+    top: 15%;
+  }
+  .plat-tutorial-text {
+    font-size: 13px;
+  }
+  .plat-tutorial-icon {
+    font-size: 18px;
+  }
+}
+
 @keyframes tutorial-fade-in {
   from { opacity: 0; transform: translate(-50%, -10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
