@@ -10,8 +10,9 @@ export default defineConfig({
   server: {
     host: true,
   },
-  // Multi-page build: the main app plus a standalone platformer page
-  // served at /platformer/ (deploys to .../vite-project/platformer/).
+  // Multi-page build: the main app plus standalone game pages served
+  // at /platformer/ and /space/ (deploying to
+  // .../vite-project/platformer/ and .../vite-project/space/).
   build: {
     rollupOptions: {
       input: {
@@ -19,6 +20,7 @@ export default defineConfig({
         platformer: fileURLToPath(
           new URL("./platformer/index.html", import.meta.url),
         ),
+        space: fileURLToPath(new URL("./space/index.html", import.meta.url)),
       },
     },
   },

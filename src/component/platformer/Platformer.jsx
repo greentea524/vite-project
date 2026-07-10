@@ -7,6 +7,7 @@ import { AVATAR_SHEETS, IMAGE_URLS } from "./assets.js";
 import { WORLDS, LEVELS } from "./levels.js";
 import { WorldMap } from "./WorldMap.jsx";
 import { AchievementsPanel } from "./Achievements.jsx";
+import { VirtualJoystick } from "../common/VirtualJoystick.jsx";
 import { Network, MAX_PLAYERS } from "./network.js";
 import { buildJoinLink } from "./joinLink.js";
 
@@ -70,84 +71,9 @@ function TouchButton({ label, className, onPress, onRelease }) {
   );
 }
 
-// Joystick-style movement control (PLAT-18). The knob follows the
-// pointer, clamped to the base radius, and springs back on release.
-// Horizontal displacement past a dead zone maps to the digital
-// move_left/move_right actions, so movement feels identical to the
-// keyboard. The knob is moved via direct style updates — no React
-// re-render per pointermove.
-function VirtualJoystick({ onDirection }) {
-  const baseRef = useRef(null);
-  const knobRef = useRef(null);
-
-  useEffect(() => {
-    const base = baseRef.current;
-    const knob = knobRef.current;
-    // Non-passive: block the browser's long-press selection gesture.
-    const block = (e) => e.preventDefault();
-    base.addEventListener("touchstart", block, { passive: false });
-
-    let activePointer = null;
-    let dir = 0;
-    const setDir = (d) => {
-      if (dir === d) return;
-      dir = d;
-      onDirection(d);
-    };
-
-    const track = (e) => {
-      const rect = base.getBoundingClientRect();
-      let dx = e.clientX - (rect.left + rect.width / 2);
-      let dy = e.clientY - (rect.top + rect.height / 2);
-      const travel = rect.width / 2 - 14; // keep the knob inside the base
-      const len = Math.hypot(dx, dy);
-      if (len > travel) {
-        dx = (dx / len) * travel;
-        dy = (dy / len) * travel;
-      }
-      knob.style.transform = `translate(${dx}px, ${dy}px)`;
-      const dead = rect.width * 0.12;
-      setDir(dx < -dead ? -1 : dx > dead ? 1 : 0);
-    };
-    const down = (e) => {
-      activePointer = e.pointerId;
-      try {
-        base.setPointerCapture(e.pointerId);
-      } catch {
-        // synthetic events have no active pointer to capture
-      }
-      track(e);
-    };
-    const move = (e) => {
-      if (e.pointerId === activePointer) track(e);
-    };
-    const up = (e) => {
-      if (e.pointerId !== activePointer) return;
-      activePointer = null;
-      knob.style.transform = "translate(0px, 0px)";
-      setDir(0);
-    };
-
-    base.addEventListener("pointerdown", down);
-    base.addEventListener("pointermove", move);
-    base.addEventListener("pointerup", up);
-    base.addEventListener("pointercancel", up);
-    return () => {
-      base.removeEventListener("touchstart", block);
-      base.removeEventListener("pointerdown", down);
-      base.removeEventListener("pointermove", move);
-      base.removeEventListener("pointerup", up);
-      base.removeEventListener("pointercancel", up);
-      setDir(0);
-    };
-  }, [onDirection]);
-
-  return (
-    <div className="plat-joystick" ref={baseRef} aria-label="Move joystick">
-      <div className="plat-joystick-knob" ref={knobRef} />
-    </div>
-  );
-}
+// Joystick movement control (PLAT-18): the shared VirtualJoystick
+// (extracted for the invasion game, #93) driving the same digital
+// move_left/move_right actions the keyboard uses.
 
 // Crops the first frame out of a horizontal sprite sheet. Frames are
 // 16px wide; `aspect` covers non-square art (the flag is 16x32).
@@ -1369,7 +1295,11 @@ function Platformer() {
       {inGame &&
         (touchDevice ? (
           <div className="plat-touch-bar">
-            <VirtualJoystick onDirection={handleJoystick} />
+            <VirtualJoystick
+              onDirection={handleJoystick}
+              className="plat-joystick"
+              knobClassName="plat-joystick-knob"
+            />
             <div className="plat-touch-center">
               <button
                 type="button"

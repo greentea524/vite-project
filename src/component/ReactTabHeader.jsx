@@ -49,11 +49,6 @@ const WEB_GAMES = [
     description: "Guess the hidden 5-letter word in 6 attempts.",
   },
   {
-    title: "Invasion",
-    href: "https://greentea524.github.io/game/js-alien-invasion/",
-    description: "Defend against waves of alien invaders.",
-  },
-  {
     title: "Pacman",
     href: "https://greentea524.github.io/game/js-pacman/",
     description: "Navigate a maze, eat dots, and avoid ghosts.",
@@ -62,6 +57,11 @@ const WEB_GAMES = [
     title: "Boxing RPG",
     href: "https://greentea524.github.io/game/js-boxing/",
     description: "A role-playing boxing game where you train and fight opponents.",
+  },
+  {
+    title: "Invasion",
+    href: `${import.meta.env.BASE_URL}space/`,
+    description: "Defend against waves of alien invaders.",
   },
   {
     title: "Platformer",

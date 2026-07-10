@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="../vite.svg" />
+    <!-- Game page: block pinch-zoom so touch controls behave. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Invasion</title>
+    <style>
+      /* Standalone shell: dark backdrop, game centered. The component
+         brings its own styling via AlienInvasion.module.css. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background: #05060d;
+      }
+      #root {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 12px;
+        box-sizing: border-box;
+      }
+      /* Keep the board from stretching absurdly wide on desktop. */
+      #root > * {
+        max-width: 1000px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.jsx"></script>
+  </body>
+</html>

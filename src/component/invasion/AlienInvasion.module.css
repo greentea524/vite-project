@@ -1,0 +1,210 @@
+/* Alien Invasion styles (#72), ported from the legacy inline <style>
+   into a CSS module. Layout adapts to being embedded in the Games tab
+   instead of owning the whole page. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0 16px;
+  background: #000;
+  border-radius: 8px;
+  color: #fff;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+}
+
+.topActions {
+  display: flex;
+  gap: 8px;
+}
+
+.barBtn {
+  padding: 5px 10px;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* React-managed HUD (#74) — replaces the canvas-drawn stats text. */
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 14px;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: clamp(0.75rem, 2vw, 0.95rem);
+  color: #ddd;
+}
+
+.score {
+  font-weight: bold;
+  font-size: clamp(1rem, 2.6vw, 1.4rem);
+  color: #ffe066;
+  text-shadow: 0 0 10px rgba(255, 224, 102, 0.65);
+}
+
+.combo {
+  font-weight: bold;
+  color: #57dbff;
+  text-shadow: 0 0 8px rgba(87, 219, 255, 0.7);
+}
+
+.bossHp {
+  color: #ff8080;
+}
+
+.gameArea {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.canvas {
+  display: block;
+  background: black;
+  touch-action: none;
+}
+
+.instructions {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92%, 560px);
+  max-height: 80%;
+  overflow: auto;
+  background: rgba(10, 12, 24, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  text-align: left;
+  z-index: 10;
+}
+
+.instructions h3 {
+  margin-top: 0;
+}
+
+.gameOver {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+.gameOver h3 {
+  margin: 0;
+  font-size: clamp(1.3rem, 4vw, 2rem);
+}
+
+.gameOver p {
+  margin: 0;
+  font-family: monospace;
+}
+
+.restartBtn {
+  margin-top: 10px;
+  padding: 8px 22px;
+  font-size: 1rem;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* Mobile touch controls — hidden on desktop widths, same breakpoint as
+   the legacy page. #93 will replace the left/right pair with a
+   virtual joystick. */
+.touchControls {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* Analog movement joystick (#93) — shared VirtualJoystick component,
+   styled to sit alongside the shoot button. Slightly larger than the
+   platformer's for landscape thumb play. */
+.joystick {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: rgba(20, 24, 40, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.joystickKnob {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  transition: transform 0.08s;
+}
+
+.touchBtn {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  border-radius: 50%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+@media (min-width: 768px) {
+  .touchControls {
+    display: none;
+  }
+}

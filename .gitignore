@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.react-doctor/
 
 # Editor directories and files
 .vscode/*
