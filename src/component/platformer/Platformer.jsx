@@ -279,6 +279,12 @@ function Platformer() {
         if (type === "doubleJump") {
           setTutorialMsg("Press Jump twice to Double Jump!");
           setTimeout(() => setTutorialMsg(null), 4000);
+        } else if (type === "shield1") {
+          setTutorialMsg("Catch-up Shield Activated!");
+          setTimeout(() => setTutorialMsg(null), 3000);
+        } else if (type === "shield2") {
+          setTutorialMsg("Super Catch-up Shield Activated!");
+          setTimeout(() => setTutorialMsg(null), 3000);
         }
       }),
       state.on("achievement", (a) => {

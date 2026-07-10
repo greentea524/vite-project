@@ -270,8 +270,10 @@ export class Engine {
       this.player.shield = 0;
     } else if (this.state.consecutiveDeaths >= 6) {
       this.player.shield = 2;
+      this.state._emit("showTutorial", "shield2");
     } else if (this.state.consecutiveDeaths >= 3) {
       this.player.shield = 1;
+      this.state._emit("showTutorial", "shield1");
     }
     this.state.setCheckpoint(spawn);
     this.cam = { x: 0, y: 0 };
