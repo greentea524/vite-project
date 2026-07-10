@@ -174,20 +174,14 @@ const FuelCalculator = () => {
 
   return (
     <div className="container mt-4">
-      <div className="window fuel-calculator-window">
-        <div className="title-bar">
-          <div className="title-bar-text">Fuel Calculator</div>
-          <div className="title-bar-controls">
-            <button type="button" aria-label="Minimize"></button>
-            <button type="button" aria-label="Maximize"></button>
-            <button type="button" aria-label="Close"></button>
-          </div>
-        </div>
-        <div className="window-body fuel-calculator-body">
+      <div className="modern-calculator-card">
+        <div className="fuel-calculator-header">
+          <h2>Fuel Calculator</h2>
           <p className="fuel-calculator-intro">
-            Estimate trip fuel consumption and cost with metric or imperial
-            units.
+            Estimate trip fuel consumption and cost with metric or imperial units.
           </p>
+        </div>
+        <div className="fuel-calculator-body">
 
           <div
             className="fuel-unit-toggle"
