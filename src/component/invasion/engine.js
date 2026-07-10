@@ -69,6 +69,9 @@ export class InvasionEngine {
     this._running = false;
     this._lastHud = null;
 
+    this.menuMode = true;
+    this.paused = false;
+
     this._resize = this._resize.bind(this);
     this._loop = this._loop.bind(this);
 
@@ -100,6 +103,20 @@ export class InvasionEngine {
     this._startLoop();
   }
 
+  play() {
+    this.menuMode = false;
+    this.paused = false;
+    this.restart();
+  }
+
+  setPaused(isPaused) {
+    if (this.gameOver) return;
+    this.paused = isPaused;
+    if (!isPaused && !this._running) {
+      this._startLoop();
+    }
+  }
+
   _resetRun() {
     this.bullets = [];
     this.aliens = [];
@@ -111,6 +128,7 @@ export class InvasionEngine {
     this.planets = [];
     this.boss = null;
     this.alienDirection = 1;
+    this.bossDirection = 1;
     this.score = 0;
     this.scoreFlashFrames = 0;
     this.comboCount = 0;
@@ -123,6 +141,7 @@ export class InvasionEngine {
     this.gameOver = false;
     this._wantsToShoot = false;
     this._canShoot = true;
+    this.paused = false;
   }
 
   // --- input API (driven by React handlers, #74) -----------------------
@@ -203,7 +222,9 @@ export class InvasionEngine {
     this.player.x = canvas.width / 2 - this.player.width / 2;
 
     this.aliens.length = 0;
-    this._createAliens();
+    if (!this.menuMode) {
+      this._createAliens();
+    }
     this._setupBackground();
   }
 
@@ -283,7 +304,7 @@ export class InvasionEngine {
   _createFireworks(x, y) {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 3 + 1;
+      const speed = (Math.random() * 3 + 1) * this._scale();
       this.particles.push({
         x: x + ALIEN_WIDTH / 2,
         y: y + ALIEN_HEIGHT / 2,
@@ -379,6 +400,8 @@ export class InvasionEngine {
       }
     });
 
+    if (this.menuMode) return;
+
     if (this.comboTimerFrames > 0) {
       this.comboTimerFrames--;
       if (this.comboTimerFrames === 0) this.comboCount = 0;
@@ -404,27 +427,34 @@ export class InvasionEngine {
     }
 
     this.bullets.forEach((bullet, index) => {
-      bullet.y -= BULLET_SPEED;
+      bullet.y -= BULLET_SPEED * this._scale();
       if (bullet.y < 0) this.bullets.splice(index, 1);
     });
 
+    const scale = this._scale();
     let hitEdge = false;
     this.aliens.forEach((alien) => {
-      alien.x += ALIEN_SPEED * this.alienDirection;
+      alien.x += ALIEN_SPEED * scale * this.alienDirection;
       if (alien.x + alien.width > canvas.width || alien.x < 0) hitEdge = true;
       if (alien.y + alien.height > canvas.height) this.gameOver = true;
     });
 
     if (this.boss) {
-      this.boss.x += ALIEN_SPEED * 0.7 * this.alienDirection;
-      if (this.boss.x + this.boss.width > canvas.width || this.boss.x < 0) hitEdge = true;
+      this.boss.x += ALIEN_SPEED * scale * 1.5 * this.bossDirection;
+      if (this.boss.x + this.boss.width > canvas.width) {
+        this.boss.x = canvas.width - this.boss.width;
+        this.bossDirection = -1;
+      } else if (this.boss.x < 0) {
+        this.boss.x = 0;
+        this.bossDirection = 1;
+      }
       if (this.boss.y + this.boss.height > canvas.height) this.gameOver = true;
     }
 
     if (hitEdge) {
       this.alienDirection *= -1;
-      this.aliens.forEach((alien) => (alien.y += 20));
-      if (this.boss) this.boss.y += 12;
+      this.aliens.forEach((alien) => (alien.y += 20 * scale));
+      if (this.boss) this.boss.y += 12 * scale;
     }
 
     this._collideBullets();
@@ -496,8 +526,9 @@ export class InvasionEngine {
     const player = this.player;
     const canvas = this.canvas;
 
+    const scale = this._scale();
     this.powerUps.forEach((powerUp, index) => {
-      powerUp.y += POWERUP_SPEED;
+      powerUp.y += POWERUP_SPEED * scale;
       const collected =
         powerUp.x < player.x + player.width &&
         powerUp.x + POWERUP_SIZE > player.x &&
@@ -514,7 +545,7 @@ export class InvasionEngine {
     });
 
     this.coins.forEach((coin, index) => {
-      coin.y += COIN_SPEED;
+      coin.y += COIN_SPEED * scale;
       const collected =
         coin.x + COIN_RADIUS > player.x &&
         coin.x - COIN_RADIUS < player.x + player.width &&
@@ -891,12 +922,15 @@ export class InvasionEngine {
     this._drawAliens();
     this._drawParticles();
     this._drawScorePopups();
-    this._update();
-    this._publishHud();
 
-    if (this.aliens.length === 0) {
-      this.waveNumber++;
-      this._createAliens();
+    if (!this.paused) {
+      this._update();
+      this._publishHud();
+
+      if (!this.menuMode && this.aliens.length === 0) {
+        this.waveNumber++;
+        this._createAliens();
+      }
     }
 
     this._raf = requestAnimationFrame(this._loop);

@@ -17,6 +17,7 @@ export default function AlienInvasion() {
   const [hud, setHud] = useState(null);
   const [gameOver, setGameOver] = useState(null); // { score, hitRate } | null
   const [showInstructions, setShowInstructions] = useState(false);
+  const [gameState, setGameState] = useState("menu"); // "menu", "playing", "paused"
 
   useEffect(() => {
     const audio = createAudio();
@@ -24,10 +25,13 @@ export default function AlienInvasion() {
     const engine = new InvasionEngine(canvasRef.current, wrapperRef.current, {
       audio,
       onHud: setHud,
-      onGameOver: setGameOver,
+      onGameOver: (stats) => {
+        setGameOver(stats);
+        setGameState("gameover");
+      },
     });
     engineRef.current = engine;
-    engine.start();
+    engine.start(); // Engine starts in menuMode by default
     return () => {
       engine.destroy();
       audio.destroy();
@@ -67,7 +71,27 @@ export default function AlienInvasion() {
 
   const restart = () => {
     setGameOver(null);
-    engineRef.current?.restart();
+    setGameState("playing");
+    engineRef.current?.play();
+  };
+
+  const handlePause = () => {
+    engineRef.current?.setPaused(true);
+    setGameState("paused");
+  };
+
+  const handleResume = () => {
+    engineRef.current?.setPaused(false);
+    setGameState("playing");
+  };
+
+  const quitToMenu = () => {
+    setGameOver(null);
+    setGameState("menu");
+    if (engineRef.current) {
+      engineRef.current.menuMode = true;
+      engineRef.current.restart();
+    }
   };
 
   // Touch buttons use pointer events with touch-action: none in CSS —
@@ -90,18 +114,13 @@ export default function AlienInvasion() {
     <div className={styles.shell}>
       <div className={styles.topBar}>
         <h2 className={styles.title}>Invasion</h2>
-        <div className={styles.topActions}>
-          <button
-            type="button"
-            className={styles.barBtn}
-            onClick={() => setShowInstructions((v) => !v)}
-          >
-            Instructions
-          </button>
-          <button type="button" className={styles.barBtn} onClick={restart}>
-            Restart
-          </button>
-        </div>
+        {gameState === "playing" && (
+          <div className={styles.topActions}>
+            <button type="button" className={styles.barBtn} onClick={handlePause}>
+              Pause
+            </button>
+          </div>
+        )}
       </div>
 
       {hud && (
@@ -132,6 +151,54 @@ export default function AlienInvasion() {
           }}
           onMouseMove={(e) => engineRef.current?.pointTo(e.clientX)}
         />
+
+        {gameState === "menu" && !showInstructions && (
+          <div className={styles.menuOverlay}>
+            <h3>Alien Invasion</h3>
+            <button
+              type="button"
+              className={styles.menuBtn}
+              onClick={() => {
+                setGameState("playing");
+                engineRef.current?.play();
+              }}
+            >
+              Single Player
+            </button>
+            <button type="button" className={styles.menuBtn} disabled>
+              Multiplayer (Soon)
+            </button>
+            <button
+              type="button"
+              className={styles.menuBtn}
+              onClick={() => setShowInstructions(true)}
+            >
+              Instructions
+            </button>
+          </div>
+        )}
+
+        {gameState === "paused" && !showInstructions && (
+          <div className={styles.menuOverlay}>
+            <h3>Paused</h3>
+            <button type="button" className={styles.menuBtn} onClick={handleResume}>
+              Resume
+            </button>
+            <button
+              type="button"
+              className={styles.menuBtn}
+              onClick={() => setShowInstructions(true)}
+            >
+              Instructions
+            </button>
+            <button type="button" className={styles.menuBtn} onClick={restart}>
+              Restart
+            </button>
+            <button type="button" className={styles.menuBtn} onClick={quitToMenu}>
+              Quit to Menu
+            </button>
+          </div>
+        )}
 
         {showInstructions && (
           <div className={styles.instructions}>
@@ -170,6 +237,9 @@ export default function AlienInvasion() {
             <p>Hit Rate: {gameOver.hitRate}%</p>
             <button type="button" className={styles.restartBtn} onClick={restart}>
               Restart
+            </button>
+            <button type="button" className={styles.restartBtn} onClick={quitToMenu}>
+              Menu
             </button>
           </div>
         )}
