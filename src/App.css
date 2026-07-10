@@ -41,6 +41,14 @@
   color: #888;
 }
 
+.home-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 15% 50%, rgba(189, 52, 254, 0.08), transparent 25%),
+              radial-gradient(circle at 85% 30%, rgba(97, 218, 251, 0.08), transparent 25%);
+}
+
 .home {
   display: flex;
   flex-direction: column;
@@ -57,15 +65,65 @@
   align-items: center;
 }
 
+.home-logos a {
+  animation: float 3s ease-in-out infinite;
+}
+.home-logos a:nth-child(2) {
+  animation-delay: 1.5s;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-intro, .home-links {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+@media (prefers-color-scheme: light) {
+  .home-intro, .home-links {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
 .home-intro {
   max-width: 640px;
   margin: 0 auto 1.75rem;
 }
 
 .home-tagline {
-  margin: 0 0 0.5rem;
-  font-size: 1.15rem;
-  font-weight: 700;
+  margin: 0 0 1rem;
+  font-size: 1.8rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #bd34fe, #61dafb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .home-description {
@@ -79,6 +137,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1.1rem;
+  padding: 1.5rem;
 }
 
 .home-buttons {
@@ -96,6 +155,10 @@
   border: 2px solid #0d6efd;
   background: #fff;
   text-decoration: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
 }
 
 .home-buttons .my-button .fa {
@@ -106,15 +169,42 @@
 .home-buttons .my-button:focus {
   color: #fff;
   background: #0d6efd;
-  box-shadow:
-    0 5px 11px 0 rgba(0, 0, 0, 0.18),
-    0 4px 14px 1px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 15px rgba(13, 110, 253, 0.6);
+  transform: scale(1.05);
 }
 
 .home-social {
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.8rem;
+}
+
+.home-social a {
+  transition: all 0.3s ease;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.home-social a:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.home-social a[href*="github"]:hover {
+  color: #fff;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+}
+
+.home-social a[href*="twitter"]:hover {
+  color: #1da1f2;
+  filter: drop-shadow(0 0 8px rgba(29, 161, 242, 0.8));
+}
+
+@media (prefers-color-scheme: light) {
+  .home-social a[href*="github"]:hover {
+    color: #333;
+    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
+  }
 }
 
 .justify {

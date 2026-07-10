@@ -25,7 +25,39 @@ const ALIEN_WIDTH = 30;
 const ALIEN_HEIGHT = 20;
 const ALIEN_SPEED = 1;
 
-const BOSS_MAX_HP = 12;
+// Boss variations (#90/#91/#92). One boss per wave, cycling through
+// the roster so wave 1 keeps the classic octopus. Sizes are in base
+// (800px) units, speed multiplies ALIEN_SPEED, score is the kill bonus.
+export const BOSS_TYPES = ["octopus", "mothership", "lasercore", "hive"];
+export const BOSS_NAMES = {
+  octopus: "Octo Commander",
+  mothership: "The Mothership",
+  lasercore: "The Laser Core",
+  hive: "The Swarm Hive",
+};
+const BOSS_STATS = {
+  octopus: { hp: 12, width: 90, height: 30, speed: 1.5, score: 120 },
+  mothership: { hp: 28, width: 130, height: 34, speed: 0.8, score: 250 },
+  lasercore: { hp: 16, width: 70, height: 46, speed: 1.2, score: 180 },
+  hive: { hp: 12, width: 84, height: 42, speed: 1.2, score: 60 },
+};
+
+// Mothership carrier behavior (#90): kamikaze spawn cadence and cap.
+const SPAWNLING_INTERVAL = 150; // frames between launches
+const SPAWNLING_MAX = 4;
+const SPAWNLING_SCORE = 15;
+
+// Laser Core beam cycle (#91), in frames.
+const BEAM_MOVE = 150;
+const BEAM_CHARGE = 70;
+const BEAM_FIRE = 50;
+
+// Swarm Hive splitting (#92): each death below max gen spawns two
+// smaller, faster copies with half the HP.
+const HIVE_MAX_GEN = 2;
+const HIVE_GEN_SCORE = [60, 40, 25];
+const HIVE_GEN_SPEED = [1.2, 2, 2.8];
+const HIVE_CHILD_SIZE = 0.65; // per generation
 
 const PARTICLE_COUNT = 20;
 const PARTICLE_LIFETIME = 30;
@@ -126,9 +158,11 @@ export class InvasionEngine {
     this.scorePopups = [];
     this.stars = [];
     this.planets = [];
-    this.boss = null;
+    // Bosses are a list (#92): the Swarm Hive splits into multiple
+    // live entities. Non-splitting waves just hold one.
+    this.bosses = [];
+    this.spawnlings = []; // Mothership kamikazes (#90)
     this.alienDirection = 1;
-    this.bossDirection = 1;
     this.score = 0;
     this.scoreFlashFrames = 0;
     this.comboCount = 0;
@@ -258,24 +292,55 @@ export class InvasionEngine {
       }
     }
 
-    this._createBoss();
+    this._spawnWaveBoss();
   }
 
-  _createBoss() {
+  // Each wave gets one boss from the cycling roster (#90/#91/#92);
+  // wave 1 is always the classic octopus.
+  _spawnWaveBoss() {
+    this.spawnlings = [];
+    const type = BOSS_TYPES[(this.waveNumber - 1) % BOSS_TYPES.length];
+    this.bosses = [this._makeBoss(type)];
+  }
+
+  _makeBoss(type, over = {}) {
     const scale = this._scale();
-    const width = 90 * scale;
+    const stats = BOSS_STATS[type];
+    const sizeMul = over.sizeMul ?? 1;
+    const width = stats.width * scale * sizeMul;
+    const height = stats.height * scale * sizeMul;
     const hue = Math.floor(Math.random() * 360);
-    this.boss = {
-      x: this.canvas.width / 2 - width / 2,
-      y: 8 * scale,
+    return {
+      type,
+      x: over.x ?? this.canvas.width / 2 - width / 2,
+      y: over.y ?? 8 * scale,
       width,
-      height: 30 * scale,
-      hp: BOSS_MAX_HP,
-      maxHp: BOSS_MAX_HP,
+      height,
+      hp: over.hp ?? stats.hp,
+      maxHp: over.hp ?? stats.hp,
+      dir: over.dir ?? 1,
+      speed: stats.speed,
+      gen: over.gen ?? 0, // hive generation (#92)
+      phase: "move", // lasercore beam cycle (#91)
+      phaseT: BEAM_MOVE,
+      spawnT: SPAWNLING_INTERVAL, // mothership launch timer (#90)
+      wobbleT: Math.random() * Math.PI * 2, // hive goo animation
       bodyColor: `hsl(${hue}, 65%, 38%)`,
       highlightColor: `hsl(${hue}, 70%, 62%)`,
       tentacleColor: `hsl(${hue}, 72%, 32%)`,
     };
+  }
+
+  _spawnKamikaze(boss) {
+    const scale = this._scale();
+    this.spawnlings.push({
+      x: boss.x + boss.width / 2 - 9 * scale,
+      y: boss.y + boss.height,
+      width: 18 * scale,
+      height: 16 * scale,
+      vx: 0,
+      vy: 2.2 * scale,
+    });
   }
 
   _setupBackground() {
@@ -439,26 +504,115 @@ export class InvasionEngine {
       if (alien.y + alien.height > canvas.height) this.gameOver = true;
     });
 
-    if (this.boss) {
-      this.boss.x += ALIEN_SPEED * scale * 1.5 * this.bossDirection;
-      if (this.boss.x + this.boss.width > canvas.width) {
-        this.boss.x = canvas.width - this.boss.width;
-        this.bossDirection = -1;
-      } else if (this.boss.x < 0) {
-        this.boss.x = 0;
-        this.bossDirection = 1;
-      }
-      if (this.boss.y + this.boss.height > canvas.height) this.gameOver = true;
-    }
+    this._updateBosses(scale);
 
     if (hitEdge) {
       this.alienDirection *= -1;
       this.aliens.forEach((alien) => (alien.y += 20 * scale));
-      if (this.boss) this.boss.y += 12 * scale;
+      this.bosses.forEach((boss) => (boss.y += 12 * scale));
     }
 
+    this._updateSpawnlings(scale);
     this._collideBullets();
     this._collectPickups();
+  }
+
+  _updateBosses(scale) {
+    const canvas = this.canvas;
+    const player = this.player;
+
+    for (const boss of this.bosses) {
+      let moving = true;
+
+      if (boss.type === "lasercore") {
+        // Beam cycle (#91): move -> charging (telegraph) -> firing.
+        // The ship freezes while charging/firing so the telegraphed
+        // column stays dodgeable.
+        boss.phaseT--;
+        if (boss.phaseT <= 0) {
+          if (boss.phase === "move") {
+            boss.phase = "charging";
+            boss.phaseT = BEAM_CHARGE;
+          } else if (boss.phase === "charging") {
+            boss.phase = "firing";
+            boss.phaseT = BEAM_FIRE;
+          } else {
+            boss.phase = "move";
+            boss.phaseT = BEAM_MOVE;
+          }
+        }
+        moving = boss.phase === "move";
+
+        // The beam is lethal while firing: game over if the player
+        // overlaps the column.
+        if (boss.phase === "firing") {
+          const beam = this._beamRect(boss);
+          if (
+            player.x < beam.right &&
+            player.x + player.width > beam.left &&
+            player.y + player.height > beam.top
+          ) {
+            this.gameOver = true;
+          }
+        }
+      } else if (boss.type === "mothership") {
+        // Carrier (#90): periodically launches kamikaze spawnlings,
+        // capped so the swarm stays manageable.
+        boss.spawnT--;
+        if (boss.spawnT <= 0 && this.spawnlings.length < SPAWNLING_MAX) {
+          boss.spawnT = SPAWNLING_INTERVAL;
+          this._spawnKamikaze(boss);
+        }
+      } else if (boss.type === "hive") {
+        boss.wobbleT += 0.08 + boss.gen * 0.03;
+      }
+
+      if (moving) {
+        const mul = boss.type === "hive" ? HIVE_GEN_SPEED[boss.gen] : boss.speed;
+        boss.x += ALIEN_SPEED * scale * mul * boss.dir;
+        if (boss.x + boss.width > canvas.width) {
+          boss.x = canvas.width - boss.width;
+          boss.dir = -1;
+        } else if (boss.x < 0) {
+          boss.x = 0;
+          boss.dir = 1;
+        }
+      }
+
+      if (boss.y + boss.height > canvas.height) this.gameOver = true;
+    }
+  }
+
+  // Lethal column under a firing Laser Core (#91).
+  _beamRect(boss) {
+    const cx = boss.x + boss.width / 2;
+    const half = boss.width * 0.45;
+    return { left: cx - half, right: cx + half, top: boss.y + boss.height };
+  }
+
+  // Kamikaze spawnlings (#90): dive at constant speed while easing
+  // horizontally toward the player. Contact is lethal.
+  _updateSpawnlings(scale) {
+    const player = this.player;
+    const canvas = this.canvas;
+    for (let i = this.spawnlings.length - 1; i >= 0; i--) {
+      const k = this.spawnlings[i];
+      const targetVx =
+        Math.sign(player.x + player.width / 2 - (k.x + k.width / 2)) * 1.5 * scale;
+      k.vx += (targetVx - k.vx) * 0.05;
+      k.x += k.vx;
+      k.y += k.vy;
+
+      if (
+        k.x < player.x + player.width &&
+        k.x + k.width > player.x &&
+        k.y < player.y + player.height &&
+        k.y + k.height > player.y
+      ) {
+        this.gameOver = true;
+      }
+      if (k.y > canvas.height) this.spawnlings.splice(i, 1);
+    }
   }
 
   _collideBullets() {
@@ -498,26 +652,84 @@ export class InvasionEngine {
 
       if (hitAlien || !this.bullets[bIndex]) continue;
 
-      const boss = this.boss;
-      if (
-        boss &&
-        bullet.x < boss.x + boss.width &&
-        bullet.x + BULLET_WIDTH > boss.x &&
-        bullet.y < boss.y + boss.height &&
-        bullet.y + BULLET_HEIGHT > boss.y
-      ) {
-        this.audio?.alienHit();
-        boss.hp--;
-        this.bullets.splice(bIndex, 1);
-        this.hits++;
-        this._addScore(5, bullet.x, bullet.y, "#9be7ff");
-
-        if (boss.hp <= 0) {
-          this._createFireworks(boss.x + boss.width / 2, boss.y + boss.height / 2);
-          this._createFireworks(boss.x + boss.width / 2 + 10, boss.y + boss.height / 2);
-          this._addScore(120, boss.x + boss.width / 2, boss.y + boss.height / 2, "#7af58f");
-          this.boss = null;
+      // Kamikaze spawnlings (#90): one-hit kills worth a small bounty.
+      let hitSpawnling = false;
+      for (let sIndex = this.spawnlings.length - 1; sIndex >= 0; sIndex--) {
+        const k = this.spawnlings[sIndex];
+        if (
+          bullet.x < k.x + k.width &&
+          bullet.x + BULLET_WIDTH > k.x &&
+          bullet.y < k.y + k.height &&
+          bullet.y + BULLET_HEIGHT > k.y
+        ) {
+          this._createFireworks(k.x, k.y);
+          this.audio?.alienHit();
+          this.spawnlings.splice(sIndex, 1);
+          this.bullets.splice(bIndex, 1);
+          this._addScore(SPAWNLING_SCORE, k.x + k.width / 2, k.y + k.height / 2, "#ffb46b");
+          this.hits++;
+          hitSpawnling = true;
+          break;
         }
+      }
+      if (hitSpawnling || !this.bullets[bIndex]) continue;
+
+      for (let boIndex = this.bosses.length - 1; boIndex >= 0; boIndex--) {
+        const boss = this.bosses[boIndex];
+        if (
+          bullet.x < boss.x + boss.width &&
+          bullet.x + BULLET_WIDTH > boss.x &&
+          bullet.y < boss.y + boss.height &&
+          bullet.y + BULLET_HEIGHT > boss.y
+        ) {
+          this.audio?.alienHit();
+          boss.hp--;
+          this.bullets.splice(bIndex, 1);
+          this.hits++;
+          this._addScore(5, bullet.x, bullet.y, "#9be7ff");
+          if (boss.hp <= 0) this._killBoss(boIndex);
+          break;
+        }
+      }
+    }
+  }
+
+  _killBoss(index) {
+    const boss = this.bosses[index];
+    const cx = boss.x + boss.width / 2;
+    const cy = boss.y + boss.height / 2;
+    this._createFireworks(cx, cy);
+    this._createFireworks(cx + 10, cy);
+    const score =
+      boss.type === "hive" ? HIVE_GEN_SCORE[boss.gen] : BOSS_STATS[boss.type].score;
+    this._addScore(score, cx, cy, "#7af58f");
+    this.bosses.splice(index, 1);
+
+    // Swarm Hive (#92): dying below max generation splits the mass
+    // into two smaller, faster copies that fly apart, each with half
+    // the HP and its own health bar.
+    if (boss.type === "hive" && boss.gen < HIVE_MAX_GEN) {
+      const gen = boss.gen + 1;
+      const hp = Math.max(1, Math.round(boss.maxHp / 2));
+      const sizeMul = HIVE_CHILD_SIZE ** gen;
+      const childW = BOSS_STATS.hive.width * this._scale() * sizeMul;
+      for (const dir of [-1, 1]) {
+        this.bosses.push(
+          this._makeBoss("hive", {
+            gen,
+            hp,
+            dir,
+            sizeMul,
+            x: Math.max(
+              0,
+              Math.min(
+                cx + dir * boss.width * 0.35 - childW / 2,
+                this.canvas.width - childW,
+              ),
+            ),
+            y: boss.y + boss.height * 0.15,
+          }),
+        );
       }
     }
   }
@@ -718,9 +930,249 @@ export class InvasionEngine {
     });
   }
 
-  _drawBoss() {
-    const boss = this.boss;
-    if (!boss) return;
+  _drawBosses() {
+    for (const boss of this.bosses) {
+      if (boss.type === "mothership") this._drawMothership(boss);
+      else if (boss.type === "lasercore") this._drawLaserCore(boss);
+      else if (boss.type === "hive") this._drawHive(boss);
+      else this._drawOctopus(boss);
+      // Per-entity HP bars once the hive splits (#92) — the shared
+      // HUD bar only shows the aggregate.
+      if (this.bosses.length > 1) this._drawBossHpBar(boss);
+    }
+    this._drawSpawnlings();
+  }
+
+  _drawBossHpBar(boss) {
+    const ctx = this.ctx;
+    const ratio = Math.max(0, boss.hp / boss.maxHp);
+    const y = boss.y - 7;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(boss.x, y, boss.width, 4);
+    ctx.fillStyle = "#ff4040";
+    ctx.fillRect(boss.x, y, boss.width * ratio, 4);
+  }
+
+  // Massive armored saucer that launches kamikaze spawnlings (#90).
+  _drawMothership(boss) {
+    const ctx = this.ctx;
+    const cx = boss.x + boss.width / 2;
+    const cy = boss.y + boss.height * 0.55;
+    const now = Date.now() / 1000;
+
+    // Hull
+    const grad = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y + boss.height);
+    grad.addColorStop(0, "#8d98ad");
+    grad.addColorStop(0.6, "#525c70");
+    grad.addColorStop(1, "#2e3442");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, boss.width / 2, boss.height * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Command dome
+    ctx.fillStyle = "#3a4358";
+    ctx.beginPath();
+    ctx.ellipse(cx, boss.y + boss.height * 0.32, boss.width * 0.22, boss.height * 0.3, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = "rgba(140, 220, 255, 0.5)";
+    ctx.beginPath();
+    ctx.ellipse(cx, boss.y + boss.height * 0.3, boss.width * 0.13, boss.height * 0.16, 0, Math.PI, 0);
+    ctx.fill();
+
+    // Running lights along the rim, chasing
+    const lightCount = 7;
+    for (let i = 0; i < lightCount; i++) {
+      const t = i / (lightCount - 1);
+      const lx = boss.x + boss.width * (0.12 + t * 0.76);
+      const on = Math.floor(now * 4) % lightCount === i;
+      ctx.fillStyle = on ? "#ffe066" : "rgba(255, 224, 102, 0.25)";
+      ctx.beginPath();
+      ctx.arc(lx, cy + boss.height * 0.18, Math.max(1.5, boss.width * 0.012), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Hangar bay glow: intensifies as the next launch approaches.
+    const charge = 1 - boss.spawnT / SPAWNLING_INTERVAL;
+    ctx.fillStyle = `rgba(255, 140, 60, ${(0.15 + 0.45 * charge).toFixed(2)})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, boss.y + boss.height * 0.85, boss.width * 0.16, boss.height * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Sleek geometric diamond that fires a telegraphed vertical beam (#91).
+  _drawLaserCore(boss) {
+    const ctx = this.ctx;
+    const cx = boss.x + boss.width / 2;
+    const cy = boss.y + boss.height / 2;
+    const charging = boss.phase === "charging";
+    const firing = boss.phase === "firing";
+    const chargeProgress = charging ? 1 - boss.phaseT / BEAM_CHARGE : 0;
+    const now = Date.now() / 1000;
+
+    // Telegraph: pulsing guide line while charging (#91 — players must
+    // read this and dodge before the beam fires).
+    if (charging) {
+      const pulse = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(now * 24)) * chargeProgress;
+      ctx.strokeStyle = `rgba(255, 80, 120, ${pulse.toFixed(2)})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(cx, boss.y + boss.height);
+      ctx.lineTo(cx, this.canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Beam: a wide lethal column while firing.
+    if (firing) {
+      const beam = this._beamRect(boss);
+      const grad = ctx.createLinearGradient(beam.left, 0, beam.right, 0);
+      grad.addColorStop(0, "rgba(255, 60, 120, 0)");
+      grad.addColorStop(0.5, "rgba(255, 60, 120, 0.75)");
+      grad.addColorStop(1, "rgba(255, 60, 120, 0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(beam.left, beam.top, beam.right - beam.left, this.canvas.height - beam.top);
+      // White-hot core
+      ctx.fillStyle = `rgba(255, 235, 245, ${(0.75 + 0.25 * Math.sin(now * 40)).toFixed(2)})`;
+      const coreHalf = (beam.right - beam.left) * 0.16;
+      ctx.fillRect(cx - coreHalf, beam.top, coreHalf * 2, this.canvas.height - beam.top);
+    }
+
+    // Diamond hull
+    ctx.save();
+    if (charging || firing) {
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = "#ff3c78";
+    }
+    const grad = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y + boss.height);
+    grad.addColorStop(0, "#e8ecf7");
+    grad.addColorStop(0.5, "#7b87a8");
+    grad.addColorStop(1, "#39415a");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx, boss.y); // top
+    ctx.lineTo(boss.x + boss.width, cy); // right
+    ctx.lineTo(cx, boss.y + boss.height); // bottom
+    ctx.lineTo(boss.x, cy); // left
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Core: grows and brightens with charge, blazing while firing.
+    const coreR =
+      boss.width * (0.1 + 0.08 * chargeProgress + (firing ? 0.1 : 0));
+    const coreAlpha = firing ? 1 : 0.45 + 0.55 * chargeProgress;
+    ctx.fillStyle = `rgba(255, 60, 120, ${coreAlpha.toFixed(2)})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 230, 240, 0.9)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreR * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Gooey biological mass that splits when killed (#92).
+  _drawHive(boss) {
+    const ctx = this.ctx;
+    const cx = boss.x + boss.width / 2;
+    const cy = boss.y + boss.height / 2;
+    const rx = boss.width / 2;
+    const ry = boss.height / 2;
+    const hue = 110 - boss.gen * 18; // greener core, sicklier splits
+
+    // Wobbly blob outline: radius modulated around the perimeter.
+    ctx.fillStyle = `hsla(${hue}, 65%, 32%, 0.92)`;
+    ctx.beginPath();
+    const SEGS = 14;
+    for (let i = 0; i <= SEGS; i++) {
+      const a = (i / SEGS) * Math.PI * 2;
+      const wob = 1 + 0.12 * Math.sin(boss.wobbleT + i * 2.1);
+      const px = cx + Math.cos(a) * rx * wob;
+      const py = cy + Math.sin(a) * ry * wob;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner membrane + nucleus
+    ctx.fillStyle = `hsla(${hue}, 70%, 45%, 0.7)`;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * 0.62, ry * 0.62, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `hsla(${hue + 30}, 80%, 62%, 0.9)`;
+    ctx.beginPath();
+    ctx.ellipse(
+      cx + Math.sin(boss.wobbleT * 0.7) * rx * 0.1,
+      cy + Math.cos(boss.wobbleT * 0.9) * ry * 0.1,
+      rx * 0.28,
+      ry * 0.3,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+
+    // Drifting bubbles in the goo
+    for (let i = 0; i < 3; i++) {
+      const bx = cx + Math.sin(boss.wobbleT * 1.3 + i * 2.4) * rx * 0.4;
+      const by = cy + Math.cos(boss.wobbleT * 1.1 + i * 1.9) * ry * 0.4;
+      ctx.fillStyle = `hsla(${hue + 40}, 80%, 70%, 0.5)`;
+      ctx.beginPath();
+      ctx.arc(bx, by, Math.max(1.5, rx * 0.08), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Angry eyes
+    ctx.fillStyle = "#1a0f1e";
+    const eyeR = Math.max(1.5, rx * 0.09);
+    ctx.beginPath();
+    ctx.arc(cx - rx * 0.28, cy - ry * 0.12, eyeR, 0, Math.PI * 2);
+    ctx.arc(cx + rx * 0.28, cy - ry * 0.12, eyeR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Kamikaze spawnlings (#90): small daggers diving at the player.
+  _drawSpawnlings() {
+    const ctx = this.ctx;
+    for (const k of this.spawnlings) {
+      const cx = k.x + k.width / 2;
+      // Exhaust trail above (they fly downward)
+      if (Math.random() > 0.4) {
+        ctx.fillStyle = Math.random() > 0.5 ? "orange" : "#ff5d5d";
+        ctx.beginPath();
+        ctx.moveTo(cx - k.width * 0.12, k.y);
+        ctx.lineTo(cx, k.y - Math.random() * k.height * 0.7 - 2);
+        ctx.lineTo(cx + k.width * 0.12, k.y);
+        ctx.fill();
+      }
+      // Hull: downward-pointing dagger
+      const grad = ctx.createLinearGradient(k.x, k.y, k.x, k.y + k.height);
+      grad.addColorStop(0, "#b8642e");
+      grad.addColorStop(1, "#ffb46b");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(cx, k.y + k.height); // nose (down)
+      ctx.lineTo(k.x + k.width, k.y + k.height * 0.25);
+      ctx.lineTo(cx, k.y + k.height * 0.45);
+      ctx.lineTo(k.x, k.y + k.height * 0.25);
+      ctx.closePath();
+      ctx.fill();
+      // Canopy glint
+      ctx.fillStyle = "#ffe9c9";
+      ctx.beginPath();
+      ctx.arc(cx, k.y + k.height * 0.55, Math.max(1, k.width * 0.1), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // The classic wave-1 octopus.
+  _drawOctopus(boss) {
     const ctx = this.ctx;
 
     ctx.save();
