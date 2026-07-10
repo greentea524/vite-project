@@ -1084,7 +1084,7 @@ function Platformer() {
                         <button
                           type="button"
                           className={`plat-copy-btn${linkCopied ? " plat-copy-btn--done" : ""}`}
-                          onClick={copyJoinLink}
+                          onClick={copyLink}
                           title="Copy link"
                           aria-label="Copy join link"
                         >
