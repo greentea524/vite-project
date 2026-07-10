@@ -1381,7 +1381,10 @@ export class InvasionEngine {
       this._update();
       this._publishHud();
 
-      if (!this.menuMode && this.aliens.length === 0) {
+      // Wave ends only when the fleet AND the boss are down — clearing
+      // the fleet first turns the rest of the wave into a boss duel
+      // (previously a surviving boss was silently replaced).
+      if (!this.menuMode && this.aliens.length === 0 && this.bosses.length === 0) {
         this.waveNumber++;
         this._createAliens();
       }
