@@ -27,6 +27,7 @@ function App() {
     loading: false,
     hidden: false,
   });
+  const [showCredits, setShowCredits] = React.useState(false);
 
   useEffect(() => {
     dispatch({ type: ACTIONS.START_THEME_LOAD });
@@ -71,8 +72,49 @@ function App() {
               <option value="xp.css">Windows XP</option>
               <option value="7.css">Windows 7</option>
             </select>
+            <button 
+              type="button" 
+              onClick={() => setShowCredits(true)}
+              style={{ marginLeft: '8px', padding: '2px 8px' }}
+              aria-label="Theme Credits"
+            >
+              ℹ️ Credits
+            </button>
           </section>
         </div>
+
+        {showCredits && (
+          <div className="modal-overlay" style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <div className="window" style={{ width: '400px', maxWidth: '90%' }}>
+              <div className="title-bar">
+                <div className="title-bar-text">Theme Credits</div>
+                <div className="title-bar-controls">
+                  <button aria-label="Close" onClick={() => setShowCredits(false)}></button>
+                </div>
+              </div>
+              <div className="window-body" style={{ padding: '16px' }}>
+                <p>These awesome CSS themes are open-source projects created by the community:</p>
+                <ul style={{ margin: '16px 0', paddingLeft: '24px' }}>
+                  <li style={{ marginBottom: '8px' }}>
+                    <strong>Windows 98</strong> (`98.css`) by Jordan Scales (<a href="https://github.com/jdan" target="_blank" rel="noreferrer">@jdan</a>)
+                  </li>
+                  <li style={{ marginBottom: '8px' }}>
+                    <strong>Windows XP</strong> (`xp.css`) by <a href="https://github.com/botoxparty" target="_blank" rel="noreferrer">@botoxparty</a>
+                  </li>
+                  <li>
+                    <strong>Windows 7</strong> (`7.css`) by Khang Nguyen (<a href="https://github.com/khang-nd" target="_blank" rel="noreferrer">@khang-nd</a>)
+                  </li>
+                </ul>
+                <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                  <button onClick={() => setShowCredits(false)}>Awesome!</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="window">
           <div className="title-bar">
             <div className="title-bar-text">
