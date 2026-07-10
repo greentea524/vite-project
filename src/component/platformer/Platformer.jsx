@@ -215,7 +215,6 @@ function Platformer() {
   // Multiplayer UI state (PLAT-23/24).
   const [playerName, setPlayerName] = useState("");
   const [lobbyMode, setLobbyMode] = useState("choose"); // choose | room
-  const [activeRoomCode, setActiveRoomCode] = useState("");
   const [roster, setRoster] = useState([]);
   const [catchUpShields, setCatchUpShields] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -293,9 +292,6 @@ function Platformer() {
       unsubs.push(
         network.on("roster", setRoster),
         network.on("catchUpShieldsUpdated", setCatchUpShields),
-        // Connection lifecycle drives the lobby status. connect_error
-        // is routed here too — during a cold start those are expected,
-        // so they surface as "waking", not as a raw error message.
         network.on("connected", () => setConnStatus("connected")),
         network.on("disconnected", () =>
           setConnStatus((s) => (s === "failed" ? s : "connecting")),
