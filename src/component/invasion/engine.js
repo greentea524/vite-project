@@ -790,11 +790,6 @@ export class InvasionEngine {
     }
     ctx.restore();
 
-    const hpRatio = Math.max(0, boss.hp / boss.maxHp);
-    ctx.fillStyle = "#222";
-    ctx.fillRect(boss.x, boss.y - 8, boss.width, 4);
-    ctx.fillStyle = "#ff4040";
-    ctx.fillRect(boss.x, boss.y - 8, boss.width * hpRatio, 4);
   }
 
   _drawParticles() {
@@ -879,6 +874,7 @@ export class InvasionEngine {
       shots: this.bulletsShot,
       hits: this.hits,
       bossHp: this.boss ? this.boss.hp : 0,
+      bossMaxHp: this.boss ? this.boss.maxHp : 0,
       comboCount: this.comboTimerFrames > 0 ? this.comboCount : 0,
       comboMultiplier:
         this.comboTimerFrames > 0 ? this._comboMultiplier(this.comboCount) : 1,

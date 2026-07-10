@@ -123,23 +123,7 @@ export default function AlienInvasion() {
         )}
       </div>
 
-      {hud && (
-        <div className={styles.hud}>
-          <span className={styles.score}>Score {hud.score}</span>
-          {hud.comboMultiplier > 1 && (
-            <span className={styles.combo}>
-              COMBO x{hud.comboMultiplier} ({hud.comboCount})
-            </span>
-          )}
-          <span>Wave {hud.wave}</span>
-          <span>{weaponName}</span>
-          <span>Coins {hud.coins}</span>
-          <span>
-            Hit rate {hitRate}% ({hud.hits}/{hud.shots})
-          </span>
-          {hud.bossHp > 0 && <span className={styles.bossHp}>Boss HP {hud.bossHp}</span>}
-        </div>
-      )}
+
 
       <div className={styles.gameArea} ref={wrapperRef}>
         <canvas
@@ -151,6 +135,31 @@ export default function AlienInvasion() {
           }}
           onMouseMove={(e) => engineRef.current?.pointTo(e.clientX)}
         />
+
+        {hud && gameState === "playing" && (
+          <>
+            <div className={styles.hudOverlay}>
+              <div className={styles.hudLeft}>
+                <div className={styles.hudScore}>{hud.score}</div>
+                {hud.comboMultiplier > 1 && (
+                  <div className={styles.hudCombo}>x{hud.comboMultiplier} COMBO</div>
+                )}
+              </div>
+              <div className={styles.hudRight}>
+                <div className={styles.hudStat}>🌊 Wave {hud.wave}</div>
+                <div className={styles.hudStat}>🪙 {hud.coins}</div>
+              </div>
+            </div>
+            {hud.bossMaxHp > 0 && hud.bossHp > 0 && (
+              <div className={styles.bossBarContainer}>
+                <div 
+                  className={styles.bossBarFill} 
+                  style={{ width: `${(hud.bossHp / hud.bossMaxHp) * 100}%` }} 
+                />
+              </div>
+            )}
+          </>
+        )}
 
         {gameState === "menu" && !showInstructions && (
           <div className={styles.menuOverlay}>
