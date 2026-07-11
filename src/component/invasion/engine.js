@@ -241,7 +241,6 @@ export class InvasionEngine {
     this.ufos = [];
     this.galaxies = [];
     this.suns = [];
-    this.blackholes = [];
     // Bosses are a list (#92): the Swarm Hive splits into multiple
     // live entities. Non-splitting waves just hold one.
     this.bosses = [];
@@ -616,15 +615,6 @@ export class InvasionEngine {
         speed: Math.max(0.01, 0.02 * scale),
       });
     }
-
-    if (this.sectorTheme === "void" || this.sectorTheme === "pulsar") {
-      this.blackholes.push({
-        x: Math.random() * this.canvas.width,
-        y: Math.random() * (this.canvas.height / 2),
-        size: Math.max(50, (Math.random() * 50 + 50) * scale),
-        speed: Math.max(0.01, 0.02 * scale),
-      });
-    }
   }
 
   _createFireworks(x, y) {
@@ -880,14 +870,6 @@ export class InvasionEngine {
       if (sun.y - sun.size > canvas.height) {
         sun.y = -sun.size;
         sun.x = Math.random() * canvas.width;
-      }
-    });
-
-    this.blackholes.forEach((bh) => {
-      bh.y += bh.speed;
-      if (bh.y - bh.size > canvas.height) {
-        bh.y = -bh.size;
-        bh.x = Math.random() * canvas.width;
       }
     });
 
@@ -1604,36 +1586,6 @@ export class InvasionEngine {
       ctx.beginPath();
       ctx.arc(sun.x, sun.y, sun.size, 0, Math.PI * 2);
       ctx.fill();
-    });
-
-    this.blackholes.forEach((bh) => {
-      ctx.save();
-      ctx.translate(bh.x, bh.y);
-      
-      // Accretion disk
-      ctx.rotate(Date.now() / 1000);
-      const grad = ctx.createRadialGradient(0, 0, bh.size * 0.3, 0, 0, bh.size);
-      grad.addColorStop(0, "rgba(255, 150, 50, 0.8)");
-      grad.addColorStop(1, "transparent");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, bh.size, bh.size * 0.4, 0, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Event horizon (black circle)
-      ctx.fillStyle = "#000";
-      ctx.beginPath();
-      ctx.arc(0, 0, bh.size * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Glow/lensing around event horizon
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-      ctx.lineWidth = 2 * this._scale();
-      ctx.beginPath();
-      ctx.arc(0, 0, bh.size * 0.3, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.restore();
     });
 
     this.planets.forEach((planet) => {

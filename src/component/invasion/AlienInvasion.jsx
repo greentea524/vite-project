@@ -807,9 +807,15 @@ export default function AlienInvasion() {
             >
               Instructions & Upgrades
             </button>
-            <button type="button" className={styles.menuBtn} onClick={restart}>
-              Restart
-            </button>
+            {mapPages.length > 0 ? (
+              <button type="button" className={styles.menuBtn} onClick={() => setGameState("map")}>
+                View Galaxy Sector Map
+              </button>
+            ) : (
+              <button type="button" className={styles.menuBtn} onClick={restart}>
+                Restart
+              </button>
+            )}
             <button type="button" className={styles.menuBtn} onClick={quitToMenu}>
               Quit to Menu
             </button>
