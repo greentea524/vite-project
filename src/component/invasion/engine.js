@@ -592,7 +592,6 @@ export class InvasionEngine {
     });
     this.galaxies.length = 0;
     this.suns.length = 0;
-    this.blackholes.length = 0;
     
     if (this.sectorTheme === "nebula" || this.sectorTheme === "forge") {
       this.galaxies.push({
