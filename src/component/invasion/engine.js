@@ -370,12 +370,16 @@ export class InvasionEngine {
     if (snap.shipType) this.ghost.shipType = snap.shipType;
     this.ghost.isFiring = Boolean(snap.isFiring);
     // Fire-event bullets: spawn cosmetic copies of the opponent's shots
-    // (base-800 coords, simulated locally, never collide).
+    // (simulated locally, never collide). Horizontal (base-X) is shared;
+    // the start Y is THIS screen's ship row, since the remote's base-Y
+    // isn't comparable across aspect ratios (same reason as the ghost
+    // ship). So the bullets always launch from the ghost and fly up.
     if (Array.isArray(snap.shots)) {
+      const baseRowY = this._ghostRowY() / this._scale();
       for (const s of snap.shots) {
         this.ghostBullets.push({
           x: s.x,
-          y: s.y,
+          y: baseRowY,
           vx: s.vx || 0,
           isLaser: Boolean(s.isLaser),
           isHoming: Boolean(s.isHoming),
@@ -1845,6 +1849,12 @@ export class InvasionEngine {
     }
   }
 
+  // The bottom row where a ship rests on THIS screen. Used to place the
+  // ghost and its bullets regardless of the peer's aspect ratio (#80).
+  _ghostRowY() {
+    return this.canvas.height - this.player.height - 10;
+  }
+
   // The other player's ship (#80): translucent and blue-tinted so it
   // never reads as your own, with their name floating above. Skipped
   // once their run has ended (terminal `over` snapshot).
@@ -1855,7 +1865,12 @@ export class InvasionEngine {
 
     const scale = this._scale();
     const { width: pw, height: ph } = this.player;
-    const py = view.y != null ? view.y * scale : this.player.y;
+    // Pin the ghost to THIS screen's bottom row, not the broadcast Y:
+    // both ships are always at the bottom, and base-Y isn't comparable
+    // across different aspect ratios (a phone's ship sits at base-Y
+    // ~1200, a desktop's at ~700), so using view.y would put the ghost
+    // off-screen or mid-map on the other device. Only X is shared.
+    const py = this._ghostRowY();
     const px = Math.max(0, Math.min(view.x * scale, this.canvas.width - pw));
     this._drawHull(px, py, pw, ph, {
       bodyTop: "#b8d4ff",
@@ -1869,13 +1884,13 @@ export class InvasionEngine {
 
     if (this.ghost.isFiring) {
       ctx.save();
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = "#e0f0ff";
-      ctx.shadowBlur = 8 * scale;
-      ctx.shadowColor = "#9fd0ff";
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "#ffb44a"; // warm orange muzzle flash
+      ctx.shadowBlur = 10 * scale;
+      ctx.shadowColor = "#ff7a1a";
       ctx.beginPath();
-      // Draw a sleek muzzle flash ellipse at the nose
-      ctx.ellipse(px + pw / 2, py - 4 * scale, 4 * scale, 8 * scale, 0, 0, Math.PI * 2);
+      // A little orange flare at the nose.
+      ctx.ellipse(px + pw / 2, py - 4 * scale, 5 * scale, 9 * scale, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

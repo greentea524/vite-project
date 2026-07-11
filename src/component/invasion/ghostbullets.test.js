@@ -123,20 +123,25 @@ describe("ghost fire-event bullets", () => {
     expect(eng.bullets.length).toBe(bulletsBefore);
   });
 
-  it("advances ghost bullets upward and culls them off the top", () => {
+  it("spawns bullets at this screen's ship row and flies them up off the top", () => {
     const eng = start(null);
     eng.setGhost({ id: "opp", name: "Rival" });
     eng.pushGhostSnapshot({
       id: "opp",
       x: 400,
-      y: 10,
+      y: 10, // remote base-Y is ignored; bullet starts at the local row
       shots: [{ x: 400, y: 10, vx: 0, isLaser: false, isHoming: false }],
     });
+    // Launches from the ship row (near the bottom), not the remote Y.
+    const expectedRow = eng._ghostRowY() / eng._scale();
+    expect(eng.ghostBullets[0].y).toBeCloseTo(expectedRow, 5);
+
     const y0 = eng.ghostBullets[0].y;
     eng._updateGhostBullets();
     expect(eng.ghostBullets[0].y).toBeLessThan(y0); // moved up
-    // A few more frames clears the top (y started at 10).
-    for (let i = 0; i < 6; i++) eng._updateGhostBullets();
+
+    // Enough frames to cross the whole board and cull off the top.
+    for (let i = 0; i < 200; i++) eng._updateGhostBullets();
     expect(eng.ghostBullets.length).toBe(0);
   });
 
