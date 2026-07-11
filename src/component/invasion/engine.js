@@ -240,6 +240,8 @@ export class InvasionEngine {
     this.comets = [];
     this.ufos = [];
     this.galaxies = [];
+    this.suns = [];
+    this.blackholes = [];
     // Bosses are a list (#92): the Swarm Hive splits into multiple
     // live entities. Non-splitting waves just hold one.
     this.bosses = [];
@@ -590,14 +592,36 @@ export class InvasionEngine {
       speed: Math.max(0.03, 0.05 * scale),
     });
     this.galaxies.length = 0;
+    this.suns.length = 0;
+    this.blackholes.length = 0;
+    
     if (this.sectorTheme === "nebula" || this.sectorTheme === "forge") {
       this.galaxies.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * (this.canvas.height / 2),
-        size: Math.max(40, (Math.random() * 80 + 40) * scale),
+        size: Math.max(20, (Math.random() * 40 + 20) * scale),
         color1: `hsla(${Math.random() * 360}, 80%, 50%, 0.3)`,
         color2: `hsla(${Math.random() * 360}, 80%, 20%, 0)`,
         angle: Math.random() * Math.PI * 2,
+        speed: Math.max(0.01, 0.02 * scale),
+      });
+    }
+
+    if (this.sectorTheme === "forge" || this.sectorTheme === "pulsar") {
+      this.suns.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * (this.canvas.height / 2),
+        size: Math.max(40, (Math.random() * 60 + 40) * scale),
+        color: `hsl(${Math.random() * 60 + 20}, 100%, 60%)`,
+        speed: Math.max(0.01, 0.02 * scale),
+      });
+    }
+
+    if (this.sectorTheme === "void" || this.sectorTheme === "pulsar") {
+      this.blackholes.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * (this.canvas.height / 2),
+        size: Math.max(50, (Math.random() * 50 + 50) * scale),
         speed: Math.max(0.01, 0.02 * scale),
       });
     }
@@ -848,6 +872,22 @@ export class InvasionEngine {
       if (galaxy.y - galaxy.size > canvas.height) {
         galaxy.y = -galaxy.size;
         galaxy.x = Math.random() * canvas.width;
+      }
+    });
+
+    this.suns.forEach((sun) => {
+      sun.y += sun.speed;
+      if (sun.y - sun.size > canvas.height) {
+        sun.y = -sun.size;
+        sun.x = Math.random() * canvas.width;
+      }
+    });
+
+    this.blackholes.forEach((bh) => {
+      bh.y += bh.speed;
+      if (bh.y - bh.size > canvas.height) {
+        bh.y = -bh.size;
+        bh.x = Math.random() * canvas.width;
       }
     });
 
@@ -1547,6 +1587,51 @@ export class InvasionEngine {
       ctx.ellipse(0, 0, g.size, g.size * 0.1, 0, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255,255,255,0.4)";
       ctx.fill();
+      
+      ctx.restore();
+    });
+
+    this.suns.forEach((sun) => {
+      const grad = ctx.createRadialGradient(
+        sun.x, sun.y, sun.size * 0.2,
+        sun.x, sun.y, sun.size
+      );
+      grad.addColorStop(0, "#fff");
+      grad.addColorStop(0.2, sun.color);
+      grad.addColorStop(1, "transparent");
+      
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(sun.x, sun.y, sun.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    this.blackholes.forEach((bh) => {
+      ctx.save();
+      ctx.translate(bh.x, bh.y);
+      
+      // Accretion disk
+      ctx.rotate(Date.now() / 1000);
+      const grad = ctx.createRadialGradient(0, 0, bh.size * 0.3, 0, 0, bh.size);
+      grad.addColorStop(0, "rgba(255, 150, 50, 0.8)");
+      grad.addColorStop(1, "transparent");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, bh.size, bh.size * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Event horizon (black circle)
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(0, 0, bh.size * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Glow/lensing around event horizon
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.lineWidth = 2 * this._scale();
+      ctx.beginPath();
+      ctx.arc(0, 0, bh.size * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
       
       ctx.restore();
     });
