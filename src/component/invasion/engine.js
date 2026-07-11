@@ -182,6 +182,10 @@ export class InvasionEngine {
     this.permanentBuffs = null;
     this._seed = seed == null ? null : seed >>> 0;
     this.restart();
+    if (!this.menuMode) {
+      this.hyperdriveState = "dropping_in";
+      this.player.y = this.canvas.height + this.player.height;
+    }
     this._stat("ship", "shipsUsed", this.shipType);
   }
 
@@ -211,6 +215,8 @@ export class InvasionEngine {
     }
     
     this._resize();
+    this.hyperdriveState = "dropping_in";
+    this.player.y = this.canvas.height + this.player.height;
     this._startLoop();
     this._stat("ship", "shipsUsed", this.shipType);
   }
@@ -237,6 +243,8 @@ export class InvasionEngine {
     this.spawnlings = []; // Mothership kamikazes (#90)
     this.inkShots = []; // Octo Commander ink globs
     this.alienDirection = 1;
+    this.hyperdriveState = null;
+    this._hyperdriveStart = 0;
     this.playerShieldHp = 0;
     this.droneTimer = 0;
     this.drones = [{ x: 0, y: 0, cooldown: 0 }, { x: 0, y: 0, cooldown: 0 }];
@@ -360,6 +368,7 @@ export class InvasionEngine {
     // (#82); the terminal snapshot carries the full results.
     const snap = { 
       x, 
+      y: this.player.y / scale,
       vx, 
       over: this.gameOver, 
       shipType: this.shipType, 
@@ -818,6 +827,47 @@ export class InvasionEngine {
         p.width / 2 +
         Math.sin(this._menuT) * canvas.width * 0.1;
       return;
+    }
+
+    if (this.hyperdriveState === "jumping") {
+      const dt = performance.now() - this._hyperdriveStart;
+      const speedMulti = Math.min(25, 1 + dt / 80);
+      this.player.y -= this.player.speed * speedMulti;
+      
+      this.particles.push({
+        x: this.player.x + this.player.width * Math.random(),
+        y: this.player.y + this.player.height,
+        vx: 0,
+        vy: 20 + Math.random() * 10,
+        life: 20,
+        color: "rgba(255, 255, 255, 0.8)",
+        width: 2,
+        height: 25
+      });
+      
+      if (this.player.y < -this.player.height) {
+        if (this.permanentBuffs) {
+          this._running = false;
+          this.onSectorClear(this.playerHp);
+          return;
+        } else {
+          this.waveNumber++;
+          this._createAliens();
+          this.hyperdriveState = "dropping_in";
+          this.player.y = this.canvas.height + this.player.height;
+        }
+      }
+      return;
+    } else if (this.hyperdriveState === "dropping_in") {
+      const targetY = this.canvas.height - this.player.height - 10;
+      const dist = this.player.y - targetY;
+      if (dist > 1) {
+        this.player.y -= Math.max(1, dist * 0.1);
+        return;
+      } else {
+        this.player.y = targetY;
+        this.hyperdriveState = null;
+      }
     }
 
     if (this.playerHitFlash > 0) this.playerHitFlash--;
@@ -1499,7 +1549,8 @@ export class InvasionEngine {
     if (!view || this.ghost.over) return;
 
     const scale = this._scale();
-    const { width: pw, height: ph, y: py } = this.player;
+    const { width: pw, height: ph } = this.player;
+    const py = view.y != null ? view.y * scale : this.player.y;
     const px = Math.max(0, Math.min(view.x * scale, this.canvas.width - pw));
     this._drawHull(px, py, pw, ph, {
       bodyTop: "#b8d4ff",
@@ -1966,9 +2017,13 @@ export class InvasionEngine {
     const ctx = this.ctx;
     this.particles.forEach((particle, index) => {
       ctx.fillStyle = particle.color;
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
-      ctx.fill();
+      if (particle.width) {
+        ctx.fillRect(particle.x, particle.y, particle.width, particle.height || particle.width);
+      } else {
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size || 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       particle.x += particle.vx;
       particle.y += particle.vy;
@@ -2120,20 +2175,12 @@ export class InvasionEngine {
 
       // Sector cleared!
       if (!this.menuMode && this.aliens.length === 0 && this.bosses.length === 0) {
-        // A cleared rogue-lite sector counts as a wave too (#94), so
-        // lifetime progress accrues in every mode.
-        this._stat("add", "wavesCleared");
-        if (this._waveDamageFree) this._stat("add", "flawlessWaves");
-        this._waveDamageFree = true;
-        if (this.permanentBuffs) {
-          // Rogue-lite mode: sector cleared
-          this._running = false;
-          this.onSectorClear(this.playerHp);
-          return;
-        } else {
-          // Fallback endless mode (menu background)
-          this.waveNumber++;
-          this._createAliens();
+        if (!this.hyperdriveState) {
+          this._stat("add", "wavesCleared");
+          if (this._waveDamageFree) this._stat("add", "flawlessWaves");
+          this._waveDamageFree = true;
+          this.hyperdriveState = "jumping";
+          this._hyperdriveStart = performance.now();
         }
       }
     }
