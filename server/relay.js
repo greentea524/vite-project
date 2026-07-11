@@ -114,8 +114,16 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
   io.on("connection", (socket) => {
     socket.on("createRoom", (payload = {}, ack) => {
       const code = makeCode(rooms);
+      // Rooms carry a game tag and their own player cap (#79): the
+      // invasion shooter creates 2-player rooms on the same relay the
+      // platformer uses. Platformer clients send neither field, so the
+      // defaults (no tag, cap MAX_PLAYERS) keep old behavior.
+      const maxPlayers = Number.isInteger(payload.maxPlayers)
+        ? Math.max(2, Math.min(payload.maxPlayers, MAX_PLAYERS))
+        : MAX_PLAYERS;
+      const game = typeof payload.game === "string" ? payload.game : "";
       // The creator is the host (PLAT-30).
-      const room = { players: new Map(), nextSlot: 0, hostId: socket.id, deadEnemies: new Set(), catchUpShields: false };
+      const room = { players: new Map(), nextSlot: 0, hostId: socket.id, deadEnemies: new Set(), catchUpShields: false, maxPlayers, game };
       rooms.set(code, room);
       join(socket, room, code, payload);
       ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies), catchUpShields: room.catchUpShields });
@@ -124,11 +132,13 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     socket.on("joinRoom", (payload = {}, ack) => {
       const code = String(payload.code || "").toUpperCase();
       const room = rooms.get(code);
-      if (!room) {
+      // A cross-game code collision reads as "not found" — to a
+      // platformer player, an invasion room's code isn't a real room.
+      if (!room || room.game !== (typeof payload.game === "string" ? payload.game : "")) {
         ack?.({ ok: false, error: "Room not found" });
         return;
       }
-      if (room.players.size >= MAX_PLAYERS) {
+      if (room.players.size >= room.maxPlayers) {
         ack?.({ ok: false, error: "Room is full" });
         return;
       }
