@@ -28,6 +28,11 @@ const BULLET_SPEED = 7;
 const BULLET_WIDTH = 4;
 const BULLET_HEIGHT = 10;
 const SHOOT_COOLDOWN_MS = 200;
+// Lifetime backstop for a cosmetic ghost bullet (#80 shots). Bullets
+// are normally culled the instant they clear the top (y < -20); this
+// only catches strays (e.g. drifting sideways), so it's set well above
+// the ~175-frame worst-case vertical traversal on tall mobile canvases.
+const GHOST_BULLET_LIFE = 240;
 
 const ALIEN_WIDTH = 30;
 const ALIEN_HEIGHT = 20;
@@ -231,6 +236,13 @@ export class InvasionEngine {
 
   _resetRun() {
     this.bullets = [];
+    // Cosmetic bullets fired by the remote player (fire-events). Kept
+    // apart from `bullets` so they never collide — the actual kills
+    // come through the shared-kill event (#81). `_pendingShots` buffers
+    // this player's shot descriptors until the next state snapshot goes
+    // out.
+    this.ghostBullets = [];
+    this._pendingShots = [];
     this.aliens = [];
     this.particles = [];
     this.powerUps = [];
@@ -357,7 +369,35 @@ export class InvasionEngine {
     this.ghost.over = Boolean(snap.over); // terminal flag: latest wins
     if (snap.shipType) this.ghost.shipType = snap.shipType;
     this.ghost.isFiring = Boolean(snap.isFiring);
+    // Fire-event bullets: spawn cosmetic copies of the opponent's shots
+    // (base-800 coords, simulated locally, never collide).
+    if (Array.isArray(snap.shots)) {
+      for (const s of snap.shots) {
+        this.ghostBullets.push({
+          x: s.x,
+          y: s.y,
+          vx: s.vx || 0,
+          isLaser: Boolean(s.isLaser),
+          isHoming: Boolean(s.isHoming),
+          life: GHOST_BULLET_LIFE,
+        });
+      }
+    }
     pushSnapshot(this.ghost, snap, performance.now());
+  }
+
+  // Advance the opponent's cosmetic bullets in base-800 units, mirroring
+  // the local bullet motion (upward, laser faster) minus homing/steering
+  // and collision. Culled off the top or by lifetime.
+  _updateGhostBullets() {
+    if (!this.ghostBullets.length) return;
+    for (let i = this.ghostBullets.length - 1; i >= 0; i--) {
+      const b = this.ghostBullets[i];
+      b.y -= (b.isLaser ? BULLET_SPEED * 2.5 : BULLET_SPEED);
+      if (b.vx) b.x += b.vx;
+      b.life--;
+      if (b.y < -20 || b.life <= 0) this.ghostBullets.splice(i, 1);
+    }
   }
 
   // Broadcast the local ship at ~15 Hz (the network module throttles;
@@ -387,7 +427,12 @@ export class InvasionEngine {
       snap.bestCombo = this.runBestCombo;
       snap.bestMultiplier = this._comboMultiplier(this.runBestCombo);
     }
-    this.network.sendState(snap, force);
+    // Piggyback any shots fired since the last snapshot so the peer can
+    // draw the ghost's bullets (no separate relay event needed).
+    if (this._pendingShots.length) snap.shots = this._pendingShots;
+    // Clear the buffer only once the snapshot is actually emitted — a
+    // throttled (dropped) snapshot keeps the shots for the next send.
+    if (this.network.sendState(snap, force)) this._pendingShots = [];
   }
 
   // --- sizing ----------------------------------------------------------
@@ -685,19 +730,28 @@ export class InvasionEngine {
 
   _shootBullet() {
     const p = this.player;
-    
+    const scale = this._scale();
+    // Descriptors of the shots fired this trigger, in base-800 coords,
+    // so the peer can spawn matching cosmetic ghost bullets (fire-event
+    // model). Only collected when in a room.
+    const fired = this.network?.roomCode ? [] : null;
+
     const spawn = (fx, vx = 0, isHoming = false, isLaser = false) => {
-      const scale = this._scale();
       const laserW = Math.max(4, 16 * scale);
+      const bx = p.x + p.width * fx - (isLaser ? laserW / 2 : BULLET_WIDTH / 2);
+      const by = p.y - (isLaser ? 40 : BULLET_HEIGHT);
       this.bullets.push({
-        x: p.x + p.width * fx - (isLaser ? laserW / 2 : BULLET_WIDTH / 2),
-        y: p.y - (isLaser ? 40 : BULLET_HEIGHT),
+        x: bx,
+        y: by,
         vx: vx,
         isHoming: isHoming,
         isLaser: isLaser,
         width: isLaser ? laserW : BULLET_WIDTH,
         height: isLaser ? 40 : BULLET_HEIGHT,
       });
+      // vx travels in base units/frame already (applied as vx*scale on
+      // both sides), so it needs no conversion; positions do.
+      fired?.push({ x: bx / scale, y: by / scale, vx, isLaser, isHoming });
     };
 
     this._shotCycleIndex = (this._shotCycleIndex || 0) + 1;
@@ -747,6 +801,7 @@ export class InvasionEngine {
     }
 
     this.bulletsShot += this.weaponLevel;
+    if (fired && fired.length) this._pendingShots.push(...fired);
     this._canShoot = false;
     clearTimeout(this._shootTimer);
     this._shootTimer = setTimeout(() => (this._canShoot = true), SHOOT_COOLDOWN_MS);
@@ -1021,6 +1076,8 @@ export class InvasionEngine {
         this.bullets.splice(index, 1);
       }
     });
+
+    this._updateGhostBullets(); // opponent's cosmetic shots (#80)
 
     const scale = this._scale();
     let hitEdge = false;
@@ -1832,6 +1889,23 @@ export class InvasionEngine {
     ctx.restore();
   }
 
+  // The opponent's cosmetic bullets (#80): drawn under the local ones,
+  // translucent and blue-tinted so they never read as your own shots.
+  _drawGhostBullets() {
+    if (!this.ghostBullets.length || this.menuMode) return;
+    const ctx = this.ctx;
+    const scale = this._scale();
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    for (const b of this.ghostBullets) {
+      const w = (b.isLaser ? 16 : BULLET_WIDTH) * scale;
+      const h = (b.isLaser ? 40 : BULLET_HEIGHT) * scale;
+      ctx.fillStyle = b.isLaser ? "#9fd0ff" : b.isHoming ? "#c9a8ff" : "#7fb0ff";
+      ctx.fillRect(b.x * scale - w / 2, b.y * scale, w, h);
+    }
+    ctx.restore();
+  }
+
   _drawBullets() {
     const ctx = this.ctx;
     this.bullets.forEach((bullet) => {
@@ -2420,6 +2494,7 @@ export class InvasionEngine {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this._drawBackground();
     this._drawGhost(); // under the local ship (#80)
+    this._drawGhostBullets(); // opponent's cosmetic shots (#80)
     this._drawPlayer();
     this._drawDrones();
     this._drawBullets();

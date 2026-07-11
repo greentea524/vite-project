@@ -155,13 +155,16 @@ export class Network {
 
   // Throttled local-player broadcast (#80). Called every sim frame;
   // only actually sends at ~15 Hz. `force` bypasses the throttle (used
-  // for the terminal game-over snapshot).
+  // for the terminal game-over snapshot). Returns true when the
+  // snapshot was actually emitted, so the caller can flush anything it
+  // piggybacked on it (e.g. fire events) only once it's really sent.
   sendState(snapshot, force = false) {
-    if (!this.socket || !this.roomCode) return;
+    if (!this.socket || !this.roomCode) return false;
     const now = Date.now();
-    if (!force && now - this._lastSent < SEND_INTERVAL_MS) return;
+    if (!force && now - this._lastSent < SEND_INTERVAL_MS) return false;
     this._lastSent = now;
     this.socket.emit("state", snapshot);
+    return true;
   }
 
   // Tell the room an enemy is dead (#81). Idempotent: only the first
