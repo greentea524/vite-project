@@ -545,9 +545,34 @@ export default function AlienInvasion() {
           <div className={styles.menuOverlay}>
             <h3>Alien Invasion</h3>
             <div className={styles.shipPicker}>
-              <button type="button" className={`${styles.shipBtn} ${selectedShip === 'fighter' ? styles.active : ''}`} onClick={() => setSelectedShip('fighter')}>Fighter</button>
-              <button type="button" className={`${styles.shipBtn} ${selectedShip === 'cruiser' ? styles.active : ''}`} onClick={() => setSelectedShip('cruiser')}>Cruiser</button>
-              <button type="button" className={`${styles.shipBtn} ${selectedShip === 'interceptor' ? styles.active : ''}`} onClick={() => setSelectedShip('interceptor')}>Interceptor</button>
+              <button
+                type="button"
+                className={styles.shipCarouselBtn}
+                onClick={() => {
+                  const SHIPS = ["fighter", "cruiser", "interceptor"];
+                  const idx = SHIPS.indexOf(selectedShip);
+                  setSelectedShip(SHIPS[(idx - 1 + SHIPS.length) % SHIPS.length]);
+                }}
+              >
+                ◀
+              </button>
+              <div className={styles.shipDisplay}>
+                <div className={styles.shipDisplayIcon}>
+                  {selectedShip === "cruiser" ? "🚀" : selectedShip === "interceptor" ? "⚡" : "✈️"}
+                </div>
+                <div className={styles.shipDisplayName}>{selectedShip}</div>
+              </div>
+              <button
+                type="button"
+                className={styles.shipCarouselBtn}
+                onClick={() => {
+                  const SHIPS = ["fighter", "cruiser", "interceptor"];
+                  const idx = SHIPS.indexOf(selectedShip);
+                  setSelectedShip(SHIPS[(idx + 1) % SHIPS.length]);
+                }}
+              >
+                ▶
+              </button>
             </div>
             <button
               type="button"
@@ -615,9 +640,34 @@ export default function AlienInvasion() {
             {lobbyStage === "choose" && (
               <div className={styles.lobby}>
                 <div className={styles.shipPicker} style={{ marginBottom: '8px' }}>
-                  <button type="button" className={`${styles.shipBtn} ${selectedShip === 'fighter' ? styles.active : ''}`} onClick={() => setSelectedShip('fighter')}>Fighter</button>
-                  <button type="button" className={`${styles.shipBtn} ${selectedShip === 'cruiser' ? styles.active : ''}`} onClick={() => setSelectedShip('cruiser')}>Cruiser</button>
-                  <button type="button" className={`${styles.shipBtn} ${selectedShip === 'interceptor' ? styles.active : ''}`} onClick={() => setSelectedShip('interceptor')}>Interceptor</button>
+                  <button
+                    type="button"
+                    className={styles.shipCarouselBtn}
+                    onClick={() => {
+                      const SHIPS = ["fighter", "cruiser", "interceptor"];
+                      const idx = SHIPS.indexOf(selectedShip);
+                      setSelectedShip(SHIPS[(idx - 1 + SHIPS.length) % SHIPS.length]);
+                    }}
+                  >
+                    ◀
+                  </button>
+                  <div className={styles.shipDisplay} style={{ width: '100px' }}>
+                    <div className={styles.shipDisplayIcon}>
+                      {selectedShip === "cruiser" ? "🚀" : selectedShip === "interceptor" ? "⚡" : "✈️"}
+                    </div>
+                    <div className={styles.shipDisplayName} style={{ fontSize: '1rem' }}>{selectedShip}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.shipCarouselBtn}
+                    onClick={() => {
+                      const SHIPS = ["fighter", "cruiser", "interceptor"];
+                      const idx = SHIPS.indexOf(selectedShip);
+                      setSelectedShip(SHIPS[(idx + 1) % SHIPS.length]);
+                    }}
+                  >
+                    ▶
+                  </button>
                 </div>
                 {connStatus === "connecting" && (
                   <p className={styles.connNote}>
