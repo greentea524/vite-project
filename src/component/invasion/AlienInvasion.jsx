@@ -541,7 +541,7 @@ export default function AlienInvasion() {
           />
         )}
 
-        {gameState === "menu" && !showInstructions && !showAchievements && !showArmory && (
+        {gameState === "menu" && !showInstructions && !showAchievements && (
           <div className={styles.menuOverlay}>
             <h3>Alien Invasion</h3>
             <div className={styles.shipPicker}>
