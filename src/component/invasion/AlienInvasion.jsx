@@ -44,7 +44,7 @@ export default function AlienInvasion() {
   const [unlockedNodeIds, setUnlockedNodeIds] = useState([]);
   const [currentNodeId, setCurrentNodeId] = useState(null);
   const [loopCount, setLoopCount] = useState(0);
-  const [runStats, setRunStats] = useState(null);
+  const [runHp, setRunHp] = useState(null);
   const [selectedShip, setSelectedShip] = useState("fighter"); // "fighter", "cruiser", "interceptor"
 
   // Multiplayer (#79): one Network per mount, only when a relay URL is
@@ -332,14 +332,7 @@ export default function AlienInvasion() {
     setUnlockedNodeIds([newMap[0][0].id]);
     setCurrentNodeId(null);
     setLoopCount(0);
-    setRunStats({
-      weaponLevel: 1,
-      maxHp: 0,
-      hasDrones: false,
-      hasLaser: false,
-      hasHoming: false,
-      currentHp: null
-    });
+    setRunHp(null);
     setGameState("map");
   };
 
@@ -349,18 +342,10 @@ export default function AlienInvasion() {
     
     const engine = engineRef.current;
     if (engine) {
-      engine.setPermanentBuffs(runStats, loopCount, node.tier);
+      engine.setRogueLite(loopCount, node.tier);
       engine.onSectorClear = (finalHp) => {
         setGameState("map");
-        setRunStats((prev) => {
-          const next = { ...prev, currentHp: finalHp };
-          if (node.type === "weapon") next.weaponLevel++;
-          if (node.type === "shield") next.maxHp += 50;
-          if (node.type === "drone") next.hasDrones = true;
-          if (node.type === "laser") next.hasLaser = true;
-          if (node.type === "homing") next.hasHoming = true;
-          return next;
-        });
+        setRunHp(finalHp);
         setUnlockedNodeIds((prev) => {
           let nextUnlocked = [...prev];
           if (node.type === "boss") {
@@ -380,7 +365,7 @@ export default function AlienInvasion() {
           }
         });
       };
-      engine.playSector(runStats.currentHp);
+      engine.playSector(runHp);
     }
   };
 

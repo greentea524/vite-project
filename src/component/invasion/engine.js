@@ -179,7 +179,7 @@ export class InvasionEngine {
   play(seed = null) {
     this.menuMode = false;
     this.paused = false;
-    this.permanentBuffs = null;
+    this.isRogueLite = false;
     this._seed = seed == null ? null : seed >>> 0;
     this.restart();
     if (!this.menuMode) {
@@ -194,8 +194,8 @@ export class InvasionEngine {
     return this._seed != null;
   }
 
-  setPermanentBuffs(buffs, loopCount = 0, tier = 0) {
-    this.permanentBuffs = buffs;
+  setRogueLite(loopCount = 0, tier = 0) {
+    this.isRogueLite = true;
     this.difficultyLevel = 1 + (loopCount * 5) + tier;
   }
 
@@ -207,9 +207,7 @@ export class InvasionEngine {
     this._running = false;
     this._resetRun();
     
-    if (this.permanentBuffs) {
-      this.weaponLevel = this.permanentBuffs.weaponLevel;
-      this.playerMaxHp += this.permanentBuffs.maxHp;
+    if (this.isRogueLite) {
       this.playerHp = hp !== null ? hp : this.playerMaxHp;
       this.waveNumber = this.difficultyLevel;
     }
@@ -259,6 +257,9 @@ export class InvasionEngine {
       this.playerMaxHp = 100;
     }
     this.playerHp = this.playerMaxHp;
+    this.weaponLevel = 1;
+    this.score = 0;
+    this.bulletsShot = 0;
     this.playerHitFlash = 0;
     this.score = 0;
     this.scoreFlashFrames = 0;
@@ -667,12 +668,17 @@ export class InvasionEngine {
       });
     };
 
-    const useLaser = this.laserTimer > 0 && (this.homingTimer <= 0 || this.bulletsShot % 2 === 0);
-    const useHoming = this.homingTimer > 0 && !useLaser;
+    this.bulletsShot++;
+    const activeWeapons = [];
+    if (this.laserTimer > 0) activeWeapons.push("laser");
+    if (this.homingTimer > 0) activeWeapons.push("homing");
+    activeWeapons.push("standard");
 
-    if (useLaser) {
+    const weaponToFire = activeWeapons[this.bulletsShot % activeWeapons.length];
+
+    if (weaponToFire === "laser") {
       spawn(0.5, 0, false, true);
-    } else if (useHoming) {
+    } else if (weaponToFire === "homing") {
       spawn(0.2, -2, true);
       spawn(0.5, 0, true);
       spawn(0.8, 2, true);
@@ -846,7 +852,7 @@ export class InvasionEngine {
       });
       
       if (this.player.y < -this.player.height) {
-        if (this.permanentBuffs) {
+        if (this.isRogueLite) {
           this._running = false;
           this.onSectorClear(this.playerHp);
           return;
@@ -872,13 +878,9 @@ export class InvasionEngine {
 
     if (this.playerHitFlash > 0) this.playerHitFlash--;
     
-    if (!this.permanentBuffs?.hasDrones && this.droneTimer > 0) this.droneTimer--;
-    if (!this.permanentBuffs?.hasLaser && this.laserTimer > 0) this.laserTimer--;
-    if (!this.permanentBuffs?.hasHoming && this.homingTimer > 0) this.homingTimer--;
-
-    if (this.permanentBuffs?.hasDrones) this.droneTimer = 2;
-    if (this.permanentBuffs?.hasLaser) this.laserTimer = 2;
-    if (this.permanentBuffs?.hasHoming) this.homingTimer = 2;
+    if (this.droneTimer > 0) this.droneTimer--;
+    if (this.laserTimer > 0) this.laserTimer--;
+    if (this.homingTimer > 0) this.homingTimer--;
 
     if (this.comboTimerFrames > 0) {
       this.comboTimerFrames--;
@@ -1005,11 +1007,25 @@ export class InvasionEngine {
           const dy = (nearest.y + nearest.height/2) - drone.y;
           const angle = Math.atan2(dy, dx);
           
+          drone.bulletsShot = (drone.bulletsShot || 0) + 1;
+          const activeWeapons = [];
+          if (this.laserTimer > 0) activeWeapons.push("laser");
+          if (this.homingTimer > 0) activeWeapons.push("homing");
+          activeWeapons.push("standard");
+          
+          const weaponToFire = activeWeapons[drone.bulletsShot % activeWeapons.length];
+          const isLaser = weaponToFire === "laser";
+          const isHoming = weaponToFire === "homing";
+
           this.bullets.push({
             x: drone.x,
             y: drone.y,
             vx: Math.cos(angle) * BULLET_SPEED,
             vy: Math.sin(angle) * BULLET_SPEED,
+            isHoming: isHoming,
+            isLaser: isLaser,
+            width: isLaser ? 16 : BULLET_WIDTH,
+            height: isLaser ? 40 : BULLET_HEIGHT,
           });
           
           drone.cooldown = 30; // fire every half second
@@ -1365,13 +1381,13 @@ export class InvasionEngine {
           this.playerShieldHp = 50;
           this.audio?.powerUpShield?.();
         } else if (powerUp.type === "drone") {
-          this.droneTimer = 600; // 10 seconds at 60fps
+          this.droneTimer = Math.min(this.droneTimer + 600, 1800);
           this.audio?.powerUpDrone?.();
         } else if (powerUp.type === "laser") {
-          this.laserTimer = 300; // 5 seconds
+          this.laserTimer = Math.min(this.laserTimer + 300, 900);
           this.audio?.powerUpLaser?.();
         } else if (powerUp.type === "homing") {
-          this.homingTimer = 300; // 5 seconds
+          this.homingTimer = Math.min(this.homingTimer + 300, 900);
           this.audio?.powerUpHoming?.();
         }
         this._addScore(50, powerUp.x, powerUp.y, "#00ffff");
@@ -1587,6 +1603,8 @@ export class InvasionEngine {
   _drawBullets() {
     const ctx = this.ctx;
     this.bullets.forEach((bullet) => {
+      ctx.save();
+      
       if (bullet.isLaser) {
         ctx.fillStyle = "#ff3399";
         ctx.shadowBlur = 10;
@@ -1598,7 +1616,17 @@ export class InvasionEngine {
         ctx.fillStyle = "red";
         ctx.shadowBlur = 0;
       }
-      ctx.fillRect(bullet.x, bullet.y, bullet.width || BULLET_WIDTH, bullet.height || BULLET_HEIGHT);
+
+      if (bullet.isLaser && bullet.vx !== 0) {
+        const angle = Math.atan2(bullet.vy, bullet.vx);
+        ctx.translate(bullet.x, bullet.y);
+        ctx.rotate(angle - Math.PI / 2); // default laser assumes pointing up (-90deg)
+        ctx.fillRect(-bullet.width / 2, -bullet.height / 2, bullet.width, bullet.height);
+      } else {
+        ctx.fillRect(bullet.x, bullet.y, bullet.width || BULLET_WIDTH, bullet.height || BULLET_HEIGHT);
+      }
+      
+      ctx.restore();
     });
     ctx.shadowBlur = 0;
   }
