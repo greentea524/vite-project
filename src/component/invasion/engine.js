@@ -256,6 +256,7 @@ export class InvasionEngine {
     this.scoreFlashFrames = 0;
     this.comboCount = 0;
     this.comboTimerFrames = 0;
+    this.runBestCombo = 0; // best combo streak this run, for results (#82)
     this.bulletsShot = 0;
     this.hits = 0;
     this.weaponLevel = 1;
@@ -354,7 +355,15 @@ export class InvasionEngine {
     const vx = this._prevX == null ? 0 : ((this.player.x - this._prevX) / scale) * 60;
     this._prevX = this.player.x;
     if (!this.network?.roomCode || this.menuMode) return;
-    this.network.sendState({ x, vx, over: this.gameOver, shipType: this.shipType }, force);
+    // Live score rides along so the peer can show it while spectating
+    // (#82); the terminal snapshot carries the full results.
+    const snap = { x, vx, over: this.gameOver, shipType: this.shipType, score: this.score };
+    if (this.gameOver) {
+      snap.hits = this.hits;
+      snap.bestCombo = this.runBestCombo;
+      snap.bestMultiplier = this._comboMultiplier(this.runBestCombo);
+    }
+    this.network.sendState(snap, force);
   }
 
   // --- sizing ----------------------------------------------------------
@@ -587,6 +596,7 @@ export class InvasionEngine {
     if (countsForCombo) {
       this.comboCount = this.comboTimerFrames > 0 ? this.comboCount + 1 : 1;
       this.comboTimerFrames = COMBO_WINDOW_FRAMES;
+      this.runBestCombo = Math.max(this.runBestCombo, this.comboCount);
       this._stat("max", "bestCombo", this.comboCount);
     }
 
@@ -2059,7 +2069,13 @@ export class InvasionEngine {
       this._broadcastState(true);
       this._running = false;
       this._publishHud();
-      this.onGameOver({ score: this.score, hitRate: this.hitRate() });
+      this.onGameOver({
+        score: this.score,
+        hitRate: this.hitRate(),
+        hits: this.hits,
+        bestCombo: this.runBestCombo,
+        bestMultiplier: this._comboMultiplier(this.runBestCombo),
+      });
       return;
     }
 

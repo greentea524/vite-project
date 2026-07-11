@@ -540,6 +540,91 @@
   cursor: pointer;
 }
 
+/* Multiplayer Game Over & Results (#82). */
+.spectateNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9fd0ff;
+}
+
+.spectateScore {
+  color: #ffe066;
+  font-weight: bold;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(159, 208, 255, 0.35);
+  border-top-color: #9fd0ff;
+  border-radius: 50%;
+  animation: invSpin 0.8s linear infinite;
+}
+
+@keyframes invSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.resultsTitle {
+  color: #ffe066;
+  text-shadow: 0 0 12px rgba(255, 224, 102, 0.6);
+}
+
+.resultsTable {
+  border-collapse: collapse;
+  font-family: monospace;
+  margin: 4px 0 6px;
+  background: rgba(10, 12, 24, 0.6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.resultsTable th,
+.resultsTable td {
+  padding: 6px 16px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.resultsTable thead th {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.resultsTable td:first-child {
+  text-align: left;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.resultsTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.resultWin {
+  color: #7af58f;
+  text-shadow: 0 0 8px rgba(122, 245, 143, 0.55);
+}
+
+.oppFinishedBanner {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(10, 12, 24, 0.85);
+  border: 1px solid rgba(159, 208, 255, 0.5);
+  color: #9fd0ff;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+}
+
 /* Mobile touch controls — hidden on desktop widths, same breakpoint as
    the legacy page. #93 will replace the left/right pair with a
    virtual joystick. */

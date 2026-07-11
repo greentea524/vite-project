@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { buildJoinLink } from "./joinLink";
 import { createAudio } from "./audio.js";
 import { Network, MAX_PLAYERS } from "./network.js";
+import { matchOutcome, OUTCOME_LABEL } from "./results.js";
 import { evaluate, ACHIEVEMENTS_BY_ID } from "./achievements.js";
 import { loadSave, writeSave, addStat, maxStat, addShip } from "./save.js";
 import { AchievementsPanel } from "./Achievements.jsx";
@@ -59,6 +60,14 @@ export default function AlienInvasion() {
   const [connStatus, setConnStatus] = useState("connecting"); // "connecting" | "connected" | "failed"
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1-GO
   const inRoom = roster.length > 0;
+
+  // Game Over & Results (#82): the opponent's live score (shown while
+  // spectating) and their final result (arrives on their terminal
+  // over:true snapshot). Both reset at the start of each race.
+  const [remoteScore, setRemoteScore] = useState(0);
+  const [remoteResult, setRemoteResult] = useState(null); // { score, hits, bestCombo, bestMultiplier } | null
+  const opponent = roster.find((r) => r.id !== network?.playerId);
+  const opponentName = opponent?.name || "Opponent";
 
   const [joinLink, setJoinLink] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
@@ -123,7 +132,24 @@ export default function AlienInvasion() {
           const other = list.find((r) => r.id !== net.playerId);
           engine.setGhost(other ? { id: other.id, name: other.name } : null);
         }),
-        net.on("remoteState", (snap) => engine.pushGhostSnapshot(snap)),
+        net.on("remoteState", (snap) => {
+          engine.pushGhostSnapshot(snap);
+          // Track the opponent's live score and, once, their final
+          // result off the terminal snapshot (#82).
+          if (typeof snap.score === "number") {
+            setRemoteScore((s) => (s === snap.score ? s : snap.score));
+          }
+          if (snap.over) {
+            setRemoteResult((prev) =>
+              prev ?? {
+                score: snap.score ?? 0,
+                hits: snap.hits ?? 0,
+                bestCombo: snap.bestCombo ?? 0,
+                bestMultiplier: snap.bestMultiplier ?? 1,
+              },
+            );
+          }
+        }),
         // Shared kills (#81): the other player destroyed an enemy —
         // despawn it here too.
         net.on("enemyKilled", (enemyId) => engine.applyRemoteKill(enemyId)),
@@ -214,6 +240,8 @@ export default function AlienInvasion() {
     if (!net) return undefined;
     return net.on("raceStart", ({ countdownMs, seed } = {}) => {
       setGameOver(null);
+      setRemoteResult(null); // clear last match's results (#82)
+      setRemoteScore(0);
       setMpError("");
       setGameState("countdown");
       setCountdown(Math.ceil((countdownMs ?? 3000) / 1000));
@@ -372,6 +400,8 @@ export default function AlienInvasion() {
     setRoster([]);
     setMpError("");
     setLobbyStage("choose");
+    setRemoteResult(null);
+    setRemoteScore(0);
   };
 
   const quitToMenu = () => {
@@ -423,6 +453,8 @@ export default function AlienInvasion() {
   // start a rematch (results screens land with #82).
   const backToRoom = () => {
     setGameOver(null);
+    setRemoteResult(null);
+    setRemoteScore(0);
     setLobbyStage("room");
     setGameState("lobby");
     if (engineRef.current) {
@@ -779,23 +811,88 @@ export default function AlienInvasion() {
           </div>
         )}
 
-        {gameOver && (
+        {/* Single-player game over (unchanged). */}
+        {gameOver && !inRoom && (
           <div className={styles.gameOver}>
             <h3>Game Over!</h3>
             <p>Final Score: {gameOver.score}</p>
             <p>Hit Rate: {gameOver.hitRate}%</p>
-            {inRoom ? (
-              <button type="button" className={styles.restartBtn} onClick={backToRoom}>
-                Back to Lobby
-              </button>
-            ) : (
-              <button type="button" className={styles.restartBtn} onClick={restart}>
-                Restart
-              </button>
-            )}
+            <button type="button" className={styles.restartBtn} onClick={restart}>
+              Restart
+            </button>
             <button type="button" className={styles.restartBtn} onClick={quitToMenu}>
               Menu
             </button>
+          </div>
+        )}
+
+        {/* Multiplayer: you're out, but the opponent is still flying —
+            spectate their live score until they finish (#82). */}
+        {gameOver && inRoom && !remoteResult && (
+          <div className={styles.gameOver}>
+            <h3>You Finished!</h3>
+            <p>Your Score: {gameOver.score}</p>
+            <p className={styles.spectateNote}>
+              <span className={styles.spinner} aria-hidden="true" />
+              Waiting for {opponentName}…
+            </p>
+            <p className={styles.spectateScore}>
+              {opponentName}: {remoteScore}
+            </p>
+            <button type="button" className={styles.restartBtn} onClick={backToRoom}>
+              Back to Lobby
+            </button>
+          </div>
+        )}
+
+        {/* Multiplayer: both done — final head-to-head results (#82). */}
+        {gameOver && inRoom && remoteResult && (() => {
+          const outcome = matchOutcome(gameOver.score, remoteResult.score);
+          const youWin = outcome === "win";
+          const oppWin = outcome === "lose";
+          return (
+            <div className={styles.gameOver}>
+              <h3 className={styles.resultsTitle}>{OUTCOME_LABEL[outcome]}</h3>
+              <table className={styles.resultsTable}>
+                <thead>
+                  <tr>
+                    <th />
+                    <th className={youWin ? styles.resultWin : undefined}>You</th>
+                    <th className={oppWin ? styles.resultWin : undefined}>{opponentName}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Score</td>
+                    <td>{gameOver.score}</td>
+                    <td>{remoteResult.score}</td>
+                  </tr>
+                  <tr>
+                    <td>Hits</td>
+                    <td>{gameOver.hits ?? 0}</td>
+                    <td>{remoteResult.hits}</td>
+                  </tr>
+                  <tr>
+                    <td>Best Combo</td>
+                    <td>×{gameOver.bestMultiplier ?? 1} ({gameOver.bestCombo ?? 0})</td>
+                    <td>×{remoteResult.bestMultiplier} ({remoteResult.bestCombo})</td>
+                  </tr>
+                </tbody>
+              </table>
+              <button type="button" className={styles.restartBtn} onClick={backToRoom}>
+                Rematch
+              </button>
+              <button type="button" className={styles.restartBtn} onClick={quitToMenu}>
+                Menu
+              </button>
+            </div>
+          );
+        })()}
+
+        {/* Still flying, but the opponent already crashed out (#82). */}
+        {gameState === "playing" && inRoom && remoteResult && !gameOver && (
+          <div className={styles.oppFinishedBanner}>
+            {opponentName} finished — {remoteResult.score}
           </div>
         )}
       </div>
