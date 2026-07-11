@@ -313,11 +313,14 @@ export default function AlienInvasion() {
       if (e.key === "Left" || e.key === "ArrowLeft") engine.setLeft(false);
       if (e.key === " ") engine.setShootHeld(false);
     };
+    const unlockAudio = () => audioRef.current?.unlock();
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    window.addEventListener("pointerdown", unlockAudio);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
+      window.removeEventListener("pointerdown", unlockAudio);
     };
   }, []);
 
