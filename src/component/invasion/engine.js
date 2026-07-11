@@ -182,6 +182,9 @@ export class InvasionEngine {
     this.spawnlings = []; // Mothership kamikazes (#90)
     this.inkShots = []; // Octo Commander ink globs
     this.alienDirection = 1;
+    this.playerHp = 100;
+    this.playerMaxHp = 100;
+    this.playerHitFlash = 0;
     this.score = 0;
     this.scoreFlashFrames = 0;
     this.comboCount = 0;
@@ -515,6 +518,18 @@ export class InvasionEngine {
     this._shootTimer = setTimeout(() => (this._canShoot = true), SHOOT_COOLDOWN_MS);
   }
 
+  _damagePlayer(amount) {
+    if (this.gameOver) return;
+    this.playerHp -= amount;
+    this.playerHitFlash = 10;
+    this.audio?.alienHit(); // Play hit sound
+    if (this.playerHp <= 0) {
+      this.playerHp = 0;
+      this.gameOver = true;
+      this._createFireworks(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+    }
+  }
+
   // --- simulation ------------------------------------------------------
 
   _update() {
@@ -547,6 +562,8 @@ export class InvasionEngine {
         Math.sin(this._menuT) * canvas.width * 0.1;
       return;
     }
+
+    if (this.playerHitFlash > 0) this.playerHitFlash--;
 
     if (this.comboTimerFrames > 0) {
       this.comboTimerFrames--;
@@ -626,8 +643,8 @@ export class InvasionEngine {
         }
         moving = boss.phase === "move";
 
-        // The beam is lethal while firing: game over if the player
-        // overlaps the column.
+        // The beam melts the player while firing: 2 damage per frame
+        // while overlapping the column (~120 DPS).
         if (boss.phase === "firing") {
           const beam = this._beamRect(boss);
           if (
@@ -635,7 +652,7 @@ export class InvasionEngine {
             player.x + player.width > beam.left &&
             player.y + player.height > beam.top
           ) {
-            this.gameOver = true;
+            this._damagePlayer(2);
           }
         }
       } else if (boss.type === "mothership") {
@@ -713,7 +730,9 @@ export class InvasionEngine {
         ink.y + ink.r > player.y &&
         ink.y - ink.r < player.y + player.height
       ) {
-        this.gameOver = true;
+        this._damagePlayer(20);
+        this.inkShots.splice(i, 1);
+        continue;
       }
       if (ink.y - ink.r > canvas.height) this.inkShots.splice(i, 1);
     }
@@ -738,7 +757,10 @@ export class InvasionEngine {
         k.y < player.y + player.height &&
         k.y + k.height > player.y
       ) {
-        this.gameOver = true;
+        this._damagePlayer(25);
+        this._createFireworks(k.x + k.width / 2, k.y + k.height / 2);
+        this.spawnlings.splice(i, 1);
+        continue;
       }
       if (k.y > canvas.height) this.spawnlings.splice(i, 1);
     }
@@ -1009,14 +1031,18 @@ export class InvasionEngine {
 
   _drawPlayer() {
     const { x, y, width, height } = this.player;
+    
+    // Hit flash overrides the ship colors
+    const isFlashing = this.playerHitFlash > 0 && Math.floor(Date.now() / 50) % 2 === 0;
     const style = {
-      bodyTop: "#fff",
-      bodyBottom: "#888",
-      cockpit: "#33ccff",
-      flame: ["orange", "cyan"],
-      // Glow when weapon level is high
-      shadow: this.weaponLevel === 2 ? "cyan" : this.weaponLevel === 3 ? "magenta" : null,
+      bodyTop: isFlashing ? "#ff5555" : "#fff",
+      bodyBottom: isFlashing ? "#ff0000" : "#888",
+      cockpit: isFlashing ? "#ffcccc" : "#33ccff",
+      flame: isFlashing ? ["#ff0000", "#ffaa00"] : ["orange", "cyan"],
+      // Glow when weapon level is high, overridden by hit flash
+      shadow: isFlashing ? "red" : this.weaponLevel === 2 ? "cyan" : this.weaponLevel === 3 ? "magenta" : null,
     };
+    
     if (this.menuMode) {
       // Menu showcase: gameplay scale shrinks the ship to ~19px on
       // phones — draw it larger (same bottom anchor) so it reads
@@ -1027,6 +1053,18 @@ export class InvasionEngine {
       return;
     }
     this._drawShip(x, y, width, height, style);
+
+    // Draw the player health bar directly underneath the ship natively
+    const ctx = this.ctx;
+    const hpRatio = Math.max(0, this.playerHp / this.playerMaxHp);
+    const barWidth = width * 1.2;
+    const barX = x + width / 2 - barWidth / 2;
+    const barY = y + height + 6 * this._scale();
+    
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(barX, barY, barWidth, 4 * this._scale());
+    ctx.fillStyle = hpRatio > 0.4 ? "#33ccff" : "#ff3333";
+    ctx.fillRect(barX, barY, barWidth * hpRatio, 4 * this._scale());
   }
 
   // The other player's ship (#80): translucent and blue-tinted so it
