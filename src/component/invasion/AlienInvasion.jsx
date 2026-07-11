@@ -480,12 +480,12 @@ export default function AlienInvasion() {
     <div className={styles.shell}>
       <div className={styles.topBar}>
         <h2 className={styles.title}>Invasion</h2>
-        {/* Pausing is single-player only: in a room your sim freezing
-            while the peer's keeps running just looks broken (#80). */}
-        {gameState === "playing" && !inRoom && (
+        {/* In a room, pausing only freezes YOUR view — the opponent keeps
+            racing — so the menu is mainly an exit hatch (#82). */}
+        {gameState === "playing" && (
           <div className={styles.topActions}>
             <button type="button" className={styles.barBtn} onClick={handlePause}>
-              Pause
+              {inRoom ? "Menu" : "Pause"}
             </button>
           </div>
         )}
@@ -801,6 +801,11 @@ export default function AlienInvasion() {
         {gameState === "paused" && !showInstructions && (
           <div className={styles.menuOverlay}>
             <h3>Paused</h3>
+            {inRoom && (
+              <p className={styles.connNote}>
+                The match keeps going for {opponentName} — resume soon or leave.
+              </p>
+            )}
             <button type="button" className={styles.menuBtn} onClick={handleResume}>
               Resume
             </button>
@@ -811,17 +816,20 @@ export default function AlienInvasion() {
             >
               Instructions & Upgrades
             </button>
-            {mapPages.length > 0 ? (
-              <button type="button" className={styles.menuBtn} onClick={() => setGameState("map")}>
-                View Galaxy Sector Map
-              </button>
-            ) : (
-              <button type="button" className={styles.menuBtn} onClick={restart}>
-                Restart
-              </button>
-            )}
+            {/* Restart / map jumps would desync a live race, so they're
+                single-player only; in a room the exit is Leave Game. */}
+            {!inRoom &&
+              (mapPages.length > 0 ? (
+                <button type="button" className={styles.menuBtn} onClick={() => setGameState("map")}>
+                  View Galaxy Sector Map
+                </button>
+              ) : (
+                <button type="button" className={styles.menuBtn} onClick={restart}>
+                  Restart
+                </button>
+              ))}
             <button type="button" className={styles.menuBtn} onClick={quitToMenu}>
-              Quit to Menu
+              {inRoom ? "Leave Game" : "Quit to Menu"}
             </button>
           </div>
         )}
