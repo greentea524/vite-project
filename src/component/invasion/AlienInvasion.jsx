@@ -4,6 +4,9 @@ import { GalaxyMap } from "./GalaxyMap";
 import { generateGalaxyMap } from "./MapGenerator";
 import { createAudio } from "./audio.js";
 import { Network, MAX_PLAYERS } from "./network.js";
+import { evaluate, ACHIEVEMENTS_BY_ID } from "./achievements.js";
+import { loadSave, writeSave, addStat, maxStat, addShip } from "./save.js";
+import { AchievementsPanel } from "./Achievements.jsx";
 import { VirtualJoystick } from "../common/VirtualJoystick.jsx";
 import styles from "./AlienInvasion.module.css";
 
@@ -24,6 +27,15 @@ export default function AlienInvasion() {
   const [hud, setHud] = useState(null);
   const [gameOver, setGameOver] = useState(null); // { score, hitRate } | null
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+
+  // Achievements (#94): the save (lifetime stats + unlocked ids) lives
+  // in a ref, mutated by the engine's stat events; unlocks bump state
+  // for the toast/panel. loadSave() validates whatever localStorage has.
+  const saveRef = useRef(null);
+  if (!saveRef.current) saveRef.current = loadSave();
+  const [achToast, setAchToast] = useState(null); // { icon, name } | null
+  const saveTimerRef = useRef(0);
   const [gameState, setGameState] = useState("menu"); // "menu", "lobby", "countdown", "playing", "paused", "gameover"
   const [mapData, setMapData] = useState([]);
   const [unlockedNodeIds, setUnlockedNodeIds] = useState([]);
@@ -49,12 +61,39 @@ export default function AlienInvasion() {
   useEffect(() => {
     const audio = createAudio();
     audioRef.current = audio;
+
+    // Achievement stat sink (#94): fold each engine event into the
+    // lifetime stats, unlock anything that crossed its target (toast +
+    // immediate persist), and debounce plain stat writes.
+    const applyStat = (kind, key, value) => {
+      const save = saveRef.current;
+      if (kind === "add") addStat(save.stats, key, value);
+      else if (kind === "max") maxStat(save.stats, key, value);
+      else if (kind === "ship") addShip(save.stats, value);
+
+      const newly = evaluate(save.stats, save.achievements);
+      if (newly.length > 0) {
+        for (const id of newly) save.achievements[id] = Date.now();
+        const first = ACHIEVEMENTS_BY_ID.get(newly[0]);
+        if (first) setAchToast({ icon: first.icon, name: first.name });
+        clearTimeout(saveTimerRef.current);
+        writeSave(save);
+      } else {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => writeSave(saveRef.current), 800);
+      }
+    };
+
     const engine = new InvasionEngine(canvasRef.current, wrapperRef.current, {
       audio,
       onHud: setHud,
+      onStat: applyStat,
       onGameOver: (stats) => {
         setGameOver(stats);
         setGameState("gameover");
+        // Flush any debounced stat write at the natural run boundary.
+        clearTimeout(saveTimerRef.current);
+        writeSave(saveRef.current);
       },
     });
     engineRef.current = engine;
@@ -87,8 +126,18 @@ export default function AlienInvasion() {
       audio.destroy();
       engineRef.current = null;
       audioRef.current = null;
+      // Don't lose a debounced stat write on unmount.
+      clearTimeout(saveTimerRef.current);
+      writeSave(saveRef.current);
     };
   }, []);
+
+  // Unlock toast (#94): one at a time, auto-dismissed.
+  useEffect(() => {
+    if (!achToast) return undefined;
+    const timer = setTimeout(() => setAchToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [achToast]);
 
   // Synced start (#79): the relay broadcasts raceStart to the whole
   // room; every client builds a fresh run, freezes it, and counts down
@@ -391,7 +440,7 @@ export default function AlienInvasion() {
           />
         )}
 
-        {gameState === "menu" && !showInstructions && (
+        {gameState === "menu" && !showInstructions && !showAchievements && (
           <div className={styles.menuOverlay}>
             <h3>Alien Invasion</h3>
             <div className={styles.shipPicker}>
@@ -428,10 +477,34 @@ export default function AlienInvasion() {
             <button
               type="button"
               className={styles.menuBtn}
+              onClick={() => setShowAchievements(true)}
+            >
+              Achievements
+            </button>
+            <button
+              type="button"
+              className={styles.menuBtn}
               onClick={() => setShowInstructions(true)}
             >
               Instructions
             </button>
+          </div>
+        )}
+
+        {showAchievements && (
+          <AchievementsPanel
+            stats={saveRef.current.stats}
+            unlocked={saveRef.current.achievements}
+            onClose={() => setShowAchievements(false)}
+          />
+        )}
+
+        {achToast && (
+          <div className={styles.achToast}>
+            <span className={styles.achToastIcon}>{achToast.icon}</span>
+            <span>
+              <strong>{achToast.name}</strong> unlocked!
+            </span>
           </div>
         )}
 

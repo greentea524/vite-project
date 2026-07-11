@@ -87,8 +87,10 @@ export const WEAPON_NAMES = { 1: "Single Shot", 2: "Dual Missile", 3: "Triple Sh
 export class InvasionEngine {
   // `wrapper` is the sizing container (the component's game area);
   // callbacks: onHud(hud) fires when any HUD value changes,
-  // onGameOver({score, hitRate}) once per game end.
-  constructor(canvas, wrapper, { audio, onHud, onGameOver } = {}) {
+  // onGameOver({score, hitRate}) once per game end, onStat(kind, key,
+  // value) reports achievement stat events (#94) — kind is "add"
+  // (counter), "max" (high-water mark), or "ship" (set membership).
+  constructor(canvas, wrapper, { audio, onHud, onGameOver, onStat } = {}) {
     this.canvas = canvas;
     canvas.__engine = this; // debug/testing handle (matches platformer)
     this.ctx = canvas.getContext("2d");
@@ -96,6 +98,7 @@ export class InvasionEngine {
     this.audio = audio;
     this.onHud = onHud ?? (() => {});
     this.onGameOver = onGameOver ?? (() => {});
+    this.onStat = onStat ?? (() => {});
     this.onSectorClear = arguments[2]?.onSectorClear ?? (() => {});
 
     this.shipType = "fighter"; // "fighter", "cruiser", "interceptor"
@@ -164,6 +167,7 @@ export class InvasionEngine {
     this.paused = false;
     this.permanentBuffs = null;
     this.restart();
+    this._stat("ship", "shipsUsed", this.shipType);
   }
 
   setPermanentBuffs(buffs, loopCount = 0, tier = 0) {
@@ -187,6 +191,7 @@ export class InvasionEngine {
     
     this._resize();
     this._startLoop();
+    this._stat("ship", "shipsUsed", this.shipType);
   }
 
   setPaused(isPaused) {
@@ -239,6 +244,14 @@ export class InvasionEngine {
     this._canShoot = true;
     this.paused = false;
     this._prevX = null;
+    this._waveDamageFree = true; // Untouchable tracking (#94)
+  }
+
+  // Report a stat event to the achievements layer (#94). No-ops in
+  // menu mode so the idle menu scene can't accrue stats.
+  _stat(kind, key, value = 1) {
+    if (this.menuMode) return;
+    this.onStat(kind, key, value);
   }
 
   // --- input API (driven by React handlers, #74) -----------------------
@@ -533,6 +546,7 @@ export class InvasionEngine {
     if (countsForCombo) {
       this.comboCount = this.comboTimerFrames > 0 ? this.comboCount + 1 : 1;
       this.comboTimerFrames = COMBO_WINDOW_FRAMES;
+      this._stat("max", "bestCombo", this.comboCount);
     }
 
     const multiplier = countsForCombo ? this._comboMultiplier(this.comboCount) : 1;
@@ -567,6 +581,7 @@ export class InvasionEngine {
     if (this.weaponLevel === 5) {
       this.powerUps = this.powerUps.filter(p => p.type !== "weapon");
     }
+    this._stat("max", "maxWeaponLevel", this.weaponLevel);
   }
 
   _shootBullet() {
@@ -633,7 +648,11 @@ export class InvasionEngine {
 
   _damagePlayer(amount) {
     if (this.gameOver) return;
-    
+
+    // Any hit — even one the shield absorbs — breaks the wave's
+    // Untouchable status (#94).
+    this._waveDamageFree = false;
+
     if (this.playerShieldHp > 0) {
       if (amount <= this.playerShieldHp) {
         this.playerShieldHp -= amount;
@@ -1030,6 +1049,7 @@ export class InvasionEngine {
               this.bullets.splice(bIndex, 1);
             }
             this._addScore(10, alien.x + alien.width / 2, alien.y + alien.height / 2);
+            this._stat("add", "totalKills");
             this.hits++;
             hitAlien = true;
             if (!bullet.isLaser) break;
@@ -1056,6 +1076,7 @@ export class InvasionEngine {
             this.bullets.splice(bIndex, 1);
           }
           this._addScore(SPAWNLING_SCORE, k.x + k.width / 2, k.y + k.height / 2, "#ffb46b");
+          this._stat("add", "totalKills");
           this.hits++;
           hitSpawnling = true;
           if (!bullet.isLaser) break;
@@ -1117,6 +1138,10 @@ export class InvasionEngine {
       boss.type === "hive" ? HIVE_GEN_SCORE[boss.gen] : BOSS_STATS[boss.type].score;
     this._addScore(score, cx, cy, "#7af58f");
     this.bosses.splice(index, 1);
+    // Every boss entity counts — hive splits are bosses in their own
+    // right (own HP bar), so a full hive is worth several (#94).
+    this._stat("add", "totalKills");
+    this._stat("add", "bossKills");
 
     // Swarm Hive (#92): dying below max generation splits the mass
     // into two smaller, faster copies that fly apart, each with half
@@ -1961,6 +1986,11 @@ export class InvasionEngine {
 
       // Sector cleared!
       if (!this.menuMode && this.aliens.length === 0 && this.bosses.length === 0) {
+        // A cleared rogue-lite sector counts as a wave too (#94), so
+        // lifetime progress accrues in every mode.
+        this._stat("add", "wavesCleared");
+        if (this._waveDamageFree) this._stat("add", "flawlessWaves");
+        this._waveDamageFree = true;
         if (this.permanentBuffs) {
           // Rogue-lite mode: sector cleared
           this._running = false;
