@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { InvasionEngine, WEAPON_NAMES } from "./engine.js";
 import { GalaxyMap } from "./GalaxyMap";
 import { generateGalaxyMap } from "./MapGenerator";
+import QRCode from "qrcode";
+import { buildJoinLink } from "./joinLink";
 import { createAudio } from "./audio.js";
 import { Network, MAX_PLAYERS } from "./network.js";
 import { evaluate, ACHIEVEMENTS_BY_ID } from "./achievements.js";
@@ -57,6 +59,12 @@ export default function AlienInvasion() {
   const [connStatus, setConnStatus] = useState("connecting"); // "connecting" | "connected" | "failed"
   const [countdown, setCountdown] = useState(null); // synced-start 3-2-1-GO
   const inRoom = roster.length > 0;
+
+  const [joinLink, setJoinLink] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const autoOpenLobbyRef = useRef(false);
+  const autoJoinRef = useRef(false);
 
   useEffect(() => {
     const audio = createAudio();
@@ -141,6 +149,62 @@ export default function AlienInvasion() {
     const timer = setTimeout(() => setAchToast(null), 3500);
     return () => clearTimeout(timer);
   }, [achToast]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const joinParam = url.searchParams.get("join");
+    if (joinParam && joinParam.length >= 4) {
+      setJoinCode(joinParam.toUpperCase());
+      autoOpenLobbyRef.current = true;
+      autoJoinRef.current = true;
+      url.searchParams.delete("join");
+      window.history.replaceState({}, document.title, url.toString());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!network?.roomCode) {
+      setJoinLink("");
+      setQrDataUrl("");
+      return;
+    }
+    const nextLink = buildJoinLink(network.roomCode, window.location.href);
+    setJoinLink(nextLink);
+    let cancelled = false;
+    QRCode.toDataURL(nextLink, {
+      margin: 1,
+      width: 160,
+      color: { dark: "#14182a", light: "#ffffff" },
+    })
+      .then((dataUrl) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [network?.roomCode]);
+
+  useEffect(() => {
+    if (!autoOpenLobbyRef.current || !network || gameState !== "menu") return;
+    autoOpenLobbyRef.current = false;
+    openMultiplayer();
+  }, [network, gameState]);
+
+  useEffect(() => {
+    if (
+      !autoJoinRef.current ||
+      gameState !== "lobby" ||
+      lobbyStage !== "choose" ||
+      connStatus !== "connected" ||
+      !joinCode.trim()
+    ) return;
+    autoJoinRef.current = false;
+    void joinGame();
+  }, [gameState, lobbyStage, joinCode, connStatus]);
 
   // Synced start (#79): the relay broadcasts raceStart to the whole
   // room; every client builds a fresh run, freezes it, and counts down
@@ -367,6 +431,14 @@ export default function AlienInvasion() {
     }
   };
 
+  const copyLink = () => {
+    if (!joinLink) return;
+    navigator.clipboard.writeText(joinLink).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
+
   // Touch buttons use pointer events with touch-action: none in CSS —
   // no preventDefault needed (React's root touch listeners are
   // passive), and they respond to mouse for desktop testing.
@@ -585,6 +657,34 @@ export default function AlienInvasion() {
               <div className={styles.lobby}>
                 <p className={styles.roomCodeLabel}>Room code</p>
                 <p className={styles.roomCode}>{network?.roomCode}</p>
+                
+                {qrDataUrl && (
+                  <div className={styles.qrCard}>
+                    <img
+                      className={styles.qrImage}
+                      src={qrDataUrl}
+                      alt="QR code to join the game room"
+                    />
+                    <p className={styles.connNote} style={{ marginTop: 0, marginBottom: '8px' }}>Scan to join this room</p>
+                    {joinLink && (
+                      <div className={styles.linkRow}>
+                        <p className={styles.linkText}>{joinLink}</p>
+                        <button
+                          type="button"
+                          className={`${styles.copyBtn}${linkCopied ? ` ${styles.copyBtnDone}` : ""}`}
+                          onClick={copyLink}
+                          title="Copy link"
+                          aria-label="Copy join link"
+                        >
+                          {linkCopied ? "✓" : "Copy"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {mpError && <p className={styles.mpError}>{mpError}</p>}
+
                 <p className={styles.rosterLabel}>
                   Players ({roster.length}/{MAX_PLAYERS})
                 </p>
