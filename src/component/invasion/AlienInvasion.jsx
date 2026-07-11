@@ -407,6 +407,7 @@ export default function AlienInvasion() {
   const quitToMenu = () => {
     if (inRoom) leaveRoom();
     setGameOver(null);
+    setJoinCode(""); // clean slate for the next lobby visit (#100)
     setGameState("menu");
     if (engineRef.current) {
       engineRef.current.menuMode = true;
@@ -421,7 +422,9 @@ export default function AlienInvasion() {
     network?.connect();
     setConnStatus(network?.isConnected ? "connected" : "connecting");
     setMpError("");
-    setJoinCode("");
+    // Don't clear joinCode here: a scanned ?join= link sets it before
+    // this runs, and the auto-join effect needs it to survive (#100).
+    // The field is reset instead when returning to the menu.
     setLobbyStage("choose");
     setGameState("lobby");
   };
