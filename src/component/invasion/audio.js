@@ -48,7 +48,7 @@ export function createAudio() {
     alienHit: () => blip("square", 780, 220, 0.08, 0.16, 0.01, 0.09),
     powerUp: () => blip("triangle", 420, 960, 0.12, 0.14, 0.015, 0.14),
     powerUpShield: () => blip("sine", 300, 400, 0.2, 0.15, 0.05, 0.25),
-    powerUpSpeed: () => blip("sawtooth", 500, 800, 0.15, 0.1, 0.02, 0.2),
+    powerUpDrone: () => blip("square", 900, 800, 0.1, 0.1, 0.02, 0.1),
     powerUpLaser: () => blip("square", 600, 1200, 0.1, 0.15, 0.01, 0.15),
     powerUpHoming: () => blip("triangle", 800, 600, 0.2, 0.15, 0.02, 0.25),
     shootFighter: () => blip("square", 600, 300, 0.05, 0.1, 0.005, 0.06),

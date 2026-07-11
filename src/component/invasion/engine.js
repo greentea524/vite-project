@@ -187,7 +187,8 @@ export class InvasionEngine {
     this.inkShots = []; // Octo Commander ink globs
     this.alienDirection = 1;
     this.playerShieldHp = 0;
-    this.speedTimer = 0;
+    this.droneTimer = 0;
+    this.drones = [{ x: 0, y: 0, cooldown: 0 }, { x: 0, y: 0, cooldown: 0 }];
     this.laserTimer = 0;
     this.homingTimer = 0;
     this.weaponCratesCollected = 0;
@@ -662,7 +663,7 @@ export class InvasionEngine {
     }
 
     if (this.playerHitFlash > 0) this.playerHitFlash--;
-    if (this.speedTimer > 0) this.speedTimer--;
+    if (this.droneTimer > 0) this.droneTimer--;
     if (this.laserTimer > 0) this.laserTimer--;
     if (this.homingTimer > 0) this.homingTimer--;
 
@@ -679,10 +680,9 @@ export class InvasionEngine {
         ? this.input.axis
         : (this.input.right ? 1 : 0) - (this.input.left ? 1 : 0);
     if (moveAxis !== 0) {
-      const currentSpeed = player.speed * (this.speedTimer > 0 ? 1.5 : 1);
       player.x = Math.max(
         0,
-        Math.min(player.x + moveAxis * currentSpeed, canvas.width - player.width),
+        Math.min(player.x + moveAxis * player.speed, canvas.width - player.width),
       );
     }
 
@@ -692,8 +692,12 @@ export class InvasionEngine {
     }
 
     this.bullets.forEach((bullet, index) => {
-      const bSpeed = bullet.isLaser ? BULLET_SPEED * 2.5 : BULLET_SPEED;
-      bullet.y -= bSpeed * this._scale();
+      if (bullet.vy) {
+        bullet.y += bullet.vy * this._scale();
+      } else {
+        const bSpeed = bullet.isLaser ? BULLET_SPEED * 2.5 : BULLET_SPEED;
+        bullet.y -= bSpeed * this._scale();
+      }
       if (bullet.vx) bullet.x += bullet.vx * this._scale();
       
       if (bullet.isHoming && this.aliens.length > 0) {
@@ -738,9 +742,67 @@ export class InvasionEngine {
 
     this._updateSpawnlings(scale);
     this._updateInkShots();
+    this._updateDrones();
     this._collideBullets();
     this._collectPickups();
     this._broadcastState();
+  }
+
+  _updateDrones() {
+    if (this.droneTimer <= 0) return;
+
+    const player = this.player;
+    const targetY = player.y + 10 * this._scale();
+    
+    // Update target positions for left and right drones
+    const targets = [
+      { x: player.x - 30 * this._scale(), y: targetY },
+      { x: player.x + player.width + 10 * this._scale(), y: targetY }
+    ];
+
+    this.drones.forEach((drone, index) => {
+      // Lerp towards target
+      if (drone.x === 0 && drone.y === 0) {
+        drone.x = targets[index].x;
+        drone.y = targets[index].y;
+      } else {
+        drone.x += (targets[index].x - drone.x) * 0.2;
+        drone.y += (targets[index].y - drone.y) * 0.2;
+      }
+
+      // Firing logic
+      if (drone.cooldown > 0) drone.cooldown--;
+      if (drone.cooldown <= 0) {
+        // Find nearest target (alien or boss)
+        let nearest = null;
+        let minDist = Infinity;
+        
+        const checkTarget = (t) => {
+          const dx = (t.x + t.width/2) - drone.x;
+          const dy = (t.y + t.height/2) - drone.y;
+          const dist = dx*dx + dy*dy;
+          if (dist < minDist) { minDist = dist; nearest = t; }
+        };
+
+        this.aliens.forEach(checkTarget);
+        this.bosses.forEach(checkTarget);
+        
+        if (nearest) {
+          const dx = (nearest.x + nearest.width/2) - drone.x;
+          const dy = (nearest.y + nearest.height/2) - drone.y;
+          const angle = Math.atan2(dy, dx);
+          
+          this.bullets.push({
+            x: drone.x,
+            y: drone.y,
+            vx: Math.cos(angle) * BULLET_SPEED,
+            vy: Math.sin(angle) * BULLET_SPEED,
+          });
+          
+          drone.cooldown = 30; // fire every half second
+        }
+      }
+    });
   }
 
   _updateBosses(scale) {
@@ -922,7 +984,7 @@ export class InvasionEngine {
             if (!bullet.isLaser) break;
           } else {
             if (Math.random() < POWERUP_DROP_CHANCE) {
-              const types = ["weapon", "shield", "speed", "laser", "homing"];
+              const types = ["weapon", "shield", "drone", "laser", "homing"];
               const type = types[Math.floor(Math.random() * types.length)];
               if (type !== "weapon" || this.weaponLevel < 5) {
                 this.powerUps.push({
@@ -1083,9 +1145,9 @@ export class InvasionEngine {
         } else if (powerUp.type === "shield") {
           this.playerShieldHp = 50;
           this.audio?.powerUpShield?.();
-        } else if (powerUp.type === "speed") {
-          this.speedTimer = 600; // 10 seconds at 60fps
-          this.audio?.powerUpSpeed?.();
+        } else if (powerUp.type === "drone") {
+          this.droneTimer = 600; // 10 seconds at 60fps
+          this.audio?.powerUpDrone?.();
         } else if (powerUp.type === "laser") {
           this.laserTimer = 300; // 5 seconds
           this.audio?.powerUpLaser?.();
@@ -1740,7 +1802,7 @@ export class InvasionEngine {
       let color = "cyan";
       let text = "W";
       if (powerUp.type === "shield") { color = "#3399ff"; text = "S"; }
-      else if (powerUp.type === "speed") { color = "#ffff33"; text = ">>"; }
+      else if (powerUp.type === "drone") { color = "#00ff88"; text = "D"; }
       else if (powerUp.type === "laser") { color = "#ff3399"; text = "L"; }
       else if (powerUp.type === "homing") { color = "#9933ff"; text = "H"; }
       
@@ -1751,6 +1813,21 @@ export class InvasionEngine {
       ctx.font = "12px monospace";
       ctx.textAlign = "center";
       ctx.fillText(text, powerUp.x + POWERUP_SIZE / 2, powerUp.y + POWERUP_SIZE * 0.75);
+    });
+  }
+
+  _drawDrones() {
+    if (this.droneTimer <= 0) return;
+    const ctx = this.ctx;
+    const scale = this._scale();
+
+    ctx.fillStyle = "#00ff88";
+    this.drones.forEach(drone => {
+      ctx.beginPath();
+      ctx.moveTo(drone.x, drone.y - 6 * scale);
+      ctx.lineTo(drone.x + 6 * scale, drone.y + 4 * scale);
+      ctx.lineTo(drone.x - 6 * scale, drone.y + 4 * scale);
+      ctx.fill();
     });
   }
 
@@ -1800,7 +1877,7 @@ export class InvasionEngine {
       comboCount: this.comboTimerFrames > 0 ? this.comboCount : 0,
       comboMultiplier:
         this.comboTimerFrames > 0 ? this._comboMultiplier(this.comboCount) : 1,
-      speedTimer: this.speedTimer,
+      droneTimer: this.droneTimer,
       laserTimer: this.laserTimer,
       homingTimer: this.homingTimer,
     };
@@ -1840,6 +1917,7 @@ export class InvasionEngine {
     this._drawBackground();
     this._drawGhost(); // under the local ship (#80)
     this._drawPlayer();
+    this._drawDrones();
     this._drawBullets();
     this._drawPowerUps();
     this._drawBosses();
