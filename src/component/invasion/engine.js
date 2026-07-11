@@ -1540,15 +1540,12 @@ export class InvasionEngine {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    const drawStars = this.sectorTheme !== "void";
-    if (drawStars) {
-      this.stars.forEach((star) => {
+    this.stars.forEach((star) => {
         ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
         ctx.fill();
       });
-    }
 
     this.galaxies.forEach((g) => {
       ctx.save();

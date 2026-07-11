@@ -585,6 +585,7 @@ export default function AlienInvasion() {
               type="button"
               className={styles.menuBtn}
               onClick={() => {
+                setMapPages([]);
                 setGameState("playing");
                 engineRef.current?.play();
               }}
