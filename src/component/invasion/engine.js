@@ -237,8 +237,9 @@ export class InvasionEngine {
     this.scorePopups = [];
     this.stars = [];
     this.planets = [];
-    this.asteroids = [];
+    this.comets = [];
     this.ufos = [];
+    this.galaxies = [];
     // Bosses are a list (#92): the Swarm Hive splits into multiple
     // live entities. Non-splitting waves just hold one.
     this.bosses = [];
@@ -588,6 +589,18 @@ export class InvasionEngine {
       glow: `hsl(${Math.random() * 360}, 60%, 20%)`,
       speed: Math.max(0.03, 0.05 * scale),
     });
+    this.galaxies.length = 0;
+    if (this.sectorTheme === "nebula" || this.sectorTheme === "forge") {
+      this.galaxies.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * (this.canvas.height / 2),
+        size: Math.max(40, (Math.random() * 80 + 40) * scale),
+        color1: `hsla(${Math.random() * 360}, 80%, 50%, 0.3)`,
+        color2: `hsla(${Math.random() * 360}, 80%, 20%, 0)`,
+        angle: Math.random() * Math.PI * 2,
+        speed: Math.max(0.01, 0.02 * scale),
+      });
+    }
   }
 
   _createFireworks(x, y) {
@@ -828,24 +841,31 @@ export class InvasionEngine {
         planet.x = Math.random() * canvas.width;
       }
     });
+    
+    this.galaxies.forEach((galaxy) => {
+      galaxy.y += galaxy.speed;
+      galaxy.angle += 0.001;
+      if (galaxy.y - galaxy.size > canvas.height) {
+        galaxy.y = -galaxy.size;
+        galaxy.x = Math.random() * canvas.width;
+      }
+    });
 
-    if (Math.random() < 0.01) {
-      const size = Math.random() * 20 + 10;
-      this.asteroids.push({
+    if (Math.random() < 0.005) {
+      this.comets.push({
         x: Math.random() * canvas.width,
-        y: -size * 2,
-        speed: (Math.random() * 2 + 1) * this._scale(),
-        rotSpeed: (Math.random() - 0.5) * 0.05,
-        angle: 0,
-        size: size * this._scale(),
-        points: Array.from({length: 8}, () => Math.random() * 0.4 + 0.8)
+        y: -20,
+        vx: (Math.random() - 0.5) * 4 * this._scale(),
+        vy: (Math.random() * 8 + 4) * this._scale(),
+        life: 1,
+        size: this._scale()
       });
     }
-    for (let i = this.asteroids.length - 1; i >= 0; i--) {
-      const a = this.asteroids[i];
-      a.y += a.speed;
-      a.angle += a.rotSpeed;
-      if (a.y > canvas.height + a.size * 2) this.asteroids.splice(i, 1);
+    for (let i = this.comets.length - 1; i >= 0; i--) {
+      const c = this.comets[i];
+      c.x += c.vx;
+      c.y += c.vy;
+      if (c.y > canvas.height + 50) this.comets.splice(i, 1);
     }
 
     if (Math.random() < 0.002) {
@@ -1481,6 +1501,28 @@ export class InvasionEngine {
       });
     }
 
+    this.galaxies.forEach((g) => {
+      ctx.save();
+      ctx.translate(g.x, g.y);
+      ctx.rotate(g.angle);
+      
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, g.size);
+      grad.addColorStop(0, g.color1);
+      grad.addColorStop(1, g.color2);
+      
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, g.size, g.size * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.ellipse(0, 0, g.size, g.size * 0.1, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.fill();
+      
+      ctx.restore();
+    });
+
     this.planets.forEach((planet) => {
       const grad = ctx.createRadialGradient(
         planet.x - planet.r * 0.3,
@@ -1498,25 +1540,30 @@ export class InvasionEngine {
       ctx.fill();
     });
 
-    this.asteroids.forEach((a) => {
+    this.comets.forEach((c) => {
       ctx.save();
-      ctx.translate(a.x, a.y);
-      ctx.rotate(a.angle);
-      ctx.fillStyle = "#555";
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2 * this._scale();
+      const angle = Math.atan2(c.vy, c.vx);
+      ctx.translate(c.x, c.y);
+      ctx.rotate(angle);
+      
+      const grad = ctx.createLinearGradient(0, 0, -40 * c.size, 0);
+      grad.addColorStop(0, "rgba(200, 255, 255, 0.8)");
+      grad.addColorStop(0.2, "rgba(100, 200, 255, 0.4)");
+      grad.addColorStop(1, "transparent");
+      
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        const rad = a.size * a.points[i];
-        const px = Math.cos(angle) * rad;
-        const py = Math.sin(angle) * rad;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-40 * c.size, 4 * c.size);
+      ctx.lineTo(-40 * c.size, -4 * c.size);
       ctx.closePath();
       ctx.fill();
-      ctx.stroke();
+      
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(0, 0, 2 * c.size, 0, Math.PI * 2);
+      ctx.fill();
+      
       ctx.restore();
     });
 
