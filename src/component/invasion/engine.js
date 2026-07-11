@@ -96,6 +96,7 @@ export class InvasionEngine {
     this.audio = audio;
     this.onHud = onHud ?? (() => {});
     this.onGameOver = onGameOver ?? (() => {});
+    this.onSectorClear = arguments[2]?.onSectorClear ?? (() => {});
 
     this.shipType = "fighter"; // "fighter", "cruiser", "interceptor"
     this.player = { x: 0, y: 0, width: 40, height: 20, speed: 5 };
@@ -161,7 +162,31 @@ export class InvasionEngine {
   play() {
     this.menuMode = false;
     this.paused = false;
+    this.permanentBuffs = null;
     this.restart();
+  }
+
+  setPermanentBuffs(buffs, loopCount = 0, tier = 0) {
+    this.permanentBuffs = buffs;
+    this.difficultyLevel = 1 + (loopCount * 5) + tier;
+  }
+
+  playSector(hp) {
+    this.menuMode = false;
+    this.paused = false;
+    cancelAnimationFrame(this._raf);
+    this._running = false;
+    this._resetRun();
+    
+    if (this.permanentBuffs) {
+      this.weaponLevel = this.permanentBuffs.weaponLevel;
+      this.playerMaxHp += this.permanentBuffs.maxHp;
+      this.playerHp = hp !== null ? hp : this.playerMaxHp;
+      this.waveNumber = this.difficultyLevel;
+    }
+    
+    this._resize();
+    this._startLoop();
   }
 
   setPaused(isPaused) {
@@ -663,9 +688,14 @@ export class InvasionEngine {
     }
 
     if (this.playerHitFlash > 0) this.playerHitFlash--;
-    if (this.droneTimer > 0) this.droneTimer--;
-    if (this.laserTimer > 0) this.laserTimer--;
-    if (this.homingTimer > 0) this.homingTimer--;
+    
+    if (!this.permanentBuffs?.hasDrones && this.droneTimer > 0) this.droneTimer--;
+    if (!this.permanentBuffs?.hasLaser && this.laserTimer > 0) this.laserTimer--;
+    if (!this.permanentBuffs?.hasHoming && this.homingTimer > 0) this.homingTimer--;
+
+    if (this.permanentBuffs?.hasDrones) this.droneTimer = 2;
+    if (this.permanentBuffs?.hasLaser) this.laserTimer = 2;
+    if (this.permanentBuffs?.hasHoming) this.homingTimer = 2;
 
     if (this.comboTimerFrames > 0) {
       this.comboTimerFrames--;
@@ -1929,12 +1959,18 @@ export class InvasionEngine {
       this._update();
       this._publishHud();
 
-      // Wave ends only when the fleet AND the boss are down — clearing
-      // the fleet first turns the rest of the wave into a boss duel
-      // (previously a surviving boss was silently replaced).
+      // Sector cleared!
       if (!this.menuMode && this.aliens.length === 0 && this.bosses.length === 0) {
-        this.waveNumber++;
-        this._createAliens();
+        if (this.permanentBuffs) {
+          // Rogue-lite mode: sector cleared
+          this._running = false;
+          this.onSectorClear(this.playerHp);
+          return;
+        } else {
+          // Fallback endless mode (menu background)
+          this.waveNumber++;
+          this._createAliens();
+        }
       }
     }
 

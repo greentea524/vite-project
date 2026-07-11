@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { InvasionEngine, WEAPON_NAMES } from "./engine.js";
+import { GalaxyMap } from "./GalaxyMap";
+import { generateGalaxyMap } from "./MapGenerator";
 import { createAudio } from "./audio.js";
 import { Network, MAX_PLAYERS } from "./network.js";
 import { VirtualJoystick } from "../common/VirtualJoystick.jsx";
@@ -23,6 +25,11 @@ export default function AlienInvasion() {
   const [gameOver, setGameOver] = useState(null); // { score, hitRate } | null
   const [showInstructions, setShowInstructions] = useState(false);
   const [gameState, setGameState] = useState("menu"); // "menu", "lobby", "countdown", "playing", "paused", "gameover"
+  const [mapData, setMapData] = useState([]);
+  const [unlockedNodeIds, setUnlockedNodeIds] = useState([]);
+  const [currentNodeId, setCurrentNodeId] = useState(null);
+  const [loopCount, setLoopCount] = useState(0);
+  const [runStats, setRunStats] = useState(null);
   const [selectedShip, setSelectedShip] = useState("fighter"); // "fighter", "cruiser", "interceptor"
 
   // Multiplayer (#79): one Network per mount, only when a relay URL is
@@ -173,6 +180,64 @@ export default function AlienInvasion() {
     engineRef.current?.play();
   };
 
+  const startNewRun = () => {
+    const newMap = generateGalaxyMap(0);
+    setMapData(newMap);
+    setUnlockedNodeIds([newMap[0][0].id]);
+    setCurrentNodeId(null);
+    setLoopCount(0);
+    setRunStats({
+      weaponLevel: 1,
+      maxHp: 0,
+      hasDrones: false,
+      hasLaser: false,
+      hasHoming: false,
+      currentHp: null
+    });
+    setGameState("map");
+  };
+
+  const handleNodeClick = (node) => {
+    setCurrentNodeId(node.id);
+    setGameState("playing");
+    
+    const engine = engineRef.current;
+    if (engine) {
+      engine.setPermanentBuffs(runStats, loopCount, node.tier);
+      engine.onSectorClear = (finalHp) => {
+        setGameState("map");
+        setRunStats((prev) => {
+          const next = { ...prev, currentHp: finalHp };
+          if (node.type === "weapon") next.weaponLevel++;
+          if (node.type === "shield") next.maxHp += 50;
+          if (node.type === "drone") next.hasDrones = true;
+          if (node.type === "laser") next.hasLaser = true;
+          if (node.type === "homing") next.hasHoming = true;
+          return next;
+        });
+        setUnlockedNodeIds((prev) => {
+          let nextUnlocked = [...prev];
+          if (node.type === "boss") {
+            setLoopCount((c) => {
+              const newLoop = c + 1;
+              const newMap = generateGalaxyMap(newLoop);
+              setMapData(newMap);
+              return newLoop;
+            });
+            const nextMap = generateGalaxyMap(0);
+            return [nextMap[0][0].id];
+          } else {
+            node.next.forEach((nid) => {
+              if (!nextUnlocked.includes(nid)) nextUnlocked.push(nid);
+            });
+            return nextUnlocked;
+          }
+        });
+      };
+      engine.playSector(runStats.currentHp);
+    }
+  };
+
   const handlePause = () => {
     engineRef.current?.setPaused(true);
     setGameState("paused");
@@ -261,9 +326,6 @@ export default function AlienInvasion() {
     onPointerCancel: () => engineRef.current?.[setter](false),
   });
 
-  const weaponName = WEAPON_NAMES[hud?.weaponLevel] ?? WEAPON_NAMES[1];
-  const hitRate = hud?.shots > 0 ? ((hud.hits / hud.shots) * 100).toFixed(1) : "0.0";
-
   return (
     <div className={styles.shell}>
       <div className={styles.topBar}>
@@ -278,8 +340,6 @@ export default function AlienInvasion() {
           </div>
         )}
       </div>
-
-
 
       <div className={styles.gameArea} ref={wrapperRef}>
         <canvas
@@ -322,6 +382,15 @@ export default function AlienInvasion() {
           </>
         )}
 
+        {gameState === "map" && (
+          <GalaxyMap
+            mapData={mapData}
+            currentNodeId={currentNodeId}
+            unlockedNodeIds={unlockedNodeIds}
+            onNodeClick={handleNodeClick}
+          />
+        )}
+
         {gameState === "menu" && !showInstructions && (
           <div className={styles.menuOverlay}>
             <h3>Alien Invasion</h3>
@@ -333,12 +402,19 @@ export default function AlienInvasion() {
             <button
               type="button"
               className={styles.menuBtn}
+              onClick={startNewRun}
+            >
+              Start Rogue-lite Run
+            </button>
+            <button
+              type="button"
+              className={styles.menuBtn}
               onClick={() => {
                 setGameState("playing");
                 engineRef.current?.play();
               }}
             >
-              Single Player
+              Start Endless Game
             </button>
             <button
               type="button"
@@ -530,9 +606,6 @@ export default function AlienInvasion() {
             <h3>Game Over!</h3>
             <p>Final Score: {gameOver.score}</p>
             <p>Hit Rate: {gameOver.hitRate}%</p>
-            {/* In a room, a solo restart would desync the pair — the
-                rematch path is back through the lobby (#79; results
-                screens land with #82). */}
             {inRoom ? (
               <button type="button" className={styles.restartBtn} onClick={backToRoom}>
                 Back to Lobby
