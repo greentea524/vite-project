@@ -118,6 +118,17 @@ describe("engine deterministic spawns & shared kills (#81)", () => {
     expect(eng.aliens[0].id).toBeDefined();
   });
 
+  it("multiplayer bosses get a beefier (shared) HP pool than single player", () => {
+    const mp = start(5); // seeded → multiplayer race
+    const { canvas } = makeEngine();
+    const solo = new InvasionEngine(canvas, null, {});
+    solo.play(); // no seed → single player
+    // Wave-1 octopus: solo 12 HP, multiplayer 2x.
+    expect(solo.bosses[0].maxHp).toBe(12);
+    expect(mp.bosses[0].maxHp).toBe(24);
+    expect(mp.bosses[0].hp).toBe(24);
+  });
+
   it("both seeded players roll the same drop for the same alien", () => {
     const a = start(7);
     const b = start(7);

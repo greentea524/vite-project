@@ -59,6 +59,10 @@ const BOSS_STATS = {
   lasercore: { hp: 16, width: 70, height: 46, speed: 1.2, score: 180 },
   hive: { hp: 12, width: 84, height: 42, speed: 1.2, score: 60 },
 };
+// Multiplayer bosses have a shared HP pool both players chip away at,
+// so they get more HP to stay a fight rather than melting under two
+// ships' fire (roughly matches solo pacing at ~2x combined DPS).
+const BOSS_MP_HP_MULT = 2;
 
 // Mothership carrier behavior (#90): kamikaze spawn cadence and cap.
 const SPAWNLING_INTERVAL = 150; // frames between launches
@@ -243,6 +247,9 @@ export class InvasionEngine {
     // out.
     this.ghostBullets = [];
     this._pendingShots = [];
+    // Boss damage dealt since the last snapshot, keyed by boss id, so
+    // the peer can subtract it and keep the shared HP bar in sync (#81).
+    this._pendingBossDamage = {};
     this.aliens = [];
     this.particles = [];
     this.powerUps = [];
@@ -387,6 +394,20 @@ export class InvasionEngine {
         });
       }
     }
+    // Shared boss HP (#81): apply the damage the opponent dealt so both
+    // screens' bars track combined fire. If it drops the boss to 0,
+    // kill it here too (fromRemote: no score, no re-broadcast). A boss
+    // already despawned locally is simply skipped.
+    if (snap.bossDamage) {
+      for (const [id, dmg] of Object.entries(snap.bossDamage)) {
+        const bi = this.bosses.findIndex((b) => b.id === id);
+        if (bi < 0) continue;
+        const boss = this.bosses[bi];
+        boss.hp -= dmg;
+        boss.hitFlash = 5;
+        if (boss.hp <= 0) this._killBoss(bi, true);
+      }
+    }
     pushSnapshot(this.ghost, snap, performance.now());
   }
 
@@ -434,9 +455,16 @@ export class InvasionEngine {
     // Piggyback any shots fired since the last snapshot so the peer can
     // draw the ghost's bullets (no separate relay event needed).
     if (this._pendingShots.length) snap.shots = this._pendingShots;
-    // Clear the buffer only once the snapshot is actually emitted — a
-    // throttled (dropped) snapshot keeps the shots for the next send.
-    if (this.network.sendState(snap, force)) this._pendingShots = [];
+    // ...and boss damage, so the shared HP bar stays in sync (#81).
+    if (Object.keys(this._pendingBossDamage).length) {
+      snap.bossDamage = this._pendingBossDamage;
+    }
+    // Clear the buffers only once the snapshot is actually emitted — a
+    // throttled (dropped) snapshot keeps them for the next send.
+    if (this.network.sendState(snap, force)) {
+      this._pendingShots = [];
+      this._pendingBossDamage = {};
+    }
   }
 
   // --- sizing ----------------------------------------------------------
@@ -575,6 +603,12 @@ export class InvasionEngine {
     const scaledSpeed = stats.speed * speedMulti;
     const baseSpawnT = type === "octopus" ? INK_INTERVAL : SPAWNLING_INTERVAL;
 
+    // In a multiplayer race the boss soaks fire from both ships and its
+    // HP is shared (damage is synced), so give it a beefier pool — a
+    // solo boss would otherwise melt in seconds. Hive children pass an
+    // explicit `over.hp` (half the parent's) and inherit the scaling.
+    const spawnHp = over.hp ?? (this._deterministic ? scaledHp * BOSS_MP_HP_MULT : scaledHp);
+
     return {
       type,
       // Stable identity for shared kills (#81); hive children derive
@@ -584,8 +618,8 @@ export class InvasionEngine {
       y: over.y ?? 8 * scale,
       width,
       height,
-      hp: over.hp ?? scaledHp,
-      maxHp: over.hp ?? scaledHp,
+      hp: spawnHp,
+      maxHp: spawnHp,
       dir: over.dir ?? 1,
       speed: scaledSpeed,
       gen: over.gen ?? 0, // hive generation (#92)
@@ -1434,6 +1468,11 @@ export class InvasionEngine {
         ) {
           this.audio?.alienHit();
           boss.hp--;
+          // Shared boss HP (#81): report the hit so the peer subtracts
+          // it from the same boss and both bars track combined damage.
+          if (this.network?.roomCode) {
+            this._pendingBossDamage[boss.id] = (this._pendingBossDamage[boss.id] || 0) + 1;
+          }
           if (!bullet.isLaser) {
             this.bullets.splice(bIndex, 1);
           }

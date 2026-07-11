@@ -157,3 +157,77 @@ describe("ghost fire-event bullets", () => {
     expect(eng.ghostBullets.length).toBe(0);
   });
 });
+
+describe("shared boss HP", () => {
+  let InvasionEngine;
+
+  beforeEach(async () => {
+    vi.stubGlobal("requestAnimationFrame", () => 0);
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+    vi.stubGlobal("performance", { now: () => 0 });
+    vi.stubGlobal("window", {
+      addEventListener() {},
+      removeEventListener() {},
+      innerWidth: 800,
+      innerHeight: 700,
+      matchMedia: () => ({ matches: false }),
+    });
+    ({ InvasionEngine } = await import("./engine.js"));
+  });
+
+  const start = (net) => {
+    const eng = new InvasionEngine(makeCanvas(), null, {});
+    if (net) eng.attachNetwork(net);
+    eng.play(1);
+    return eng;
+  };
+
+  it("accumulates boss damage per id and flushes it on a sent snapshot", () => {
+    const net = fakeNetwork();
+    const eng = start(net);
+    const boss = eng.bosses[0];
+    const before = boss.hp;
+
+    // Two hits on the wave boss.
+    eng._pendingBossDamage[boss.id] = 0;
+    boss.hp -= 1;
+    eng._pendingBossDamage[boss.id]++;
+    boss.hp -= 1;
+    eng._pendingBossDamage[boss.id]++;
+    expect(boss.hp).toBe(before - 2);
+
+    eng._broadcastState(false);
+    const last = net.sent[net.sent.length - 1];
+    expect(last.bossDamage[boss.id]).toBe(2);
+    expect(eng._pendingBossDamage).toEqual({}); // flushed
+  });
+
+  it("applies the opponent's boss damage to the same boss", () => {
+    const eng = start(null);
+    eng.setGhost({ id: "opp", name: "Rival" });
+    const boss = eng.bosses[0];
+    const before = boss.hp;
+    eng.pushGhostSnapshot({ id: "opp", x: 400, bossDamage: { [boss.id]: 3 } });
+    expect(eng.bosses[0].hp).toBe(before - 3);
+  });
+
+  it("a remote fatal blow despawns the boss without scoring the receiver", () => {
+    const eng = start(null);
+    eng.setGhost({ id: "opp", name: "Rival" });
+    const boss = eng.bosses[0];
+    eng.pushGhostSnapshot({ id: "opp", x: 400, bossDamage: { [boss.id]: boss.hp + 5 } });
+    // Boss (a non-hive octopus at wave 1) is gone, and no score awarded.
+    expect(eng.bosses.find((b) => b.id === "w1-boss")).toBeUndefined();
+    expect(eng.score).toBe(0);
+  });
+
+  it("ignores boss damage for a boss that's already gone locally", () => {
+    const eng = start(null);
+    eng.setGhost({ id: "opp", name: "Rival" });
+    eng.bosses = []; // already cleared here
+    expect(() =>
+      eng.pushGhostSnapshot({ id: "opp", x: 400, bossDamage: { "w1-boss": 5 } }),
+    ).not.toThrow();
+    expect(eng.score).toBe(0);
+  });
+});
