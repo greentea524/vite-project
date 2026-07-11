@@ -413,13 +413,16 @@ export class InvasionEngine {
 
   _setupBackground() {
     const scale = this._scale();
+    // Size floors keep the backdrop alive on small screens, where the
+    // base-800 scale (~0.47 on phones) would shrink stars and planets
+    // to near-invisible specks.
     this.stars.length = 0;
     for (let i = 0; i < 100; i++) {
       this.stars.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * this.canvas.height,
-        r: Math.max(1.2, (Math.random() * 1.5 + 0.5) * scale),
-        opacity: Math.random() * 0.6 + 0.4,
+        r: Math.max(1.4, (Math.random() * 1.5 + 0.5) * scale),
+        opacity: Math.random() * 0.5 + 0.5,
         speed: Math.max(0.2, (Math.random() * 0.5 + 0.1) * scale),
       });
     }
@@ -427,10 +430,10 @@ export class InvasionEngine {
     this.planets.push({
       x: Math.random() * this.canvas.width,
       y: Math.random() * (this.canvas.height / 2),
-      r: (Math.random() * 30 + 20) * scale,
+      r: Math.max(26, (Math.random() * 30 + 20) * scale),
       color: `hsl(${Math.random() * 360}, 60%, 40%)`,
       glow: `hsl(${Math.random() * 360}, 60%, 20%)`,
-      speed: 0.05 * scale,
+      speed: Math.max(0.03, 0.05 * scale),
     });
   }
 
@@ -533,7 +536,17 @@ export class InvasionEngine {
       }
     });
 
-    if (this.menuMode) return;
+    if (this.menuMode) {
+      // Menu showcase: the ship idles with a slow drift so the menu
+      // screen reads as a live scene instead of a static frame.
+      this._menuT = (this._menuT ?? Math.random() * Math.PI * 2) + 0.012;
+      const p = this.player;
+      p.x =
+        canvas.width / 2 -
+        p.width / 2 +
+        Math.sin(this._menuT) * canvas.width * 0.1;
+      return;
+    }
 
     if (this.comboTimerFrames > 0) {
       this.comboTimerFrames--;
@@ -996,14 +1009,24 @@ export class InvasionEngine {
 
   _drawPlayer() {
     const { x, y, width, height } = this.player;
-    this._drawShip(x, y, width, height, {
+    const style = {
       bodyTop: "#fff",
       bodyBottom: "#888",
       cockpit: "#33ccff",
       flame: ["orange", "cyan"],
       // Glow when weapon level is high
       shadow: this.weaponLevel === 2 ? "cyan" : this.weaponLevel === 3 ? "magenta" : null,
-    });
+    };
+    if (this.menuMode) {
+      // Menu showcase: gameplay scale shrinks the ship to ~19px on
+      // phones — draw it larger (same bottom anchor) so it reads
+      // under the menu overlay on any screen.
+      const w = Math.max(width * 1.6, 56);
+      const h = w * (height / width);
+      this._drawShip(x + width / 2 - w / 2, y + height - h, w, h, style);
+      return;
+    }
+    this._drawShip(x, y, width, height, style);
   }
 
   // The other player's ship (#80): translucent and blue-tinted so it
