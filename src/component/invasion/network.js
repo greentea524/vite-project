@@ -34,6 +34,10 @@ export class Network {
     this.hostId = null;
     this.selfName = "";
     this.roster = [];
+    // Shared-kill state (#81): enemies already destroyed by either
+    // player, so a late joiner or a duplicate event never respawns or
+    // double-processes one. Seeded on join from the relay's set.
+    this.deadEnemies = new Set();
     this._lastSent = 0;
   }
 
@@ -85,7 +89,16 @@ export class Network {
       this._emit("playerLeft", { id });
     });
     socket.on("remoteState", (snap) => this._emit("remoteState", snap));
-    socket.on("raceStart", (info) => this._emit("raceStart", info));
+    // The other player destroyed an enemy (#81): record it and hand
+    // the id up so the engine can despawn it here too.
+    socket.on("enemyKilled", (enemyId) => {
+      this.deadEnemies.add(enemyId);
+      this._emit("enemyKilled", enemyId);
+    });
+    socket.on("raceStart", (info) => {
+      this.deadEnemies.clear(); // fresh run
+      this._emit("raceStart", info);
+    });
     socket.on("hostChanged", ({ hostId }) => {
       this.hostId = hostId;
       this._emit("hostChanged", { hostId });
@@ -100,6 +113,7 @@ export class Network {
     this.hostId = res.hostId ?? null;
     this.selfName = name;
     this.roster = res.roster.map((r) => ({ id: r.id, name: r.name }));
+    this.deadEnemies = new Set(res.deadEnemies || []);
     this._emit("roster", this.roster);
   }
 
@@ -150,10 +164,20 @@ export class Network {
     this.socket.emit("state", snapshot);
   }
 
+  // Tell the room an enemy is dead (#81). Idempotent: only the first
+  // report of a given id is broadcast, so a shared kill never loops.
+  sendEnemyKill(enemyId) {
+    if (!this.socket || !this.roomCode) return;
+    if (this.deadEnemies.has(enemyId)) return;
+    this.deadEnemies.add(enemyId);
+    this.socket.emit("enemyKilled", { enemyId });
+  }
+
   leave() {
     if (this.socket && this.roomCode) this.socket.emit("leaveRoom");
     this.roomCode = null;
     this.roster = [];
+    this.deadEnemies.clear();
   }
 
   destroy() {

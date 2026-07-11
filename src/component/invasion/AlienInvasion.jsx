@@ -116,6 +116,9 @@ export default function AlienInvasion() {
           engine.setGhost(other ? { id: other.id, name: other.name } : null);
         }),
         net.on("remoteState", (snap) => engine.pushGhostSnapshot(snap)),
+        // Shared kills (#81): the other player destroyed an enemy —
+        // despawn it here too.
+        net.on("enemyKilled", (enemyId) => engine.applyRemoteKill(enemyId)),
       );
     }
 
@@ -145,15 +148,17 @@ export default function AlienInvasion() {
   useEffect(() => {
     const net = networkRef.current;
     if (!net) return undefined;
-    return net.on("raceStart", ({ countdownMs } = {}) => {
+    return net.on("raceStart", ({ countdownMs, seed } = {}) => {
       setGameOver(null);
       setMpError("");
       setGameState("countdown");
       setCountdown(Math.ceil((countdownMs ?? 3000) / 1000));
       const engine = engineRef.current;
       if (engine) {
-        engine.play(); // fresh run with the wave laid out...
-        engine.setPaused(true); // ...frozen until GO
+        // The shared seed (#81) makes both players' waves and drops
+        // identical; fresh run laid out, then frozen until GO.
+        engine.play(seed);
+        engine.setPaused(true);
       }
     });
   }, []);

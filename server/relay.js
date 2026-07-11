@@ -199,7 +199,12 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
         p.runTimeMs = 0;
         p.finished = false;
       }
-      io.to(code).emit("raceStart", { countdownMs: COUNTDOWN_MS });
+      // A fresh shared seed each race (#81): both clients seed their
+      // RNG with it so alien spawns and power-up drops match. Also
+      // clears the room's dead-enemy set so a rematch starts clean.
+      room.deadEnemies.clear();
+      const seed = (Math.random() * 0x100000000) >>> 0;
+      io.to(code).emit("raceStart", { countdownMs: COUNTDOWN_MS, seed });
     });
 
     // Relayed as-is to the rest of the room; the client controls send rate.
