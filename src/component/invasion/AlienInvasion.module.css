@@ -370,6 +370,155 @@
   }
 }
 
+/* Achievements panel + unlock toast (#94), styled after the
+   instructions overlay so the menu family stays consistent. */
+.achPanel {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92%, 560px);
+  max-height: 88%;
+  overflow: auto;
+  background: rgba(10, 12, 24, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: center;
+  z-index: 10;
+}
+
+.achPanel h3 {
+  margin: 0 0 4px;
+}
+
+.achCount {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #ffe066;
+  margin-bottom: 10px;
+}
+
+.achGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.achCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  text-align: left;
+}
+
+.achUnlocked {
+  border-color: rgba(255, 224, 102, 0.55);
+  background: rgba(255, 224, 102, 0.08);
+}
+
+.achLocked {
+  opacity: 0.75;
+}
+
+.achIcon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
+}
+
+.achLocked .achIcon {
+  filter: grayscale(1) brightness(0.8);
+}
+
+.achBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.achName {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.achDesc {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.achDate {
+  font-size: 0.72rem;
+  color: #ffe066;
+  margin-top: 2px;
+}
+
+.achProgress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.achBar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.achFill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #57dbff, #9be7ff);
+}
+
+.achFrac {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+
+.achToast {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 224, 102, 0.6);
+  background: rgba(10, 12, 24, 0.92);
+  color: #fff;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  z-index: 20;
+  pointer-events: none;
+  animation: achToastIn 0.35s ease-out;
+}
+
+.achToastIcon {
+  font-size: 1.3rem;
+}
+
+@keyframes achToastIn {
+  from {
+    transform: translate(-50%, -12px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
 .gameOver h3 {
   margin: 0;
   font-size: clamp(1.3rem, 4vw, 2rem);
