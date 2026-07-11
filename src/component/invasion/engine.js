@@ -1480,8 +1480,9 @@ export class InvasionEngine {
     const canvas = this.canvas;
 
     const scale = this._scale();
+    const speedMult = canvas.height > canvas.width ? 1.8 : 1;
     this.powerUps.forEach((powerUp, index) => {
-      powerUp.y += POWERUP_SPEED * scale;
+      powerUp.y += POWERUP_SPEED * scale * speedMult;
       const collected =
         powerUp.x < player.x + player.width &&
         powerUp.x + POWERUP_SIZE > player.x &&
