@@ -657,13 +657,15 @@ export class InvasionEngine {
     const p = this.player;
     
     const spawn = (fx, vx = 0, isHoming = false, isLaser = false) => {
+      const scale = this._scale();
+      const laserW = Math.max(4, 16 * scale);
       this.bullets.push({
-        x: p.x + p.width * fx - (isLaser ? 8 : BULLET_WIDTH / 2),
+        x: p.x + p.width * fx - (isLaser ? laserW / 2 : BULLET_WIDTH / 2),
         y: p.y - (isLaser ? 40 : BULLET_HEIGHT),
         vx: vx,
         isHoming: isHoming,
         isLaser: isLaser,
-        width: isLaser ? 16 : BULLET_WIDTH,
+        width: isLaser ? laserW : BULLET_WIDTH,
         height: isLaser ? 40 : BULLET_HEIGHT,
       });
     };
@@ -1016,6 +1018,8 @@ export class InvasionEngine {
           const weaponToFire = activeWeapons[drone.bulletsShot % activeWeapons.length];
           const isLaser = weaponToFire === "laser";
           const isHoming = weaponToFire === "homing";
+          const scale = this._scale();
+          const laserW = Math.max(4, 16 * scale);
 
           this.bullets.push({
             x: drone.x,
@@ -1024,7 +1028,7 @@ export class InvasionEngine {
             vy: Math.sin(angle) * BULLET_SPEED,
             isHoming: isHoming,
             isLaser: isLaser,
-            width: isLaser ? 16 : BULLET_WIDTH,
+            width: isLaser ? laserW : BULLET_WIDTH,
             height: isLaser ? 40 : BULLET_HEIGHT,
           });
           

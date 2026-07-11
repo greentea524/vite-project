@@ -91,3 +91,16 @@
 .node:hover .nodeTooltip {
   opacity: 1;
 }
+
+@media (max-width: 768px) {
+  .nodeTooltip {
+    opacity: 1;
+    bottom: -40px;
+    background: none;
+    border: none;
+    text-shadow: 0 0 5px black, 0 0 5px black;
+  }
+  .nodeTooltip div:last-child {
+    display: none; /* Hide description on mobile to save space */
+  }
+}
