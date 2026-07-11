@@ -61,7 +61,7 @@ const WEB_GAMES = [
   {
     title: "Invasion",
     href: `${import.meta.env.BASE_URL}space/`,
-    description: "Defend against waves of alien invaders.",
+    description: "Defend against waves of alien invaders. Features a multiplayer mode!",
   },
   {
     title: "Platformer",
