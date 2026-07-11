@@ -23,6 +23,7 @@ export default function AlienInvasion() {
   const [gameOver, setGameOver] = useState(null); // { score, hitRate } | null
   const [showInstructions, setShowInstructions] = useState(false);
   const [gameState, setGameState] = useState("menu"); // "menu", "lobby", "countdown", "playing", "paused", "gameover"
+  const [selectedShip, setSelectedShip] = useState("fighter"); // "fighter", "cruiser", "interceptor"
 
   // Multiplayer (#79): one Network per mount, only when a relay URL is
   // configured — otherwise the menu button stays disabled.
@@ -100,6 +101,15 @@ export default function AlienInvasion() {
       }
     });
   }, []);
+
+  // Push the selected ship type into the engine so the menu showcase updates live (#86)
+  useEffect(() => {
+    if (engineRef.current && gameState !== "playing") {
+      if (typeof engineRef.current.setShipType === 'function') {
+        engineRef.current.setShipType(selectedShip);
+      }
+    }
+  }, [selectedShip, gameState]);
 
   useEffect(() => {
     if (countdown == null) return undefined;
@@ -294,6 +304,9 @@ export default function AlienInvasion() {
               <div className={styles.hudRight}>
                 <div className={styles.hudStat}>🌊 Wave {hud.wave}</div>
                 <div className={styles.hudStat}>🪙 {hud.coins}</div>
+                {hud.speedTimer > 0 && <div className={styles.hudStat}>⚡ Speed: {Math.ceil(hud.speedTimer / 60)}s</div>}
+                {hud.laserTimer > 0 && <div className={styles.hudStat}>🔴 Laser: {Math.ceil(hud.laserTimer / 60)}s</div>}
+                {hud.homingTimer > 0 && <div className={styles.hudStat}>🟣 Homing: {Math.ceil(hud.homingTimer / 60)}s</div>}
               </div>
             </div>
             {hud.bossMaxHp > 0 && hud.bossHp > 0 && (
@@ -313,6 +326,11 @@ export default function AlienInvasion() {
         {gameState === "menu" && !showInstructions && (
           <div className={styles.menuOverlay}>
             <h3>Alien Invasion</h3>
+            <div className={styles.shipPicker}>
+              <button type="button" className={`${styles.shipBtn} ${selectedShip === 'fighter' ? styles.active : ''}`} onClick={() => setSelectedShip('fighter')}>Fighter</button>
+              <button type="button" className={`${styles.shipBtn} ${selectedShip === 'cruiser' ? styles.active : ''}`} onClick={() => setSelectedShip('cruiser')}>Cruiser</button>
+              <button type="button" className={`${styles.shipBtn} ${selectedShip === 'interceptor' ? styles.active : ''}`} onClick={() => setSelectedShip('interceptor')}>Interceptor</button>
+            </div>
             <button
               type="button"
               className={styles.menuBtn}
@@ -347,6 +365,11 @@ export default function AlienInvasion() {
             <h3>Multiplayer</h3>
             {lobbyStage === "choose" && (
               <div className={styles.lobby}>
+                <div className={styles.shipPicker} style={{ marginBottom: '8px' }}>
+                  <button type="button" className={`${styles.shipBtn} ${selectedShip === 'fighter' ? styles.active : ''}`} onClick={() => setSelectedShip('fighter')}>Fighter</button>
+                  <button type="button" className={`${styles.shipBtn} ${selectedShip === 'cruiser' ? styles.active : ''}`} onClick={() => setSelectedShip('cruiser')}>Cruiser</button>
+                  <button type="button" className={`${styles.shipBtn} ${selectedShip === 'interceptor' ? styles.active : ''}`} onClick={() => setSelectedShip('interceptor')}>Interceptor</button>
+                </div>
                 {connStatus === "connecting" && (
                   <p className={styles.connNote}>
                     Connecting — a napping server can take ~10s to wake…
@@ -485,9 +508,11 @@ export default function AlienInvasion() {
               <li>Laser Core telegraphs a beam column — dodge before it fires</li>
               <li>Swarm Hive splits in two when killed — twice</li>
               <li>Red shots: Your bullets</li>
-              <li>Cyan crate: Weapon upgrade pickup</li>
-              <li>1st pickup: Dual missiles (permanent)</li>
-              <li>2nd pickup+: Triple-shot (permanent)</li>
+              <li>Cyan W crate: Weapon upgrade (Dual, Triple, Quad, Spread)</li>
+              <li>Blue S crate: Temporary Shield buffer</li>
+              <li>Yellow {">>"} crate: Temporary Speed boost</li>
+              <li>Pink L crate: Temporary piercing Laser</li>
+              <li>Purple H crate: Temporary Homing missiles</li>
               <li>Gold coin: Bonus points after max weapon</li>
               <li>Score +10 per hit</li>
               <li>Game ends if enemy reach bottom</li>

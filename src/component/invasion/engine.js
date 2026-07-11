@@ -102,6 +102,7 @@ export class InvasionEngine {
     this.onHud = onHud ?? (() => {});
     this.onGameOver = onGameOver ?? (() => {});
 
+    this.shipType = "fighter"; // "fighter", "cruiser", "interceptor"
     this.player = { x: 0, y: 0, width: 40, height: 20, speed: 5 };
     // left/right are the digital inputs (keyboard); axis is the analog
     // joystick deflection (-1..1, #93). Whichever is non-zero wins.
@@ -129,6 +130,15 @@ export class InvasionEngine {
   }
 
   // --- lifecycle -------------------------------------------------------
+
+  setShipType(type) {
+    if (this.shipType === type) return;
+    this.shipType = type;
+    this._resize();
+    if (this.menuMode) {
+      this.playerHp = this.playerMaxHp;
+    }
+  }
 
   start() {
     window.addEventListener("resize", this._resize);
@@ -182,8 +192,19 @@ export class InvasionEngine {
     this.spawnlings = []; // Mothership kamikazes (#90)
     this.inkShots = []; // Octo Commander ink globs
     this.alienDirection = 1;
-    this.playerHp = 100;
-    this.playerMaxHp = 100;
+    this.playerShieldHp = 0;
+    this.speedTimer = 0;
+    this.laserTimer = 0;
+    this.homingTimer = 0;
+    this.weaponCratesCollected = 0;
+    if (this.shipType === "cruiser") {
+      this.playerMaxHp = 150;
+    } else if (this.shipType === "interceptor") {
+      this.playerMaxHp = 75;
+    } else {
+      this.playerMaxHp = 100;
+    }
+    this.playerHp = this.playerMaxHp;
     this.playerHitFlash = 0;
     this.score = 0;
     this.scoreFlashFrames = 0;
@@ -265,6 +286,7 @@ export class InvasionEngine {
   pushGhostSnapshot(snap) {
     if (!this.ghost || this.ghost.id !== snap.id) return;
     this.ghost.over = Boolean(snap.over); // terminal flag: latest wins
+    if (snap.shipType) this.ghost.shipType = snap.shipType;
     pushSnapshot(this.ghost, snap, performance.now());
   }
 
@@ -279,7 +301,7 @@ export class InvasionEngine {
     const vx = this._prevX == null ? 0 : ((this.player.x - this._prevX) / scale) * 60;
     this._prevX = this.player.x;
     if (!this.network?.roomCode || this.menuMode) return;
-    this.network.sendState({ x, vx, over: this.gameOver }, force);
+    this.network.sendState({ x, vx, over: this.gameOver, shipType: this.shipType }, force);
   }
 
   // --- sizing ----------------------------------------------------------
@@ -317,9 +339,19 @@ export class InvasionEngine {
     canvas.style.height = `${Math.floor(newHeight)}px`;
 
     const scale = this._scale();
-    this.player.width = 40 * scale;
-    this.player.height = 20 * scale;
-    this.player.speed = 5 * scale;
+    if (this.shipType === "cruiser") {
+      this.player.width = 50 * scale;
+      this.player.height = 28 * scale;
+      this.player.speed = 3.5 * scale;
+    } else if (this.shipType === "interceptor") {
+      this.player.width = 30 * scale;
+      this.player.height = 16 * scale;
+      this.player.speed = 6.5 * scale;
+    } else {
+      this.player.width = 40 * scale;
+      this.player.height = 20 * scale;
+      this.player.speed = 5 * scale;
+    }
     this.player.y = canvas.height - this.player.height - 10;
     this.player.x = canvas.width / 2 - this.player.width / 2;
 
@@ -488,20 +520,60 @@ export class InvasionEngine {
   }
 
   _applyWeaponUpgrade() {
-    this.weaponLevel = Math.min(3, this.weaponLevel + 1);
-    // Max weapon reached: clear pending pickups; kills drop coins now.
-    if (this.weaponLevel === 3) this.powerUps.length = 0;
+    this.weaponCratesCollected++;
+    if (this.weaponCratesCollected >= 10) {
+      this.weaponLevel = 5;
+    } else if (this.weaponCratesCollected >= 6) {
+      this.weaponLevel = 4;
+    } else if (this.weaponCratesCollected >= 3) {
+      this.weaponLevel = 3;
+    } else if (this.weaponCratesCollected >= 1) {
+      this.weaponLevel = 2;
+    }
+    // Max weapon reached: clear pending weapon pickups
+    if (this.weaponLevel === 5) {
+      this.powerUps = this.powerUps.filter(p => p.type !== "weapon");
+    }
   }
 
   _shootBullet() {
     const p = this.player;
-    const spawn = (fx) =>
+    
+    const spawn = (fx, vx = 0, isHoming = false, isLaser = false) => {
       this.bullets.push({
-        x: p.x + p.width * fx - BULLET_WIDTH / 2,
-        y: p.y - BULLET_HEIGHT,
+        x: p.x + p.width * fx - (isLaser ? 8 : BULLET_WIDTH / 2),
+        y: p.y - (isLaser ? 40 : BULLET_HEIGHT),
+        vx: vx,
+        isHoming: isHoming,
+        isLaser: isLaser,
+        width: isLaser ? 16 : BULLET_WIDTH,
+        height: isLaser ? 40 : BULLET_HEIGHT,
       });
+    };
 
-    if (this.weaponLevel === 3) {
+    const useLaser = this.laserTimer > 0 && (this.homingTimer <= 0 || this.bulletsShot % 2 === 0);
+    const useHoming = this.homingTimer > 0 && !useLaser;
+
+    if (useLaser) {
+      spawn(0.5, 0, false, true);
+    } else if (useHoming) {
+      spawn(0.2, -2, true);
+      spawn(0.5, 0, true);
+      spawn(0.8, 2, true);
+    } else if (this.weaponLevel >= 5) {
+      // 5-way Spread
+      spawn(0.5, 0);
+      spawn(0.3, -1);
+      spawn(0.7, 1);
+      spawn(0.1, -2.5);
+      spawn(0.9, 2.5);
+    } else if (this.weaponLevel === 4) {
+      // Quad
+      spawn(0.2, -0.5);
+      spawn(0.4, 0);
+      spawn(0.6, 0);
+      spawn(0.8, 0.5);
+    } else if (this.weaponLevel === 3) {
       spawn(0.2);
       spawn(0.5);
       spawn(0.8);
@@ -512,6 +584,14 @@ export class InvasionEngine {
       spawn(0.5);
     }
 
+    if (this.shipType === "cruiser") {
+      this.audio?.shootCruiser?.();
+    } else if (this.shipType === "interceptor") {
+      this.audio?.shootInterceptor?.();
+    } else {
+      this.audio?.shootFighter?.();
+    }
+
     this.bulletsShot += this.weaponLevel;
     this._canShoot = false;
     clearTimeout(this._shootTimer);
@@ -520,6 +600,17 @@ export class InvasionEngine {
 
   _damagePlayer(amount) {
     if (this.gameOver) return;
+    
+    if (this.playerShieldHp > 0) {
+      if (amount <= this.playerShieldHp) {
+        this.playerShieldHp -= amount;
+        amount = 0;
+      } else {
+        amount -= this.playerShieldHp;
+        this.playerShieldHp = 0;
+      }
+    }
+    
     this.playerHp -= amount;
     this.playerHitFlash = 10;
     this.audio?.alienHit(); // Play hit sound
@@ -564,6 +655,9 @@ export class InvasionEngine {
     }
 
     if (this.playerHitFlash > 0) this.playerHitFlash--;
+    if (this.speedTimer > 0) this.speedTimer--;
+    if (this.laserTimer > 0) this.laserTimer--;
+    if (this.homingTimer > 0) this.homingTimer--;
 
     if (this.comboTimerFrames > 0) {
       this.comboTimerFrames--;
@@ -578,9 +672,10 @@ export class InvasionEngine {
         ? this.input.axis
         : (this.input.right ? 1 : 0) - (this.input.left ? 1 : 0);
     if (moveAxis !== 0) {
+      const currentSpeed = player.speed * (this.speedTimer > 0 ? 1.5 : 1);
       player.x = Math.max(
         0,
-        Math.min(player.x + moveAxis * player.speed, canvas.width - player.width),
+        Math.min(player.x + moveAxis * currentSpeed, canvas.width - player.width),
       );
     }
 
@@ -590,8 +685,30 @@ export class InvasionEngine {
     }
 
     this.bullets.forEach((bullet, index) => {
-      bullet.y -= BULLET_SPEED * this._scale();
-      if (bullet.y < 0) this.bullets.splice(index, 1);
+      const bSpeed = bullet.isLaser ? BULLET_SPEED * 2.5 : BULLET_SPEED;
+      bullet.y -= bSpeed * this._scale();
+      if (bullet.vx) bullet.x += bullet.vx * this._scale();
+      
+      if (bullet.isHoming && this.aliens.length > 0) {
+        // Find nearest alien
+        let nearest = this.aliens[0];
+        let minDist = Infinity;
+        for (const a of this.aliens) {
+          const dx = (a.x + a.width/2) - bullet.x;
+          const dy = (a.y + a.height/2) - bullet.y;
+          const dist = dx*dx + dy*dy;
+          if (dist < minDist) { minDist = dist; nearest = a; }
+        }
+        // Steer towards nearest
+        const dir = Math.sign((nearest.x + nearest.width/2) - bullet.x);
+        bullet.vx += dir * 0.5;
+        // Cap horizontal speed
+        bullet.vx = Math.max(-4, Math.min(4, bullet.vx));
+      }
+      
+      if (bullet.y < -50 || bullet.x < -50 || bullet.x > canvas.width + 50) {
+        this.bullets.splice(index, 1);
+      }
     });
 
     const scale = this._scale();
@@ -775,29 +892,43 @@ export class InvasionEngine {
         const alien = this.aliens[aIndex];
         if (
           bullet.x < alien.x + alien.width &&
-          bullet.x + BULLET_WIDTH > alien.x &&
+          bullet.x + (bullet.width || BULLET_WIDTH) > alien.x &&
           bullet.y < alien.y + alien.height &&
-          bullet.y + BULLET_HEIGHT > alien.y
+          bullet.y + (bullet.height || BULLET_HEIGHT) > alien.y
         ) {
           this._createFireworks(alien.x, alien.y);
           this.audio?.alienHit();
-          if (this.weaponLevel < 3 && Math.random() < POWERUP_DROP_CHANCE) {
-            this.powerUps.push({
-              x: alien.x + alien.width / 2 - POWERUP_SIZE / 2,
-              y: alien.y + alien.height / 2 - POWERUP_SIZE / 2,
-            });
-          } else if (this.weaponLevel === 3 && Math.random() < COIN_DROP_CHANCE) {
+          
+          if (Math.random() < POWERUP_DROP_CHANCE) {
+            const types = ["weapon", "shield", "speed", "laser", "homing"];
+            const type = types[Math.floor(Math.random() * types.length)];
+            if (type !== "weapon" || this.weaponLevel < 5) {
+              this.powerUps.push({
+                x: alien.x + alien.width / 2 - POWERUP_SIZE / 2,
+                y: alien.y + alien.height / 2 - POWERUP_SIZE / 2,
+                type: type,
+              });
+            } else if (Math.random() < COIN_DROP_CHANCE) {
+              this.coins.push({
+                x: alien.x + alien.width / 2,
+                y: alien.y + alien.height / 2,
+              });
+            }
+          } else if (this.weaponLevel >= 5 && Math.random() < COIN_DROP_CHANCE) {
             this.coins.push({
               x: alien.x + alien.width / 2,
               y: alien.y + alien.height / 2,
             });
           }
+
           this.aliens.splice(aIndex, 1);
-          this.bullets.splice(bIndex, 1);
+          if (!bullet.isLaser) {
+            this.bullets.splice(bIndex, 1);
+          }
           this._addScore(10, alien.x + alien.width / 2, alien.y + alien.height / 2);
           this.hits++;
           hitAlien = true;
-          break;
+          if (!bullet.isLaser) break;
         }
       }
 
@@ -809,18 +940,20 @@ export class InvasionEngine {
         const k = this.spawnlings[sIndex];
         if (
           bullet.x < k.x + k.width &&
-          bullet.x + BULLET_WIDTH > k.x &&
+          bullet.x + (bullet.width || BULLET_WIDTH) > k.x &&
           bullet.y < k.y + k.height &&
-          bullet.y + BULLET_HEIGHT > k.y
+          bullet.y + (bullet.height || BULLET_HEIGHT) > k.y
         ) {
           this._createFireworks(k.x, k.y);
           this.audio?.alienHit();
           this.spawnlings.splice(sIndex, 1);
-          this.bullets.splice(bIndex, 1);
+          if (!bullet.isLaser) {
+            this.bullets.splice(bIndex, 1);
+          }
           this._addScore(SPAWNLING_SCORE, k.x + k.width / 2, k.y + k.height / 2, "#ffb46b");
           this.hits++;
           hitSpawnling = true;
-          break;
+          if (!bullet.isLaser) break;
         }
       }
       if (hitSpawnling || !this.bullets[bIndex]) continue;
@@ -831,16 +964,18 @@ export class InvasionEngine {
         const ink = this.inkShots[iIndex];
         if (
           bullet.x < ink.x + ink.r &&
-          bullet.x + BULLET_WIDTH > ink.x - ink.r &&
+          bullet.x + (bullet.width || BULLET_WIDTH) > ink.x - ink.r &&
           bullet.y < ink.y + ink.r &&
-          bullet.y + BULLET_HEIGHT > ink.y - ink.r
+          bullet.y + (bullet.height || BULLET_HEIGHT) > ink.y - ink.r
         ) {
           this.inkShots.splice(iIndex, 1);
-          this.bullets.splice(bIndex, 1);
+          if (!bullet.isLaser) {
+            this.bullets.splice(bIndex, 1);
+          }
           this._addScore(INK_SCORE, ink.x, ink.y, "#b48ae0");
           this.hits++;
           hitInk = true;
-          break;
+          if (!bullet.isLaser) break;
         }
       }
       if (hitInk || !this.bullets[bIndex]) continue;
@@ -849,17 +984,19 @@ export class InvasionEngine {
         const boss = this.bosses[boIndex];
         if (
           bullet.x < boss.x + boss.width &&
-          bullet.x + BULLET_WIDTH > boss.x &&
+          bullet.x + (bullet.width || BULLET_WIDTH) > boss.x &&
           bullet.y < boss.y + boss.height &&
-          bullet.y + BULLET_HEIGHT > boss.y
+          bullet.y + (bullet.height || BULLET_HEIGHT) > boss.y
         ) {
           this.audio?.alienHit();
           boss.hp--;
-          this.bullets.splice(bIndex, 1);
+          if (!bullet.isLaser) {
+            this.bullets.splice(bIndex, 1);
+          }
           this.hits++;
           this._addScore(5, bullet.x, bullet.y, "#9be7ff");
           if (boss.hp <= 0) this._killBoss(boIndex);
-          break;
+          if (!bullet.isLaser) break;
         }
       }
     }
@@ -927,8 +1064,23 @@ export class InvasionEngine {
         powerUp.y + POWERUP_SIZE > player.y;
 
       if (collected) {
-        this._applyWeaponUpgrade();
-        this.audio?.powerUp();
+        if (powerUp.type === "weapon") {
+          this._applyWeaponUpgrade();
+          this.audio?.powerUp();
+        } else if (powerUp.type === "shield") {
+          this.playerShieldHp = 50;
+          this.audio?.powerUpShield?.();
+        } else if (powerUp.type === "speed") {
+          this.speedTimer = 600; // 10 seconds at 60fps
+          this.audio?.powerUpSpeed?.();
+        } else if (powerUp.type === "laser") {
+          this.laserTimer = 300; // 5 seconds
+          this.audio?.powerUpLaser?.();
+        } else if (powerUp.type === "homing") {
+          this.homingTimer = 300; // 5 seconds
+          this.audio?.powerUpHoming?.();
+        }
+        this._addScore(50, powerUp.x, powerUp.y, "#00ffff");
         this.powerUps.splice(index, 1);
       } else if (powerUp.y > canvas.height) {
         this.powerUps.splice(index, 1);
@@ -984,20 +1136,10 @@ export class InvasionEngine {
 
   // Shared ship painter: the local player and the remote ghost (#80)
   // draw the same hull with different colors/alpha.
-  _drawShip(px, py, pw, ph, { bodyTop, bodyBottom, cockpit, flame, alpha = 1, shadow = null }) {
+  _drawHull(px, py, pw, ph, { bodyTop, bodyBottom, cockpit, flame, alpha = 1, shadow = null }, type) {
     const ctx = this.ctx;
     ctx.save();
     ctx.globalAlpha = alpha;
-
-    // Thruster flame
-    if (Math.random() > 0.3) {
-      ctx.fillStyle = flame[Math.random() > 0.5 ? 0 : 1];
-      ctx.beginPath();
-      ctx.moveTo(px + pw * 0.4, py + ph);
-      ctx.lineTo(px + pw * 0.5, py + ph + Math.random() * 15 + 5);
-      ctx.lineTo(px + pw * 0.6, py + ph);
-      ctx.fill();
-    }
 
     if (shadow) {
       ctx.shadowBlur = 10;
@@ -1010,20 +1152,69 @@ export class InvasionEngine {
     ctx.fillStyle = grad;
 
     ctx.beginPath();
-    ctx.moveTo(px + pw * 0.5, py); // Nose
-    ctx.lineTo(px + pw * 0.8, py + ph * 0.6); // Right wing top
-    ctx.lineTo(px + pw, py + ph); // Right wing bottom
-    ctx.lineTo(px + pw * 0.7, py + ph * 0.8); // Right inner
-    ctx.lineTo(px + pw * 0.3, py + ph * 0.8); // Left inner
-    ctx.lineTo(px, py + ph); // Left wing bottom
-    ctx.lineTo(px + pw * 0.2, py + ph * 0.6); // Left wing top
+    
+    if (type === "cruiser") {
+      // Bulky, heavy cruiser
+      ctx.moveTo(px + pw * 0.5, py); // Nose
+      ctx.lineTo(px + pw * 0.85, py + ph * 0.4); // Right bulk
+      ctx.lineTo(px + pw, py + ph * 0.9); // Right thruster outer
+      ctx.lineTo(px + pw * 0.7, py + ph); // Right thruster inner
+      ctx.lineTo(px + pw * 0.5, py + ph * 0.8); // Center back
+      ctx.lineTo(px + pw * 0.3, py + ph); // Left thruster inner
+      ctx.lineTo(px, py + ph * 0.9); // Left thruster outer
+      ctx.lineTo(px + pw * 0.15, py + ph * 0.4); // Left bulk
+    } else if (type === "interceptor") {
+      // Sleek swept-wing interceptor
+      ctx.moveTo(px + pw * 0.5, py); // Pointy nose
+      ctx.lineTo(px + pw, py + ph); // Swept right wing tip
+      ctx.lineTo(px + pw * 0.6, py + ph * 0.8); // Right inner
+      ctx.lineTo(px + pw * 0.5, py + ph); // Engine
+      ctx.lineTo(px + pw * 0.4, py + ph * 0.8); // Left inner
+      ctx.lineTo(px, py + ph); // Swept left wing tip
+    } else {
+      // Classic fighter
+      ctx.moveTo(px + pw * 0.5, py); // Nose
+      ctx.lineTo(px + pw * 0.8, py + ph * 0.6); // Right wing top
+      ctx.lineTo(px + pw, py + ph); // Right wing bottom
+      ctx.lineTo(px + pw * 0.7, py + ph * 0.8); // Right inner
+      ctx.lineTo(px + pw * 0.3, py + ph * 0.8); // Left inner
+      ctx.lineTo(px, py + ph); // Left wing bottom
+      ctx.lineTo(px + pw * 0.2, py + ph * 0.6); // Left wing top
+    }
+    
     ctx.closePath();
     ctx.fill();
+
+    // Thruster flame
+    if (Math.random() > 0.3) {
+      ctx.fillStyle = flame[Math.random() > 0.5 ? 0 : 1];
+      ctx.beginPath();
+      if (type === "cruiser") {
+        ctx.moveTo(px + pw * 0.2, py + ph * 0.9);
+        ctx.lineTo(px + pw * 0.3, py + ph + Math.random() * 15 + 5);
+        ctx.lineTo(px + pw * 0.4, py + ph * 0.9);
+        
+        ctx.moveTo(px + pw * 0.6, py + ph * 0.9);
+        ctx.lineTo(px + pw * 0.7, py + ph + Math.random() * 15 + 5);
+        ctx.lineTo(px + pw * 0.8, py + ph * 0.9);
+      } else {
+        ctx.moveTo(px + pw * 0.4, py + ph * (type === "interceptor" ? 0.8 : 1));
+        ctx.lineTo(px + pw * 0.5, py + ph + Math.random() * 15 + 5);
+        ctx.lineTo(px + pw * 0.6, py + ph * (type === "interceptor" ? 0.8 : 1));
+      }
+      ctx.fill();
+    }
 
     // Cockpit
     ctx.fillStyle = cockpit;
     ctx.beginPath();
-    ctx.ellipse(px + pw * 0.5, py + ph * 0.4, pw * 0.1, ph * 0.25, 0, 0, Math.PI * 2);
+    if (type === "cruiser") {
+      ctx.ellipse(px + pw * 0.5, py + ph * 0.3, pw * 0.15, ph * 0.15, 0, 0, Math.PI * 2);
+    } else if (type === "interceptor") {
+      ctx.ellipse(px + pw * 0.5, py + ph * 0.5, pw * 0.08, ph * 0.3, 0, 0, Math.PI * 2);
+    } else {
+      ctx.ellipse(px + pw * 0.5, py + ph * 0.4, pw * 0.1, ph * 0.25, 0, 0, Math.PI * 2);
+    }
     ctx.fill();
 
     ctx.restore();
@@ -1049,10 +1240,10 @@ export class InvasionEngine {
       // under the menu overlay on any screen.
       const w = Math.max(width * 1.6, 56);
       const h = w * (height / width);
-      this._drawShip(x + width / 2 - w / 2, y + height - h, w, h, style);
+      this._drawHull(x + width / 2 - w / 2, y + height - h, w, h, style, this.shipType);
       return;
     }
-    this._drawShip(x, y, width, height, style);
+    this._drawHull(x, y, width, height, style, this.shipType);
 
     // Draw the player health bar directly underneath the ship natively
     const ctx = this.ctx;
@@ -1065,6 +1256,12 @@ export class InvasionEngine {
     ctx.fillRect(barX, barY, barWidth, 4 * this._scale());
     ctx.fillStyle = hpRatio > 0.4 ? "#33ccff" : "#ff3333";
     ctx.fillRect(barX, barY, barWidth * hpRatio, 4 * this._scale());
+    
+    if (this.playerShieldHp > 0) {
+      const shieldRatio = Math.max(0, Math.min(1, this.playerShieldHp / 50));
+      ctx.fillStyle = "#3399ff";
+      ctx.fillRect(barX, barY - 4 * this._scale(), barWidth * shieldRatio, 3 * this._scale());
+    }
   }
 
   // The other player's ship (#80): translucent and blue-tinted so it
@@ -1078,13 +1275,13 @@ export class InvasionEngine {
     const scale = this._scale();
     const { width: pw, height: ph, y: py } = this.player;
     const px = Math.max(0, Math.min(view.x * scale, this.canvas.width - pw));
-    this._drawShip(px, py, pw, ph, {
+    this._drawHull(px, py, pw, ph, {
       bodyTop: "#b8d4ff",
       bodyBottom: "#3c6cd6",
       cockpit: "#e0f0ff",
       flame: ["#6fa8ff", "#9fd0ff"],
       alpha: 0.5,
-    });
+    }, this.ghost.shipType || "fighter");
 
     const ctx = this.ctx;
     ctx.save();
@@ -1097,10 +1294,22 @@ export class InvasionEngine {
   }
 
   _drawBullets() {
-    this.ctx.fillStyle = "red";
+    const ctx = this.ctx;
     this.bullets.forEach((bullet) => {
-      this.ctx.fillRect(bullet.x, bullet.y, BULLET_WIDTH, BULLET_HEIGHT);
+      if (bullet.isLaser) {
+        ctx.fillStyle = "#ff3399";
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#ff3399";
+      } else if (bullet.isHoming) {
+        ctx.fillStyle = "#9933ff";
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.fillStyle = "red";
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillRect(bullet.x, bullet.y, bullet.width || BULLET_WIDTH, bullet.height || BULLET_HEIGHT);
     });
+    ctx.shadowBlur = 0;
   }
 
   _drawAliens() {
@@ -1532,13 +1741,21 @@ export class InvasionEngine {
 
   _drawPowerUps() {
     const ctx = this.ctx;
-    ctx.fillStyle = "cyan";
     this.powerUps.forEach((powerUp) => {
+      let color = "cyan";
+      let text = "W";
+      if (powerUp.type === "shield") { color = "#3399ff"; text = "S"; }
+      else if (powerUp.type === "speed") { color = "#ffff33"; text = ">>"; }
+      else if (powerUp.type === "laser") { color = "#ff3399"; text = "L"; }
+      else if (powerUp.type === "homing") { color = "#9933ff"; text = "H"; }
+      
+      ctx.fillStyle = color;
       ctx.fillRect(powerUp.x, powerUp.y, POWERUP_SIZE, POWERUP_SIZE);
+      
       ctx.fillStyle = "black";
-      ctx.fillRect(powerUp.x + 6, powerUp.y + 3, 4, 10);
-      ctx.fillRect(powerUp.x + 3, powerUp.y + 6, 10, 4);
-      ctx.fillStyle = "cyan";
+      ctx.font = "12px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(text, powerUp.x + POWERUP_SIZE / 2, powerUp.y + POWERUP_SIZE * 0.75);
     });
   }
 
@@ -1605,6 +1822,9 @@ export class InvasionEngine {
       comboCount: this.comboTimerFrames > 0 ? this.comboCount : 0,
       comboMultiplier:
         this.comboTimerFrames > 0 ? this._comboMultiplier(this.comboCount) : 1,
+      speedTimer: this.speedTimer,
+      laserTimer: this.laserTimer,
+      homingTimer: this.homingTimer,
     };
     const last = this._lastHud;
     if (last && Object.keys(hud).every((k) => hud[k] === last[k])) return;
