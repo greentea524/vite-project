@@ -341,6 +341,7 @@ export class InvasionEngine {
     if (!this.ghost || this.ghost.id !== snap.id) return;
     this.ghost.over = Boolean(snap.over); // terminal flag: latest wins
     if (snap.shipType) this.ghost.shipType = snap.shipType;
+    this.ghost.isFiring = Boolean(snap.isFiring);
     pushSnapshot(this.ghost, snap, performance.now());
   }
 
@@ -357,7 +358,14 @@ export class InvasionEngine {
     if (!this.network?.roomCode || this.menuMode) return;
     // Live score rides along so the peer can show it while spectating
     // (#82); the terminal snapshot carries the full results.
-    const snap = { x, vx, over: this.gameOver, shipType: this.shipType, score: this.score };
+    const snap = { 
+      x, 
+      vx, 
+      over: this.gameOver, 
+      shipType: this.shipType, 
+      score: this.score,
+      isFiring: Boolean(this.input.shootHeld || this._wantsToShoot)
+    };
     if (this.gameOver) {
       snap.hits = this.hits;
       snap.bestCombo = this.runBestCombo;
@@ -1502,6 +1510,20 @@ export class InvasionEngine {
     }, this.ghost.shipType || "fighter");
 
     const ctx = this.ctx;
+
+    if (this.ghost.isFiring) {
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = "#e0f0ff";
+      ctx.shadowBlur = 8 * scale;
+      ctx.shadowColor = "#9fd0ff";
+      ctx.beginPath();
+      // Draw a sleek muzzle flash ellipse at the nose
+      ctx.ellipse(px + pw / 2, py - 4 * scale, 4 * scale, 8 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.globalAlpha = 0.85;
     ctx.font = `${Math.max(10, 12 * scale)}px monospace`;
