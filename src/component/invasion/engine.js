@@ -78,11 +78,6 @@ const POWERUP_SIZE = 16;
 const POWERUP_SPEED = 2;
 const POWERUP_DROP_CHANCE = 0.15;
 
-const COIN_RADIUS = 7;
-const COIN_SPEED = 2.5;
-const COIN_DROP_CHANCE = 0.35;
-const COIN_VALUE = 25;
-
 const COMBO_WINDOW_FRAMES = 90;
 const COMBO_STEP_HITS = 3;
 const MAX_COMBO_MULTIPLIER = 6;
@@ -182,7 +177,6 @@ export class InvasionEngine {
     this.aliens = [];
     this.particles = [];
     this.powerUps = [];
-    this.coins = [];
     this.scorePopups = [];
     this.stars = [];
     this.planets = [];
@@ -212,7 +206,6 @@ export class InvasionEngine {
     this.comboTimerFrames = 0;
     this.bulletsShot = 0;
     this.hits = 0;
-    this.coinsCollected = 0;
     this.weaponLevel = 1;
     this.waveNumber = 1;
     this.gameOver = false;
@@ -388,6 +381,8 @@ export class InvasionEngine {
           width: w,
           height: h,
           type: row % 3,
+          hp: 1 + Math.floor((this.waveNumber - 1) / 3),
+          hitFlash: 0,
         });
       }
     }
@@ -411,23 +406,35 @@ export class InvasionEngine {
     const width = stats.width * scale * sizeMul;
     const height = stats.height * scale * sizeMul;
     const hue = Math.floor(Math.random() * 360);
+    
+    // Progressive scaling
+    const hpMulti = 1 + (this.waveNumber - 1) * 0.2;
+    const speedMulti = 1 + (this.waveNumber - 1) * 0.1;
+    const attackRateMulti = 1 + (this.waveNumber - 1) * 0.1;
+    
+    const scaledHp = Math.floor(stats.hp * hpMulti);
+    const scaledSpeed = stats.speed * speedMulti;
+    const baseSpawnT = type === "octopus" ? INK_INTERVAL : SPAWNLING_INTERVAL;
+
     return {
       type,
       x: over.x ?? this.canvas.width / 2 - width / 2,
       y: over.y ?? 8 * scale,
       width,
       height,
-      hp: over.hp ?? stats.hp,
-      maxHp: over.hp ?? stats.hp,
+      hp: over.hp ?? scaledHp,
+      maxHp: over.hp ?? scaledHp,
       dir: over.dir ?? 1,
-      speed: stats.speed,
+      speed: scaledSpeed,
       gen: over.gen ?? 0, // hive generation (#92)
       phase: "move", // lasercore beam cycle (#91)
-      phaseT: BEAM_MOVE,
+      phaseT: Math.floor(BEAM_MOVE / attackRateMulti),
       // Attack timer: kamikaze launches (mothership) or ink shots
       // (octopus) share the field — one boss type per entity.
-      spawnT: type === "octopus" ? INK_INTERVAL : SPAWNLING_INTERVAL,
+      spawnT: Math.max(10, Math.floor(baseSpawnT / attackRateMulti)),
       wobbleT: Math.random() * Math.PI * 2, // hive goo animation
+      hue,
+      hitFlash: 0,
       bodyColor: `hsl(${hue}, 65%, 38%)`,
       highlightColor: `hsl(${hue}, 70%, 62%)`,
       tentacleColor: `hsl(${hue}, 72%, 32%)`,
@@ -713,8 +720,10 @@ export class InvasionEngine {
 
     const scale = this._scale();
     let hitEdge = false;
+    const currentAlienSpeed = ALIEN_SPEED * Math.min(2.5, 1 + (this.waveNumber - 1) * 0.1);
     this.aliens.forEach((alien) => {
-      alien.x += ALIEN_SPEED * scale * this.alienDirection;
+      alien.x += currentAlienSpeed * scale * this.alienDirection;
+      if (alien.hitFlash > 0) alien.hitFlash--;
       if (alien.x + alien.width > canvas.width || alien.x < 0) hitEdge = true;
       if (alien.y + alien.height > canvas.height) this.gameOver = true;
     });
@@ -747,15 +756,16 @@ export class InvasionEngine {
         // column stays dodgeable.
         boss.phaseT--;
         if (boss.phaseT <= 0) {
+          const attackRateMulti = 1 + (this.waveNumber - 1) * 0.1;
           if (boss.phase === "move") {
             boss.phase = "charging";
-            boss.phaseT = BEAM_CHARGE;
+            boss.phaseT = Math.floor(BEAM_CHARGE / attackRateMulti);
           } else if (boss.phase === "charging") {
             boss.phase = "firing";
-            boss.phaseT = BEAM_FIRE;
+            boss.phaseT = Math.floor(BEAM_FIRE / attackRateMulti);
           } else {
             boss.phase = "move";
-            boss.phaseT = BEAM_MOVE;
+            boss.phaseT = Math.floor(BEAM_MOVE / attackRateMulti);
           }
         }
         moving = boss.phase === "move";
@@ -777,7 +787,8 @@ export class InvasionEngine {
         // capped so the swarm stays manageable.
         boss.spawnT--;
         if (boss.spawnT <= 0 && this.spawnlings.length < SPAWNLING_MAX) {
-          boss.spawnT = SPAWNLING_INTERVAL;
+          const attackRateMulti = 1 + (this.waveNumber - 1) * 0.1;
+          boss.spawnT = Math.floor(SPAWNLING_INTERVAL / attackRateMulti);
           this._spawnKamikaze(boss);
         }
       } else if (boss.type === "hive") {
@@ -786,7 +797,8 @@ export class InvasionEngine {
         // Ink shots: lobbed globs aimed loosely at the player.
         boss.spawnT--;
         if (boss.spawnT <= 0) {
-          boss.spawnT = INK_INTERVAL;
+          const attackRateMulti = 1 + (this.waveNumber - 1) * 0.1;
+          boss.spawnT = Math.floor(INK_INTERVAL / attackRateMulti);
           this._spawnInk(boss);
         }
       }
@@ -899,36 +911,37 @@ export class InvasionEngine {
           this._createFireworks(alien.x, alien.y);
           this.audio?.alienHit();
           
-          if (Math.random() < POWERUP_DROP_CHANCE) {
-            const types = ["weapon", "shield", "speed", "laser", "homing"];
-            const type = types[Math.floor(Math.random() * types.length)];
-            if (type !== "weapon" || this.weaponLevel < 5) {
-              this.powerUps.push({
-                x: alien.x + alien.width / 2 - POWERUP_SIZE / 2,
-                y: alien.y + alien.height / 2 - POWERUP_SIZE / 2,
-                type: type,
-              });
-            } else if (Math.random() < COIN_DROP_CHANCE) {
-              this.coins.push({
-                x: alien.x + alien.width / 2,
-                y: alien.y + alien.height / 2,
-              });
+          if (alien.hp > 1) {
+            alien.hp--;
+            alien.hitFlash = 5;
+            if (!bullet.isLaser) {
+              this.bullets.splice(bIndex, 1);
             }
-          } else if (this.weaponLevel >= 5 && Math.random() < COIN_DROP_CHANCE) {
-            this.coins.push({
-              x: alien.x + alien.width / 2,
-              y: alien.y + alien.height / 2,
-            });
-          }
+            this.hits++;
+            hitAlien = true;
+            if (!bullet.isLaser) break;
+          } else {
+            if (Math.random() < POWERUP_DROP_CHANCE) {
+              const types = ["weapon", "shield", "speed", "laser", "homing"];
+              const type = types[Math.floor(Math.random() * types.length)];
+              if (type !== "weapon" || this.weaponLevel < 5) {
+                this.powerUps.push({
+                  x: alien.x + alien.width / 2 - POWERUP_SIZE / 2,
+                  y: alien.y + alien.height / 2 - POWERUP_SIZE / 2,
+                  type: type,
+                });
+              }
+            }
 
-          this.aliens.splice(aIndex, 1);
-          if (!bullet.isLaser) {
-            this.bullets.splice(bIndex, 1);
+            this.aliens.splice(aIndex, 1);
+            if (!bullet.isLaser) {
+              this.bullets.splice(bIndex, 1);
+            }
+            this._addScore(10, alien.x + alien.width / 2, alien.y + alien.height / 2);
+            this.hits++;
+            hitAlien = true;
+            if (!bullet.isLaser) break;
           }
-          this._addScore(10, alien.x + alien.width / 2, alien.y + alien.height / 2);
-          this.hits++;
-          hitAlien = true;
-          if (!bullet.isLaser) break;
         }
       }
 
@@ -1084,24 +1097,6 @@ export class InvasionEngine {
         this.powerUps.splice(index, 1);
       } else if (powerUp.y > canvas.height) {
         this.powerUps.splice(index, 1);
-      }
-    });
-
-    this.coins.forEach((coin, index) => {
-      coin.y += COIN_SPEED * scale;
-      const collected =
-        coin.x + COIN_RADIUS > player.x &&
-        coin.x - COIN_RADIUS < player.x + player.width &&
-        coin.y + COIN_RADIUS > player.y &&
-        coin.y - COIN_RADIUS < player.y + player.height;
-
-      if (collected) {
-        this._addScore(COIN_VALUE, coin.x, coin.y, "#ffe066", false);
-        this.coinsCollected++;
-        this.audio?.coin();
-        this.coins.splice(index, 1);
-      } else if (coin.y - COIN_RADIUS > canvas.height) {
-        this.coins.splice(index, 1);
       }
     });
   }
@@ -1759,22 +1754,6 @@ export class InvasionEngine {
     });
   }
 
-  _drawCoins() {
-    const ctx = this.ctx;
-    this.coins.forEach((coin) => {
-      ctx.fillStyle = "gold";
-      ctx.beginPath();
-      ctx.arc(coin.x, coin.y, COIN_RADIUS, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = "#7a5a00";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(coin.x, coin.y, COIN_RADIUS - 1, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-  }
-
   _drawScorePopups() {
     const ctx = this.ctx;
     const scale = this._scale();
@@ -1808,7 +1787,6 @@ export class InvasionEngine {
       score: this.score,
       wave: this.waveNumber,
       weaponLevel: this.weaponLevel,
-      coins: this.coinsCollected,
       shots: this.bulletsShot,
       hits: this.hits,
       // Aggregated across all live bosses — the hive splits into
@@ -1864,7 +1842,6 @@ export class InvasionEngine {
     this._drawPlayer();
     this._drawBullets();
     this._drawPowerUps();
-    this._drawCoins();
     this._drawBosses();
     this._drawAliens();
     this._drawParticles();

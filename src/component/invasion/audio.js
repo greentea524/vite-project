@@ -54,7 +54,6 @@ export function createAudio() {
     shootFighter: () => blip("square", 600, 300, 0.05, 0.1, 0.005, 0.06),
     shootCruiser: () => blip("sawtooth", 300, 150, 0.08, 0.15, 0.01, 0.1),
     shootInterceptor: () => blip("triangle", 900, 700, 0.04, 0.08, 0.005, 0.05),
-    coin: () => blip("sine", 1100, 1600, 0.04, 0.12, 0.005, 0.07),
     destroy: () => ctx?.close().catch(() => {}),
   };
 }

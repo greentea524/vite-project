@@ -303,7 +303,6 @@ export default function AlienInvasion() {
               </div>
               <div className={styles.hudRight}>
                 <div className={styles.hudStat}>🌊 Wave {hud.wave}</div>
-                <div className={styles.hudStat}>🪙 {hud.coins}</div>
                 {hud.speedTimer > 0 && <div className={styles.hudStat}>⚡ Speed: {Math.ceil(hud.speedTimer / 60)}s</div>}
                 {hud.laserTimer > 0 && <div className={styles.hudStat}>🔴 Laser: {Math.ceil(hud.laserTimer / 60)}s</div>}
                 {hud.homingTimer > 0 && <div className={styles.hudStat}>🟣 Homing: {Math.ceil(hud.homingTimer / 60)}s</div>}
@@ -513,7 +512,6 @@ export default function AlienInvasion() {
               <li>Yellow {">>"} crate: Temporary Speed boost</li>
               <li>Pink L crate: Temporary piercing Laser</li>
               <li>Purple H crate: Temporary Homing missiles</li>
-              <li>Gold coin: Bonus points after max weapon</li>
               <li>Score +10 per hit</li>
               <li>Game ends if enemy reach bottom</li>
             </ul>
