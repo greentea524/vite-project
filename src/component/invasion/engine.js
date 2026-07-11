@@ -206,7 +206,7 @@ export class InvasionEngine {
 
   setRogueLite(loopCount = 0, tier = 0, theme = "nebula") {
     this.isRogueLite = true;
-    this.difficultyLevel = 1 + (loopCount * 5) + tier;
+    this.difficultyLevel = 1 + loopCount; // only increment difficulty each full map sector
     this.sectorTheme = theme;
   }
 
@@ -1031,6 +1031,7 @@ export class InvasionEngine {
       
       if (this.player.y < -this.player.height) {
         if (this.isRogueLite) {
+          this.hyperdriveState = null;
           this._running = false;
           this.onSectorClear(this.playerHp);
           return;
