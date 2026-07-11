@@ -203,6 +203,133 @@
   cursor: not-allowed;
 }
 
+/* Multiplayer lobby (#79) — lives inside .menuOverlay. */
+.lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(92%, 320px);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 200px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.input {
+  padding: 8px 10px;
+  font-size: 1rem;
+  font-family: monospace;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(87, 219, 255, 0.8);
+}
+
+.joinRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.joinRow .menuBtn {
+  width: auto;
+  flex: 1;
+}
+
+.codeInput {
+  width: 5.5ch;
+  text-align: center;
+  letter-spacing: 0.25ch;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.connNote {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9fd0ff;
+  text-align: center;
+}
+
+.mpError {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ff8080;
+  text-align: center;
+}
+
+.roomCodeLabel,
+.rosterLabel {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.roomCode {
+  margin: 0;
+  font-family: monospace;
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  font-weight: bold;
+  letter-spacing: 0.35ch;
+  color: #ffe066;
+  text-shadow: 0 0 12px rgba(255, 224, 102, 0.5);
+}
+
+.roster {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: monospace;
+  font-size: 1rem;
+  text-align: center;
+}
+
+/* Synced-start countdown (#79): big number over the frozen board. */
+.countdownOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.countdownNum {
+  font-family: monospace;
+  font-weight: bold;
+  font-size: clamp(4rem, 18vw, 7rem);
+  color: #fff;
+  text-shadow: 0 0 24px rgba(87, 219, 255, 0.9), 0 2px 4px #000;
+  animation: countPop 0.9s ease-out;
+}
+
+@keyframes countPop {
+  0% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+}
+
 .gameOver h3 {
   margin: 0;
   font-size: clamp(1.3rem, 4vw, 2rem);

@@ -13,7 +13,13 @@
 //     effects (score popups, combo-scaled flashes) stay on canvas.
 //   - Sounds go through the injected audio module (#75).
 
+// Ghost interpolation is a pure, game-agnostic module (no canvas, no
+// platformer imports) — reused rather than copied (#80).
+import { createGhost, pushSnapshot, sampleGhost } from "../platformer/ghosts.js";
+
 // Base design resolution; everything scales from an 800px-wide board.
+// Multiplayer snapshots (#80) are exchanged in these base units so
+// differently-sized canvases (mobile vs desktop) agree on positions.
 const BASE_WIDTH = 800;
 
 const BULLET_SPEED = 7;
@@ -110,6 +116,12 @@ export class InvasionEngine {
     this.menuMode = true;
     this.paused = false;
 
+    // Multiplayer (#79/#80): the network is attached by React when a
+    // room session starts; the ghost mirrors the one remote player.
+    this.network = null;
+    this.ghost = null;
+    this._prevX = null; // last frame's x, for the broadcast velocity
+
     this._resize = this._resize.bind(this);
     this._loop = this._loop.bind(this);
 
@@ -183,6 +195,7 @@ export class InvasionEngine {
     this._wantsToShoot = false;
     this._canShoot = true;
     this.paused = false;
+    this._prevX = null;
   }
 
   // --- input API (driven by React handlers, #74) -----------------------
@@ -219,6 +232,51 @@ export class InvasionEngine {
       0,
       Math.min(x - this.player.width / 2, this.canvas.width - this.player.width),
     );
+  }
+
+  // --- multiplayer (#79/#80) --------------------------------------------
+
+  attachNetwork(network) {
+    this.network = network;
+  }
+
+  // Create/refresh the remote player's ghost from the roster. The same
+  // id keeps the snapshot buffer (a name change doesn't reset motion);
+  // null clears it (player left / room closed).
+  setGhost(meta) {
+    if (!meta) {
+      this.ghost = null;
+      return;
+    }
+    if (this.ghost?.id === meta.id) {
+      if (meta.name != null) this.ghost.name = meta.name;
+      return;
+    }
+    this.ghost = createGhost(meta);
+    this.ghost.over = false;
+  }
+
+  // A remoteState snapshot arrived: buffer it for interpolated
+  // rendering. Snapshots are dropped until the roster has introduced
+  // the sender (setGhost), which happens at join time.
+  pushGhostSnapshot(snap) {
+    if (!this.ghost || this.ghost.id !== snap.id) return;
+    this.ghost.over = Boolean(snap.over); // terminal flag: latest wins
+    pushSnapshot(this.ghost, snap, performance.now());
+  }
+
+  // Broadcast the local ship at ~15 Hz (the network module throttles;
+  // #80). Positions travel in base-800 units so peers with different
+  // canvas sizes agree; vx (base units/sec) feeds the peer's
+  // extrapolation through packet gaps. `force` pushes the terminal
+  // game-over snapshot past the throttle.
+  _broadcastState(force = false) {
+    const scale = this._scale();
+    const x = this.player.x / scale;
+    const vx = this._prevX == null ? 0 : ((this.player.x - this._prevX) / scale) * 60;
+    this._prevX = this.player.x;
+    if (!this.network?.roomCode || this.menuMode) return;
+    this.network.sendState({ x, vx, over: this.gameOver }, force);
   }
 
   // --- sizing ----------------------------------------------------------
@@ -526,6 +584,7 @@ export class InvasionEngine {
     this._updateInkShots();
     this._collideBullets();
     this._collectPickups();
+    this._broadcastState();
   }
 
   _updateBosses(scale) {
@@ -888,13 +947,16 @@ export class InvasionEngine {
     });
   }
 
-  _drawPlayer() {
+  // Shared ship painter: the local player and the remote ghost (#80)
+  // draw the same hull with different colors/alpha.
+  _drawShip(px, py, pw, ph, { bodyTop, bodyBottom, cockpit, flame, alpha = 1, shadow = null }) {
     const ctx = this.ctx;
-    const { x: px, y: py, width: pw, height: ph } = this.player;
+    ctx.save();
+    ctx.globalAlpha = alpha;
 
     // Thruster flame
     if (Math.random() > 0.3) {
-      ctx.fillStyle = Math.random() > 0.5 ? "orange" : "cyan";
+      ctx.fillStyle = flame[Math.random() > 0.5 ? 0 : 1];
       ctx.beginPath();
       ctx.moveTo(px + pw * 0.4, py + ph);
       ctx.lineTo(px + pw * 0.5, py + ph + Math.random() * 15 + 5);
@@ -902,15 +964,14 @@ export class InvasionEngine {
       ctx.fill();
     }
 
-    // Glow when weapon level is high
-    if (this.weaponLevel > 1) {
+    if (shadow) {
       ctx.shadowBlur = 10;
-      ctx.shadowColor = this.weaponLevel === 2 ? "cyan" : "magenta";
+      ctx.shadowColor = shadow;
     }
 
     const grad = ctx.createLinearGradient(px, py, px, py + ph);
-    grad.addColorStop(0, "#fff");
-    grad.addColorStop(1, "#888");
+    grad.addColorStop(0, bodyTop);
+    grad.addColorStop(1, bodyBottom);
     ctx.fillStyle = grad;
 
     ctx.beginPath();
@@ -925,12 +986,53 @@ export class InvasionEngine {
     ctx.fill();
 
     // Cockpit
-    ctx.fillStyle = "#33ccff";
+    ctx.fillStyle = cockpit;
     ctx.beginPath();
     ctx.ellipse(px + pw * 0.5, py + ph * 0.4, pw * 0.1, ph * 0.25, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  _drawPlayer() {
+    const { x, y, width, height } = this.player;
+    this._drawShip(x, y, width, height, {
+      bodyTop: "#fff",
+      bodyBottom: "#888",
+      cockpit: "#33ccff",
+      flame: ["orange", "cyan"],
+      // Glow when weapon level is high
+      shadow: this.weaponLevel === 2 ? "cyan" : this.weaponLevel === 3 ? "magenta" : null,
+    });
+  }
+
+  // The other player's ship (#80): translucent and blue-tinted so it
+  // never reads as your own, with their name floating above. Skipped
+  // once their run has ended (terminal `over` snapshot).
+  _drawGhost() {
+    if (!this.ghost || this.menuMode) return;
+    const view = sampleGhost(this.ghost, performance.now());
+    if (!view || this.ghost.over) return;
+
+    const scale = this._scale();
+    const { width: pw, height: ph, y: py } = this.player;
+    const px = Math.max(0, Math.min(view.x * scale, this.canvas.width - pw));
+    this._drawShip(px, py, pw, ph, {
+      bodyTop: "#b8d4ff",
+      bodyBottom: "#3c6cd6",
+      cockpit: "#e0f0ff",
+      flame: ["#6fa8ff", "#9fd0ff"],
+      alpha: 0.5,
+    });
+
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.font = `${Math.max(10, 12 * scale)}px monospace`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#9fd0ff";
+    ctx.fillText(this.ghost.name, px + pw / 2, py - 6 * scale);
+    ctx.restore();
   }
 
   _drawBullets() {
@@ -1464,7 +1566,10 @@ export class InvasionEngine {
   _loop() {
     if (this.gameOver) {
       // The loop parks here; React shows the game-over overlay and
-      // restart() starts a fresh run.
+      // restart() starts a fresh run. The forced final snapshot tells
+      // the peer this ship is done, so its ghost fades instead of
+      // freezing mid-screen (#80).
+      this._broadcastState(true);
       this._running = false;
       this._publishHud();
       this.onGameOver({ score: this.score, hitRate: this.hitRate() });
@@ -1474,6 +1579,7 @@ export class InvasionEngine {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this._drawBackground();
+    this._drawGhost(); // under the local ship (#80)
     this._drawPlayer();
     this._drawBullets();
     this._drawPowerUps();
