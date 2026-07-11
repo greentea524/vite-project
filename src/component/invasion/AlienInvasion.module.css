@@ -160,6 +160,25 @@
   margin-top: 0;
 }
 
+.stickyCloseBtn {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  padding: 12px;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 16px;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
+}
+.stickyCloseBtn:active {
+  background: #444;
+}
+
 .armoryItem {
   display: flex;
   align-items: center;

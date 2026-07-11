@@ -31,7 +31,6 @@ export default function AlienInvasion() {
   const [gameOver, setGameOver] = useState(null); // { score, hitRate } | null
   const [showInstructions, setShowInstructions] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
-  const [showArmory, setShowArmory] = useState(false);
 
   // Achievements (#94): the save (lifetime stats + unlocked ids) lives
   // in a ref, mutated by the engine's stat events; unlocks bump state
@@ -41,8 +40,9 @@ export default function AlienInvasion() {
   const [achToast, setAchToast] = useState(null); // { icon, name } | null
   const saveTimerRef = useRef(0);
   const [gameState, setGameState] = useState("menu"); // "menu", "lobby", "countdown", "playing", "paused", "gameover"
-  const [mapData, setMapData] = useState([]);
-  const [unlockedNodeIds, setUnlockedNodeIds] = useState([]);
+  const [mapPages, setMapPages] = useState([]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [completedNodeIds, setCompletedNodeIds] = useState([]);
   const [currentNodeId, setCurrentNodeId] = useState(null);
   const [loopCount, setLoopCount] = useState(0);
   const [runHp, setRunHp] = useState(null);
@@ -329,8 +329,9 @@ export default function AlienInvasion() {
 
   const startNewRun = () => {
     const newMap = generateGalaxyMap(0);
-    setMapData(newMap);
-    setUnlockedNodeIds([newMap[0][0].id]);
+    setMapPages([newMap]);
+    setCurrentPageIndex(0);
+    setCompletedNodeIds([]);
     setCurrentNodeId(null);
     setLoopCount(0);
     setRunHp(null);
@@ -347,23 +348,22 @@ export default function AlienInvasion() {
       engine.onSectorClear = (finalHp) => {
         setGameState("map");
         setRunHp(finalHp);
-        setUnlockedNodeIds((prev) => {
-          let nextUnlocked = [...prev];
+        
+        setCompletedNodeIds((prev) => {
+          const nextCompleted = [...prev, node.id];
           if (node.type === "boss") {
             setLoopCount((c) => {
               const newLoop = c + 1;
               const newMap = generateGalaxyMap(newLoop);
-              setMapData(newMap);
+              setMapPages((pages) => {
+                const nextPages = [...pages, newMap];
+                setCurrentPageIndex(nextPages.length - 1);
+                return nextPages;
+              });
               return newLoop;
             });
-            const nextMap = generateGalaxyMap(0);
-            return [nextMap[0][0].id];
-          } else {
-            node.next.forEach((nid) => {
-              if (!nextUnlocked.includes(nid)) nextUnlocked.push(nid);
-            });
-            return nextUnlocked;
           }
+          return nextCompleted;
         });
       };
       engine.playSector(runHp);
@@ -529,11 +529,14 @@ export default function AlienInvasion() {
           </>
         )}
 
-        {gameState === "map" && (
+        {gameState === "map" && mapPages.length > 0 && (
           <GalaxyMap
-            mapData={mapData}
-            currentNodeId={currentNodeId}
-            unlockedNodeIds={unlockedNodeIds}
+            mapPage={mapPages[currentPageIndex]}
+            currentPageIndex={currentPageIndex}
+            totalPages={mapPages.length}
+            onPrevPage={() => setCurrentPageIndex((p) => Math.max(0, p - 1))}
+            onNextPage={() => setCurrentPageIndex((p) => Math.min(mapPages.length - 1, p + 1))}
+            completedNodeIds={completedNodeIds}
             onNodeClick={handleNodeClick}
           />
         )}
@@ -584,14 +587,7 @@ export default function AlienInvasion() {
               className={styles.menuBtn}
               onClick={() => setShowInstructions(true)}
             >
-              Instructions
-            </button>
-            <button
-              type="button"
-              className={styles.menuBtn}
-              onClick={() => setShowArmory(true)}
-            >
-              Upgrades Guide
+              Instructions & Upgrades
             </button>
           </div>
         )}
@@ -748,7 +744,7 @@ export default function AlienInvasion() {
           </div>
         )}
 
-        {gameState === "paused" && !showInstructions && !showArmory && (
+        {gameState === "paused" && !showInstructions && (
           <div className={styles.menuOverlay}>
             <h3>Paused</h3>
             <button type="button" className={styles.menuBtn} onClick={handleResume}>
@@ -759,14 +755,7 @@ export default function AlienInvasion() {
               className={styles.menuBtn}
               onClick={() => setShowInstructions(true)}
             >
-              Instructions
-            </button>
-            <button
-              type="button"
-              className={styles.menuBtn}
-              onClick={() => setShowArmory(true)}
-            >
-              Upgrades Guide
+              Instructions & Upgrades
             </button>
             <button type="button" className={styles.menuBtn} onClick={restart}>
               Restart
@@ -796,27 +785,11 @@ export default function AlienInvasion() {
               <li>Laser Core telegraphs a beam column — dodge before it fires</li>
               <li>Swarm Hive splits in two when killed — twice</li>
               <li>Red shots: Your bullets</li>
-              <li>Cyan W crate: Weapon upgrade (Dual, Triple, Quad, Spread)</li>
-              <li>Blue S crate: Temporary Shield buffer</li>
-              <li>Green D crate: Temporary Wingman Drones</li>
-              <li>Pink L crate: Temporary piercing Laser</li>
-              <li>Purple H crate: Temporary Homing missiles</li>
               <li>Score +10 per hit</li>
               <li>Game ends if enemy reach bottom</li>
             </ul>
-            <button
-              type="button"
-              className={styles.barBtn}
-              onClick={() => setShowInstructions(false)}
-            >
-              Close
-            </button>
-          </div>
-        )}
 
-        {showArmory && (
-          <div className={styles.instructions}>
-            <h3>Upgrades Guide</h3>
+            <h3 style={{ marginTop: "30px" }}>Upgrades Guide</h3>
             <p style={{ marginTop: 0, marginBottom: "20px", color: "#9fd0ff" }}>
               <strong>Pro Tip:</strong> Collecting the same power-up multiple times extends its active duration.
               Activating multiple DIFFERENT power-ups will cycle between them with every shot!
@@ -856,11 +829,11 @@ export default function AlienInvasion() {
                 <p>Fires a barrage of smart missiles that seek out and destroy enemy targets with precision tracking.</p>
               </div>
             </div>
+
             <button
               type="button"
-              className={styles.barBtn}
-              style={{ marginTop: "20px" }}
-              onClick={() => setShowArmory(false)}
+              className={styles.stickyCloseBtn}
+              onClick={() => setShowInstructions(false)}
             >
               Close
             </button>

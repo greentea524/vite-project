@@ -49,7 +49,7 @@ export function AchievementsPanel({ stats, unlocked, onClose }) {
           );
         })}
       </div>
-      <button type="button" className={styles.barBtn} onClick={onClose}>
+      <button type="button" className={styles.stickyCloseBtn} onClick={onClose}>
         Close
       </button>
     </div>

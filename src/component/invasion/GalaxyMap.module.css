@@ -14,8 +14,42 @@
 }
 
 .title {
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   text-shadow: 0 0 10px cyan;
+}
+
+.carouselNav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  color: #ccc;
+}
+
+.carouselBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.carouselBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.carouselBtn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
 }
 
 .mapArea {
@@ -66,6 +100,35 @@
   box-shadow: 0 0 20px currentColor, inset 0 0 10px currentColor;
   border-width: 5px;
   background: #444;
+}
+
+.node.done {
+  filter: grayscale(100%);
+  opacity: 0.3;
+  cursor: not-allowed;
+  box-shadow: none;
+  background: #111;
+}
+
+.doneCheck {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  color: #0f0;
+  text-shadow: 0 0 5px black, 0 0 10px #0f0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.node.lockedBoss {
+  filter: grayscale(100%);
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  border-color: #555 !important;
+  color: #555 !important;
 }
 
 .nodeIcon {

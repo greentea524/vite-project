@@ -39,25 +39,5 @@ export function generateGalaxyMap(loopCount = 0) {
     tiers.push(tierNodes);
   }
 
-  // Connect nodes
-  for (let t = 0; t < tiers.length - 1; t++) {
-    const currentTier = tiers[t];
-    const nextTier = tiers[t + 1];
-
-    if (currentTier.length === 1 && nextTier.length === 2) {
-      currentTier[0].next.push(nextTier[0].id, nextTier[1].id);
-    } else if (currentTier.length === 2 && nextTier.length === 3) {
-      currentTier[0].next.push(nextTier[0].id, nextTier[1].id);
-      currentTier[1].next.push(nextTier[1].id, nextTier[2].id);
-    } else if (currentTier.length === 3 && nextTier.length === 2) {
-      currentTier[0].next.push(nextTier[0].id);
-      currentTier[1].next.push(nextTier[0].id, nextTier[1].id);
-      currentTier[2].next.push(nextTier[1].id);
-    } else if (currentTier.length === 2 && nextTier.length === 1) {
-      currentTier[0].next.push(nextTier[0].id);
-      currentTier[1].next.push(nextTier[0].id);
-    }
-  }
-
   return tiers;
 }
