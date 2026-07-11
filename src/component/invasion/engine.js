@@ -687,13 +687,13 @@ export class InvasionEngine {
       });
     };
 
-    this.bulletsShot++;
+    this._shotCycleIndex = (this._shotCycleIndex || 0) + 1;
     const activeWeapons = [];
     if (this.laserTimer > 0) activeWeapons.push("laser");
     if (this.homingTimer > 0) activeWeapons.push("homing");
     activeWeapons.push("standard");
 
-    const weaponToFire = activeWeapons[this.bulletsShot % activeWeapons.length];
+    const weaponToFire = activeWeapons[this._shotCycleIndex % activeWeapons.length];
 
     if (weaponToFire === "laser") {
       spawn(0.5, 0, false, true);
