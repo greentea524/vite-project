@@ -337,7 +337,7 @@ export default function AlienInvasion() {
     setCompletedNodeIds([]);
     setCurrentNodeId(null);
     setLoopCount(0);
-    setRunHp(null);
+    setRunState(null);
     setGameState("map");
   };
 
@@ -348,9 +348,9 @@ export default function AlienInvasion() {
     const engine = engineRef.current;
     if (engine) {
       engine.setRogueLite(loopCount, node.tier, node.type);
-      engine.onSectorClear = (finalHp) => {
+      engine.onSectorClear = (finalState) => {
         setGameState("map");
-        setRunHp(finalHp);
+        setRunState(finalState);
         
         setCompletedNodeIds((prev) => {
           const nextCompleted = [...prev, node.id];
@@ -369,7 +369,7 @@ export default function AlienInvasion() {
           return nextCompleted;
         });
       };
-      engine.playSector(runHp);
+      engine.playSector(runState);
     }
   };
 

@@ -210,7 +210,7 @@ export class InvasionEngine {
     this.sectorTheme = theme;
   }
 
-  playSector(hp) {
+  playSector(runState) {
     this.menuMode = false;
     this.paused = false;
     this._seed = null; // rogue-lite is single player (#81)
@@ -219,7 +219,18 @@ export class InvasionEngine {
     this._resetRun();
     
     if (this.isRogueLite) {
-      this.playerHp = hp !== null ? hp : this.playerMaxHp;
+      if (runState) {
+        this.playerHp = runState.hp ?? this.playerMaxHp;
+        this.weaponLevel = runState.weaponLevel ?? 1;
+        this.weaponCratesCollected = runState.weaponCratesCollected ?? 0;
+        this.playerShieldHp = runState.playerShieldHp ?? 0;
+        this.droneTimer = runState.droneTimer ?? 0;
+        this.laserTimer = runState.laserTimer ?? 0;
+        this.homingTimer = runState.homingTimer ?? 0;
+        this.score = runState.score ?? 0;
+      } else {
+        this.playerHp = this.playerMaxHp;
+      }
       this.waveNumber = this.difficultyLevel;
     }
     
@@ -1033,7 +1044,16 @@ export class InvasionEngine {
         if (this.isRogueLite) {
           this.hyperdriveState = null;
           this._running = false;
-          this.onSectorClear(this.playerHp);
+          this.onSectorClear({
+            hp: this.playerHp,
+            weaponLevel: this.weaponLevel,
+            weaponCratesCollected: this.weaponCratesCollected,
+            playerShieldHp: this.playerShieldHp,
+            droneTimer: this.droneTimer,
+            laserTimer: this.laserTimer,
+            homingTimer: this.homingTimer,
+            score: this.score,
+          });
           return;
         } else {
           this.waveNumber++;
