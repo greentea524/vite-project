@@ -180,6 +180,7 @@ export class InvasionEngine {
     this.menuMode = false;
     this.paused = false;
     this.isRogueLite = false;
+    this.sectorTheme = null;
     this._seed = seed == null ? null : seed >>> 0;
     this.restart();
     if (!this.menuMode) {
@@ -194,9 +195,10 @@ export class InvasionEngine {
     return this._seed != null;
   }
 
-  setRogueLite(loopCount = 0, tier = 0) {
+  setRogueLite(loopCount = 0, tier = 0, theme = "nebula") {
     this.isRogueLite = true;
     this.difficultyLevel = 1 + (loopCount * 5) + tier;
+    this.sectorTheme = theme;
   }
 
   playSector(hp) {
@@ -235,6 +237,8 @@ export class InvasionEngine {
     this.scorePopups = [];
     this.stars = [];
     this.planets = [];
+    this.asteroids = [];
+    this.ufos = [];
     // Bosses are a list (#92): the Swarm Hive splits into multiple
     // live entities. Non-splitting waves just hold one.
     this.bosses = [];
@@ -825,6 +829,44 @@ export class InvasionEngine {
       }
     });
 
+    if (Math.random() < 0.01) {
+      const size = Math.random() * 20 + 10;
+      this.asteroids.push({
+        x: Math.random() * canvas.width,
+        y: -size * 2,
+        speed: (Math.random() * 2 + 1) * this._scale(),
+        rotSpeed: (Math.random() - 0.5) * 0.05,
+        angle: 0,
+        size: size * this._scale(),
+        points: Array.from({length: 8}, () => Math.random() * 0.4 + 0.8)
+      });
+    }
+    for (let i = this.asteroids.length - 1; i >= 0; i--) {
+      const a = this.asteroids[i];
+      a.y += a.speed;
+      a.angle += a.rotSpeed;
+      if (a.y > canvas.height + a.size * 2) this.asteroids.splice(i, 1);
+    }
+
+    if (Math.random() < 0.002) {
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      this.ufos.push({
+        x: dir === 1 ? -40 : canvas.width + 40,
+        y: Math.random() * (canvas.height * 0.6),
+        vx: dir * (Math.random() * 2 + 2) * this._scale(),
+        wobblePhase: Math.random() * Math.PI * 2,
+        size: this._scale()
+      });
+    }
+    for (let i = this.ufos.length - 1; i >= 0; i--) {
+      const u = this.ufos[i];
+      u.x += u.vx;
+      u.wobblePhase += 0.05;
+      if ((u.vx > 0 && u.x > canvas.width + 50) || (u.vx < 0 && u.x < -50)) {
+        this.ufos.splice(i, 1);
+      }
+    }
+
     if (this.menuMode) {
       // Menu showcase: the ship idles with a slow drift so the menu
       // screen reads as a live scene instead of a static frame.
@@ -1406,12 +1448,39 @@ export class InvasionEngine {
 
   _drawBackground() {
     const ctx = this.ctx;
-    this.stars.forEach((star) => {
-      ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    const canvas = this.canvas;
+
+    if (this.sectorTheme === "nebula") {
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, "rgba(40, 0, 20, 0.4)");
+      grad.addColorStop(1, "rgba(0, 0, 0, 0.8)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (this.sectorTheme === "void") {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (this.sectorTheme === "pulsar") {
+      const pulse = Math.sin(Date.now() / 500) * 0.1 + 0.1;
+      ctx.fillStyle = `rgba(0, 50, 60, ${pulse})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (this.sectorTheme === "forge") {
+      const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
+      grad.addColorStop(0, "rgba(60, 20, 0, 0.5)");
+      grad.addColorStop(1, "transparent");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    const drawStars = this.sectorTheme !== "void";
+    if (drawStars) {
+      this.stars.forEach((star) => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
     this.planets.forEach((planet) => {
       const grad = ctx.createRadialGradient(
         planet.x - planet.r * 0.3,
@@ -1427,6 +1496,56 @@ export class InvasionEngine {
       ctx.beginPath();
       ctx.arc(planet.x, planet.y, planet.r, 0, Math.PI * 2);
       ctx.fill();
+    });
+
+    this.asteroids.forEach((a) => {
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.angle);
+      ctx.fillStyle = "#555";
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 2 * this._scale();
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const rad = a.size * a.points[i];
+        const px = Math.cos(angle) * rad;
+        const py = Math.sin(angle) * rad;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    this.ufos.forEach((u) => {
+      ctx.save();
+      ctx.translate(u.x, u.y + Math.sin(u.wobblePhase) * 10 * u.size);
+      
+      // Dome
+      ctx.fillStyle = "rgba(100, 200, 255, 0.6)";
+      ctx.beginPath();
+      ctx.arc(0, -5 * u.size, 10 * u.size, Math.PI, 0);
+      ctx.fill();
+      
+      // Saucer body
+      ctx.fillStyle = "#aaa";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 20 * u.size, 6 * u.size, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Lights
+      ctx.fillStyle = (Date.now() % 500 < 250) ? "#f00" : "#0f0";
+      ctx.beginPath();
+      ctx.arc(-10 * u.size, 0, 2 * u.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(10 * u.size, 0, 2 * u.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
     });
   }
 

@@ -160,6 +160,32 @@
   margin-top: 0;
 }
 
+.armoryItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.armoryItem:last-child {
+  border-bottom: none;
+}
+.armoryIcon {
+  font-size: 24px;
+  min-width: 32px;
+  text-align: center;
+}
+.armoryText h4 {
+  margin: 0 0 4px 0;
+  color: #fff;
+}
+.armoryText p {
+  margin: 0;
+  color: #ccc;
+  font-size: 0.9em;
+}
+
 /* Overlays keep the canvas scene visible: a radial scrim darkens only
    the center where the text/buttons sit and fades to clear at the
    edges, and there's no backdrop blur (it smeared the 1-2px stars into

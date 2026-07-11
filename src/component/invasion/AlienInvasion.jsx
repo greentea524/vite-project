@@ -31,6 +31,7 @@ export default function AlienInvasion() {
   const [gameOver, setGameOver] = useState(null); // { score, hitRate } | null
   const [showInstructions, setShowInstructions] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showArmory, setShowArmory] = useState(false);
 
   // Achievements (#94): the save (lifetime stats + unlocked ids) lives
   // in a ref, mutated by the engine's stat events; unlocks bump state
@@ -342,7 +343,7 @@ export default function AlienInvasion() {
     
     const engine = engineRef.current;
     if (engine) {
-      engine.setRogueLite(loopCount, node.tier);
+      engine.setRogueLite(loopCount, node.tier, node.type);
       engine.onSectorClear = (finalHp) => {
         setGameState("map");
         setRunHp(finalHp);
@@ -537,7 +538,7 @@ export default function AlienInvasion() {
           />
         )}
 
-        {gameState === "menu" && !showInstructions && !showAchievements && (
+        {gameState === "menu" && !showInstructions && !showAchievements && !showArmory && (
           <div className={styles.menuOverlay}>
             <h3>Alien Invasion</h3>
             <div className={styles.shipPicker}>
@@ -584,6 +585,13 @@ export default function AlienInvasion() {
               onClick={() => setShowInstructions(true)}
             >
               Instructions
+            </button>
+            <button
+              type="button"
+              className={styles.menuBtn}
+              onClick={() => setShowArmory(true)}
+            >
+              Upgrades Guide
             </button>
           </div>
         )}
@@ -740,7 +748,7 @@ export default function AlienInvasion() {
           </div>
         )}
 
-        {gameState === "paused" && !showInstructions && (
+        {gameState === "paused" && !showInstructions && !showArmory && (
           <div className={styles.menuOverlay}>
             <h3>Paused</h3>
             <button type="button" className={styles.menuBtn} onClick={handleResume}>
@@ -752,6 +760,13 @@ export default function AlienInvasion() {
               onClick={() => setShowInstructions(true)}
             >
               Instructions
+            </button>
+            <button
+              type="button"
+              className={styles.menuBtn}
+              onClick={() => setShowArmory(true)}
+            >
+              Upgrades Guide
             </button>
             <button type="button" className={styles.menuBtn} onClick={restart}>
               Restart
@@ -793,6 +808,59 @@ export default function AlienInvasion() {
               type="button"
               className={styles.barBtn}
               onClick={() => setShowInstructions(false)}
+            >
+              Close
+            </button>
+          </div>
+        )}
+
+        {showArmory && (
+          <div className={styles.instructions}>
+            <h3>Upgrades Guide</h3>
+            <p style={{ marginTop: 0, marginBottom: "20px", color: "#9fd0ff" }}>
+              <strong>Pro Tip:</strong> Collecting the same power-up multiple times extends its active duration.
+              Activating multiple DIFFERENT power-ups will cycle between them with every shot!
+            </p>
+            <div className={styles.armoryItem}>
+              <div className={styles.armoryIcon}>🚀</div>
+              <div className={styles.armoryText}>
+                <h4>Weapon Crate (Cyan W)</h4>
+                <p>Permanently upgrades your primary cannon. Levels 2-4 add extra spread bullets. Level 5 fires devastating quad waves.</p>
+              </div>
+            </div>
+            <div className={styles.armoryItem}>
+              <div className={styles.armoryIcon}>🛡️</div>
+              <div className={styles.armoryText}>
+                <h4>Energy Shield (Blue S)</h4>
+                <p>Instantly provides a 50 HP buffer that absorbs enemy fire and collisions. Does not stack.</p>
+              </div>
+            </div>
+            <div className={styles.armoryItem}>
+              <div className={styles.armoryIcon}>🛸</div>
+              <div className={styles.armoryText}>
+                <h4>Wingman Drones (Green D)</h4>
+                <p>Deploys two automated drones that orbit your ship and independently fire on the nearest enemies.</p>
+              </div>
+            </div>
+            <div className={styles.armoryItem}>
+              <div className={styles.armoryIcon}>🔴</div>
+              <div className={styles.armoryText}>
+                <h4>Piercing Laser (Pink L)</h4>
+                <p>Equips a rapid-fire, high-damage laser beam that instantly damages everything in its path.</p>
+              </div>
+            </div>
+            <div className={styles.armoryItem}>
+              <div className={styles.armoryIcon}>🟣</div>
+              <div className={styles.armoryText}>
+                <h4>Homing Missiles (Purple H)</h4>
+                <p>Fires a barrage of smart missiles that seek out and destroy enemy targets with precision tracking.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={styles.barBtn}
+              style={{ marginTop: "20px" }}
+              onClick={() => setShowArmory(false)}
             >
               Close
             </button>
