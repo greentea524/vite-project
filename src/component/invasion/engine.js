@@ -1361,6 +1361,34 @@ export class InvasionEngine {
           if (!bullet.isLaser) break;
         }
       }
+      
+      if (!this.bullets[bIndex]) continue;
+      
+      // UFOs: secret bonus points.
+      let hitUfo = false;
+      for (let uIndex = this.ufos.length - 1; uIndex >= 0; uIndex--) {
+        const u = this.ufos[uIndex];
+        const uY = u.y + Math.sin(u.wobblePhase) * 10 * u.size;
+        const radius = 20 * u.size;
+        
+        if (
+          bullet.x < u.x + radius &&
+          bullet.x + (bullet.width || BULLET_WIDTH) > u.x - radius &&
+          bullet.y < uY + radius &&
+          bullet.y + (bullet.height || BULLET_HEIGHT) > uY - radius
+        ) {
+          this._createFireworks(u.x, uY);
+          this.audio?.alienHit();
+          this.ufos.splice(uIndex, 1);
+          if (!bullet.isLaser) {
+            this.bullets.splice(bIndex, 1);
+          }
+          this._addScore(500, u.x, uY, "#ffff00");
+          this.hits++;
+          hitUfo = true;
+          if (!bullet.isLaser) break;
+        }
+      }
     }
   }
 
