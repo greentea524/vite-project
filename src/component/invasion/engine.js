@@ -16,6 +16,8 @@
 // Ghost interpolation is a pure, game-agnostic module (no canvas, no
 // platformer imports) — reused rather than copied (#80).
 import { createGhost, pushSnapshot, sampleGhost } from "../platformer/ghosts.js";
+// Seeded RNG for deterministic multiplayer spawns/drops (#81).
+import { derive } from "./rng.js";
 
 // Base design resolution; everything scales from an 800px-wide board.
 // Multiplayer snapshots (#80) are exchanged in these base units so
@@ -30,6 +32,11 @@ const SHOOT_COOLDOWN_MS = 200;
 const ALIEN_WIDTH = 30;
 const ALIEN_HEIGHT = 20;
 const ALIEN_SPEED = 1;
+
+// Deterministic-race fleet width (#81): a fixed column count so both
+// players get the same aliens regardless of screen size. Chosen to
+// sit between the old mobile (~9) and desktop (~19) counts.
+const DETERMINISTIC_COLUMNS = 14;
 
 // Boss variations (#90/#91/#92). One boss per wave, cycling through
 // the roster so wave 1 keeps the classic octopus. Sizes are in base
@@ -121,6 +128,11 @@ export class InvasionEngine {
     this.network = null;
     this.ghost = null;
     this._prevX = null; // last frame's x, for the broadcast velocity
+    // Deterministic-multiplayer seed (#81): non-null only in a room
+    // race, shared by the relay so both players spawn identical waves
+    // and roll identical power-up drops. Single player leaves it null
+    // and keeps using Math.random — behavior is unchanged.
+    this._seed = null;
 
     this._resize = this._resize.bind(this);
     this._loop = this._loop.bind(this);
@@ -162,12 +174,20 @@ export class InvasionEngine {
     this._startLoop();
   }
 
-  play() {
+  // `seed` (#81) turns on deterministic spawns/drops for a room race;
+  // omitted (single player) keeps the classic Math.random behavior.
+  play(seed = null) {
     this.menuMode = false;
     this.paused = false;
     this.permanentBuffs = null;
+    this._seed = seed == null ? null : seed >>> 0;
     this.restart();
     this._stat("ship", "shipsUsed", this.shipType);
+  }
+
+  // True when this run is a seeded, deterministic multiplayer race.
+  get _deterministic() {
+    return this._seed != null;
   }
 
   setPermanentBuffs(buffs, loopCount = 0, tier = 0) {
@@ -178,6 +198,7 @@ export class InvasionEngine {
   playSector(hp) {
     this.menuMode = false;
     this.paused = false;
+    this._seed = null; // rogue-lite is single player (#81)
     cancelAnimationFrame(this._raf);
     this._running = false;
     this._resetRun();
@@ -407,20 +428,37 @@ export class InvasionEngine {
     const sidePadding = 30 * scale;
     const gap = 20 * scale;
     const step = w + gap;
-    const columns = Math.max(
-      1,
-      Math.floor((this.canvas.width - sidePadding * 2 + gap) / step),
-    );
 
+    // Column count: canvas-derived for single player (unchanged), but a
+    // FIXED count in a deterministic race (#81) so both players share
+    // the same alien set — and IDs. The fixed grid is spread across
+    // whatever width each screen has, so positions differ per device
+    // but identity (row/col) matches, which is what shared kills need.
+    let columns;
+    let colStep;
+    if (this._deterministic) {
+      columns = DETERMINISTIC_COLUMNS;
+      colStep = (this.canvas.width - sidePadding * 2) / columns;
+    } else {
+      columns = Math.max(
+        1,
+        Math.floor((this.canvas.width - sidePadding * 2 + gap) / step),
+      );
+      colStep = step;
+    }
+
+    const hp = 1 + Math.floor((this.waveNumber - 1) / 3);
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < columns; col++) {
         this.aliens.push({
-          x: sidePadding + col * step,
+          // Stable per-wave identity for shared kills / drops (#81).
+          id: `w${this.waveNumber}-r${row}-c${col}`,
+          x: sidePadding + col * colStep,
           y: sidePadding + row * (h + gap),
           width: w,
           height: h,
           type: row % 3,
-          hp: 1 + Math.floor((this.waveNumber - 1) / 3),
+          hp,
           hitFlash: 0,
         });
       }
@@ -435,7 +473,7 @@ export class InvasionEngine {
     this.spawnlings = [];
     this.inkShots = [];
     const type = BOSS_TYPES[(this.waveNumber - 1) % BOSS_TYPES.length];
-    this.bosses = [this._makeBoss(type)];
+    this.bosses = [this._makeBoss(type, { id: `w${this.waveNumber}-boss` })];
   }
 
   _makeBoss(type, over = {}) {
@@ -457,6 +495,9 @@ export class InvasionEngine {
 
     return {
       type,
+      // Stable identity for shared kills (#81); hive children derive
+      // theirs from the parent so both screens agree after a split.
+      id: over.id ?? `w${this.waveNumber}-boss`,
       x: over.x ?? this.canvas.width / 2 - width / 2,
       y: over.y ?? 8 * scale,
       width,
@@ -671,6 +712,61 @@ export class InvasionEngine {
       this.gameOver = true;
       this._createFireworks(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     }
+  }
+
+  // --- shared kills & deterministic drops (#81) --------------------------
+
+  // The power-up types an alien can drop, in a fixed order so a seeded
+  // index picks the same one on both screens.
+  static get POWERUP_TYPES() {
+    return ["weapon", "shield", "drone", "laser", "homing"];
+  }
+
+  // Drop for a killed alien. In a deterministic race the roll is a pure
+  // function of (seed, alien id) — so both players get the SAME drop
+  // for the same alien no matter who lands the kill or in what order,
+  // with no shared RNG state to keep in sync. Single player keeps the
+  // original Math.random rolls.
+  _maybeDropPowerUp(alien) {
+    const chance = this._deterministic ? derive(this._seed, alien.id, 0) : Math.random();
+    if (chance >= POWERUP_DROP_CHANCE) return;
+    const types = InvasionEngine.POWERUP_TYPES;
+    const pick = this._deterministic ? derive(this._seed, alien.id, 1) : Math.random();
+    const type = types[Math.floor(pick * types.length)];
+    // A maxed-out player can't use another weapon crate — skip it (the
+    // roll was still consumed, so both screens stay in lockstep).
+    if (type === "weapon" && this.weaponLevel >= 5) return;
+    this.powerUps.push({
+      x: alien.x + alien.width / 2 - POWERUP_SIZE / 2,
+      y: alien.y + alien.height / 2 - POWERUP_SIZE / 2,
+      type,
+    });
+  }
+
+  // Tell the room this enemy is dead so it despawns on the other
+  // screen too (#81). No-op outside a room; network dedupes by id.
+  _reportKill(id) {
+    if (this._deterministic && id) this.network?.sendEnemyKill?.(id);
+  }
+
+  // The other player destroyed an enemy: mirror it here (#81). Despawn
+  // the matching alien (replicating its deterministic drop so the
+  // power-up shows on both screens) or kill the matching boss (which
+  // also replicates a hive split). No score/stat is granted — the
+  // kill belongs to the other player. Safe if the enemy is already
+  // gone locally (both players killed it) — it just no-ops.
+  applyRemoteKill(id) {
+    if (!id) return;
+    const ai = this.aliens.findIndex((a) => a.id === id);
+    if (ai >= 0) {
+      const alien = this.aliens[ai];
+      this._createFireworks(alien.x, alien.y);
+      this._maybeDropPowerUp(alien);
+      this.aliens.splice(ai, 1);
+      return;
+    }
+    const bi = this.bosses.findIndex((b) => b.id === id);
+    if (bi >= 0) this._killBoss(bi, true);
   }
 
   // --- simulation ------------------------------------------------------
@@ -1032,24 +1128,14 @@ export class InvasionEngine {
             hitAlien = true;
             if (!bullet.isLaser) break;
           } else {
-            if (Math.random() < POWERUP_DROP_CHANCE) {
-              const types = ["weapon", "shield", "drone", "laser", "homing"];
-              const type = types[Math.floor(Math.random() * types.length)];
-              if (type !== "weapon" || this.weaponLevel < 5) {
-                this.powerUps.push({
-                  x: alien.x + alien.width / 2 - POWERUP_SIZE / 2,
-                  y: alien.y + alien.height / 2 - POWERUP_SIZE / 2,
-                  type: type,
-                });
-              }
-            }
-
+            this._maybeDropPowerUp(alien);
             this.aliens.splice(aIndex, 1);
             if (!bullet.isLaser) {
               this.bullets.splice(bIndex, 1);
             }
             this._addScore(10, alien.x + alien.width / 2, alien.y + alien.height / 2);
             this._stat("add", "totalKills");
+            this._reportKill(alien.id); // shared kill (#81)
             this.hits++;
             hitAlien = true;
             if (!bullet.isLaser) break;
@@ -1128,20 +1214,26 @@ export class InvasionEngine {
     }
   }
 
-  _killBoss(index) {
+  // `fromRemote` (#81): the other player landed the kill, so we
+  // despawn/split to stay in sync but grant no score/stat and don't
+  // re-broadcast (that would loop the event back).
+  _killBoss(index, fromRemote = false) {
     const boss = this.bosses[index];
     const cx = boss.x + boss.width / 2;
     const cy = boss.y + boss.height / 2;
     this._createFireworks(cx, cy);
     this._createFireworks(cx + 10, cy);
-    const score =
-      boss.type === "hive" ? HIVE_GEN_SCORE[boss.gen] : BOSS_STATS[boss.type].score;
-    this._addScore(score, cx, cy, "#7af58f");
+    if (!fromRemote) {
+      const score =
+        boss.type === "hive" ? HIVE_GEN_SCORE[boss.gen] : BOSS_STATS[boss.type].score;
+      this._addScore(score, cx, cy, "#7af58f");
+      // Every boss entity counts — hive splits are bosses in their own
+      // right (own HP bar), so a full hive is worth several (#94).
+      this._stat("add", "totalKills");
+      this._stat("add", "bossKills");
+      this._reportKill(boss.id); // shared kill (#81)
+    }
     this.bosses.splice(index, 1);
-    // Every boss entity counts — hive splits are bosses in their own
-    // right (own HP bar), so a full hive is worth several (#94).
-    this._stat("add", "totalKills");
-    this._stat("add", "bossKills");
 
     // Swarm Hive (#92): dying below max generation splits the mass
     // into two smaller, faster copies that fly apart, each with half
@@ -1151,8 +1243,12 @@ export class InvasionEngine {
       const hp = Math.max(1, Math.round(boss.maxHp / 2));
       const sizeMul = HIVE_CHILD_SIZE ** gen;
       const childW = BOSS_STATS.hive.width * this._scale() * sizeMul;
+      let childIndex = 0;
       for (const dir of [-1, 1]) {
         const child = this._makeBoss("hive", {
+          // Children derive their id from the parent so both screens
+          // agree on which split is which after a shared kill (#81).
+          id: `${boss.id}.${childIndex++}`,
           gen,
           hp,
           dir,
