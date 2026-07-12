@@ -160,6 +160,22 @@
   text-align: center;
 }
 
+.big2-qr {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+  border: 1px solid #e0d9c2;
+}
+
+.big2-join-link {
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #6b6b5e;
+}
+
 .big2-room-code {
   font-family: monospace;
   letter-spacing: 0.15em;
