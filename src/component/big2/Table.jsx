@@ -1,7 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Card, { CardBack } from "./Card.jsx";
 import { sortHandBySuit } from "./deck.js";
 import "./big2.css";
+
+/** Card id under a pointer position, or null (used by swipe-select). */
+function cardIdAt(x, y) {
+  return (
+    document.elementFromPoint(x, y)?.closest("[data-card-id]")?.dataset
+      .cardId ?? null
+  );
+}
 
 /**
  * Presentational pieces shared by the solo (KAN-60) and online
@@ -59,6 +67,60 @@ export function TableView({
     setSortMode(mode);
     window.localStorage.setItem("big2:sort", mode);
   };
+
+  // Swipe-to-select (#113): dragging a finger (or mouse) across the
+  // hand toggles each card it passes over, once per gesture. A plain
+  // tap still goes through each card's click handler; after a swipe,
+  // the trailing click on the release target is swallowed.
+  const dragRef = useRef({ downId: null, swiped: false, seen: null });
+  const clickGuardRef = useRef(false);
+
+  const onHandPointerDown = (e) => {
+    dragRef.current = {
+      downId: cardIdAt(e.clientX, e.clientY),
+      swiped: false,
+      seen: new Set(),
+    };
+  };
+
+  const onHandPointerMove = (e) => {
+    const drag = dragRef.current;
+    if (!drag.seen || e.buttons === 0) return;
+    const id = cardIdAt(e.clientX, e.clientY);
+    if (!id || (id === drag.downId && !drag.swiped)) return;
+    if (!drag.swiped) {
+      drag.swiped = true;
+      if (drag.downId) {
+        onToggleCard(drag.downId);
+        drag.seen.add(drag.downId);
+      }
+    }
+    if (!drag.seen.has(id)) {
+      onToggleCard(id);
+      drag.seen.add(id);
+    }
+  };
+
+  const onHandPointerEnd = () => {
+    if (dragRef.current.swiped) {
+      // The browser still fires a click on the release target; ignore
+      // it, and self-clear in case the release lands off-card.
+      clickGuardRef.current = true;
+      setTimeout(() => {
+        clickGuardRef.current = false;
+      }, 300);
+    }
+    dragRef.current = { downId: null, swiped: false, seen: null };
+  };
+
+  const tapCard = (id) => {
+    if (clickGuardRef.current) {
+      clickGuardRef.current = false;
+      return;
+    }
+    onToggleCard(id);
+  };
+
   return (
     <div className="big2-table">
       {onMenu && (
@@ -94,13 +156,19 @@ export function TableView({
       <OpponentSeat {...east} side="east" />
 
       <div className={`big2-seat big2-seat-south${myActive ? " big2-seat-active" : ""}`}>
-        <div className="big2-my-hand">
+        <div
+          className="big2-my-hand"
+          onPointerDown={onHandPointerDown}
+          onPointerMove={onHandPointerMove}
+          onPointerUp={onHandPointerEnd}
+          onPointerCancel={onHandPointerEnd}
+        >
           {displayHand.map((card) => (
             <Card
               key={card.id}
               card={card}
               selected={selectedIds.has(card.id)}
-              onClick={() => onToggleCard(card.id)}
+              onClick={() => tapCard(card.id)}
             />
           ))}
         </div>

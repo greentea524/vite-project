@@ -20,6 +20,7 @@ function Card({ card, selected = false, onClick }) {
       className={`big2-card big2-card-${SUIT_COLOR[card.suit]}${
         selected ? " big2-card-selected" : ""
       }`}
+      data-card-id={card.id}
       onClick={onClick}
       aria-label={label}
       aria-pressed={selected}

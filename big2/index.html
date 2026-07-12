@@ -32,6 +32,12 @@
       #root > * {
         max-width: 1000px;
       }
+      /* Short landscape phones: give the table the shell padding back. */
+      @media (max-height: 520px) and (orientation: landscape) {
+        #root {
+          padding: 2px;
+        }
+      }
     </style>
   </head>
   <body>

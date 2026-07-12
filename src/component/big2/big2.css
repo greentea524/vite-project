@@ -485,6 +485,16 @@
   flex-wrap: wrap;
   justify-content: center;
   padding-top: 14px; /* room for the selected-card lift */
+  /* Swipe-to-select (#113): keep touch drags as pointer moves instead
+     of page scrolls. */
+  touch-action: none;
+}
+
+/* Extend each hand card's tap target above/below its face (#113). */
+.big2-my-hand .big2-card::after {
+  content: "";
+  position: absolute;
+  inset: -10px 0;
 }
 
 .big2-my-hand .big2-card + .big2-card {
@@ -543,7 +553,46 @@
   color: #ffd7d7;
 }
 
-/* Compact cards on small screens */
+/* Touch ergonomics (#113): bigger targets wherever the pointer is a
+   finger (any touch device) or the screen is phone-sized. */
+@media (pointer: coarse), (max-width: 640px) {
+  .big2-actions {
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .big2-actions > button {
+    min-height: 48px;
+    min-width: 104px;
+    font-size: 1rem;
+  }
+
+  .big2-sort button {
+    min-height: 40px;
+    min-width: 56px;
+    font-size: 0.85rem;
+  }
+
+  .big2-menu-toggle {
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
+  }
+
+  /* Selected cards pop further so the lifted state is obvious under a
+     thumb. */
+  .big2-card-selected {
+    transform: translateY(-18px);
+    outline-width: 3px;
+  }
+
+  .big2-my-hand {
+    padding-top: 20px; /* room for the taller lift */
+  }
+}
+
+/* Compact cards on small screens (portrait phones) */
 @media (max-width: 640px) {
   .big2-card {
     width: 40px;
@@ -558,22 +607,91 @@
     font-size: 0.6rem;
   }
 
+  /* Opponents' face-down stacks shrink harder than the playable hand —
+     they only convey a count. */
+  .big2-seat-cards .big2-card {
+    width: 26px;
+    height: 38px;
+  }
+
   .big2-seat-north .big2-seat-cards .big2-card + .big2-card {
-    margin-left: -32px;
+    margin-left: -20px;
   }
 
   .big2-seat-west .big2-seat-cards .big2-card + .big2-card,
   .big2-seat-east .big2-seat-cards .big2-card + .big2-card {
-    margin-top: -50px;
+    margin-top: -32px;
   }
 
   .big2-my-hand .big2-card + .big2-card {
-    margin-left: -16px;
+    margin-left: -14px;
+  }
+
+  .big2-center {
+    min-height: 120px;
   }
 
   .big2-table {
     padding: 8px;
     gap: 6px;
     min-height: 0;
+  }
+
+  .big2-seat {
+    padding: 4px;
+  }
+}
+
+/* Short landscape phones: flatten the side stacks and trim vertical
+   chrome so the table fits without feeling cramped (#113). */
+@media (max-height: 520px) and (orientation: landscape) {
+  .big2-table {
+    padding: 6px;
+    gap: 2px;
+    min-height: 0;
+  }
+
+  .big2-seat {
+    padding: 2px;
+  }
+
+  .big2-my-hand {
+    padding-top: 8px;
+  }
+
+  .big2-seat-cards .big2-card {
+    width: 26px;
+    height: 38px;
+  }
+
+  .big2-seat-north .big2-seat-cards .big2-card + .big2-card {
+    margin-left: -20px;
+  }
+
+  .big2-seat-west .big2-seat-cards .big2-card + .big2-card,
+  .big2-seat-east .big2-seat-cards .big2-card + .big2-card {
+    margin-top: -32px;
+  }
+
+  .big2-center {
+    min-height: 56px;
+    gap: 4px;
+  }
+
+  .big2-card {
+    width: 40px;
+    height: 58px;
+  }
+
+  .big2-card-pip {
+    font-size: 1.2rem;
+  }
+
+  .big2-card-corner {
+    font-size: 0.6rem;
+  }
+
+  .big2-my-hand .big2-card + .big2-card {
+    margin-left: -12px;
   }
 }
