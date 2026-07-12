@@ -45,7 +45,7 @@ export default function AlienInvasion() {
   const [completedNodeIds, setCompletedNodeIds] = useState([]);
   const [currentNodeId, setCurrentNodeId] = useState(null);
   const [loopCount, setLoopCount] = useState(0);
-  const [runHp, setRunHp] = useState(null);
+  const [runState, setRunState] = useState(null);
   const [selectedShip, setSelectedShip] = useState("fighter"); // "fighter", "cruiser", "interceptor"
 
   // Multiplayer (#79): one Network per mount, only when a relay URL is
