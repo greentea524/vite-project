@@ -61,7 +61,7 @@ export class Network {
     socket.on("connect_error", (err) => this._emit("error", err?.message || "connect_error"));
 
     socket.on("playerJoined", (p) => {
-      this.roster = [...this.roster.filter((r) => r.id !== p.id), { id: p.id, name: p.name }];
+      this.roster = [...this.roster.filter((r) => r.id !== p.id), { id: p.id, name: p.name, emoji: p.emoji }];
       this._emit("roster", this.roster);
     });
     socket.on("playerLeft", ({ id }) => {
@@ -70,9 +70,9 @@ export class Network {
     });
     // Lobby renames (#116): the relay's setName broadcast, shared with
     // the platformer lobby.
-    socket.on("playerUpdated", ({ id, name }) => {
+    socket.on("playerUpdated", ({ id, name, emoji }) => {
       if (typeof name !== "string") return;
-      this.roster = this.roster.map((r) => (r.id === id ? { ...r, name } : r));
+      this.roster = this.roster.map((r) => (r.id === id ? { ...r, name, emoji: emoji || r.emoji } : r));
       this._emit("roster", this.roster);
     });
     socket.on("hostChanged", ({ hostId }) => {
@@ -98,7 +98,7 @@ export class Network {
     this.playerId = res.playerId;
     this.roomCode = res.code;
     this.hostId = res.hostId ?? null;
-    this.roster = res.roster.map((r) => ({ id: r.id, name: r.name }));
+    this.roster = res.roster.map((r) => ({ id: r.id, name: r.name, emoji: r.emoji }));
     this._emit("roster", this.roster);
   }
 
@@ -106,11 +106,11 @@ export class Network {
     return this.playerId != null && this.playerId === this.hostId;
   }
 
-  createRoom(name, timeoutMs = ACK_TIMEOUT_MS) {
+  createRoom(name, emoji, timeoutMs = ACK_TIMEOUT_MS) {
     return new Promise((resolve) => {
       this.socket
         .timeout(timeoutMs)
-        .emit("createRoom", { name, game: GAME_TAG, maxPlayers: MAX_PLAYERS }, (err, res) => {
+        .emit("createRoom", { name, emoji, game: GAME_TAG, maxPlayers: MAX_PLAYERS }, (err, res) => {
           if (err) return resolve({ ok: false, error: "No response from the server — try again." });
           if (res?.ok) this._onJoined(res);
           resolve(res);
@@ -118,11 +118,11 @@ export class Network {
     });
   }
 
-  joinRoom(code, name, timeoutMs = ACK_TIMEOUT_MS) {
+  joinRoom(code, name, emoji, timeoutMs = ACK_TIMEOUT_MS) {
     return new Promise((resolve) => {
       this.socket
         .timeout(timeoutMs)
-        .emit("joinRoom", { code, name, game: GAME_TAG }, (err, res) => {
+        .emit("joinRoom", { code, name, emoji, game: GAME_TAG }, (err, res) => {
           if (err) return resolve({ ok: false, error: "No response from the server — try again." });
           if (res?.ok) this._onJoined(res);
           resolve(res);
@@ -132,8 +132,8 @@ export class Network {
 
   // Rename in the lobby (#116); the relay sanitizes and broadcasts
   // playerUpdated to the whole room, sender included.
-  setName(name) {
-    this.socket?.emit("setName", { name });
+  setName(name, emoji) {
+    this.socket?.emit("setName", { name, emoji });
   }
 
   // Host-only: deal and start; bots fill any empty seats server-side.

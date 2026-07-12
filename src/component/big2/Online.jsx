@@ -4,6 +4,9 @@ import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
 import { Network } from "./network.js";
 import { buildJoinLink } from "./joinLink.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
+import { InstructionsOverlay } from "./Instructions.jsx";
+import { StatsOverlay } from "./StatsOverlay.jsx";
+import { recordGame } from "./stats.js";
 import "./big2.css";
 
 // First-visit default names (#116): friendlier than "Player" until the
@@ -23,6 +26,8 @@ function randomFunName() {
   return FUN_NAMES[Math.floor(Math.random() * FUN_NAMES.length)];
 }
 
+const EMOJIS = ["🦁", "🐯", "🐼", "🦊", "🐷", "🐸", "🐶", "🐱"];
+
 /**
  * Online Big 2 (KAN-63): entry (name + create/join), lobby with invite
  * link, then the server-authoritative game. The server deals and
@@ -38,6 +43,9 @@ function Online({ joinCode, onExit }) {
   const [phase, setPhase] = useState("entry"); // entry | lobby | playing
   const [name, setName] = useState(
     () => window.localStorage.getItem("big2:name") || randomFunName()
+  );
+  const [emoji, setEmoji] = useState(
+    () => window.localStorage.getItem("big2:emoji") || "🦁"
   );
   const [nameSaved, setNameSaved] = useState(false);
   const [codeInput, setCodeInput] = useState(joinCode);
@@ -55,6 +63,8 @@ function Online({ joinCode, onExit }) {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [rejection, setRejection] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     Network.warmUp(); // KAN-53: poke a sleeping free-tier host early
@@ -74,7 +84,10 @@ function Online({ joinCode, onExit }) {
         setPhase("playing");
       }),
       net.on("rejected", ({ reason }) => setRejection(reason)),
-      net.on("roundOver", (r) => setResult(r)),
+      net.on("roundOver", (r) => {
+        setResult(r);
+        recordGame(r.winner === net.mySeat);
+      }),
     ];
     net.connect();
     return () => {
@@ -86,11 +99,12 @@ function Online({ joinCode, onExit }) {
   const submitEntry = async (create) => {
     const cleanName = name.trim() || "Player";
     window.localStorage.setItem("big2:name", cleanName);
+    window.localStorage.setItem("big2:emoji", emoji);
     setBusy(true);
     setEntryError("");
     const res = create
-      ? await net.createRoom(cleanName)
-      : await net.joinRoom(codeInput.trim().toUpperCase(), cleanName);
+      ? await net.createRoom(cleanName, emoji)
+      : await net.joinRoom(codeInput.trim().toUpperCase(), cleanName, emoji);
     setBusy(false);
     if (res?.ok) setPhase("lobby");
     else setEntryError(res?.error || "Something went wrong — try again.");
@@ -138,7 +152,8 @@ function Online({ joinCode, onExit }) {
     const cleanName = name.trim() || randomFunName();
     setName(cleanName);
     window.localStorage.setItem("big2:name", cleanName);
-    net.setName(cleanName);
+    window.localStorage.setItem("big2:emoji", emoji);
+    net.setName(cleanName, emoji);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 1500);
   };
@@ -158,7 +173,8 @@ function Online({ joinCode, onExit }) {
     if (!gameState) return "";
     const seat = gameState.seats[i];
     const label = i === mySeat ? "You" : seat.name;
-    return seat.isBot ? `${label} 🤖` : label;
+    const seatEmoji = seat.emoji || (seat.isBot ? "🤖" : "");
+    return seatEmoji ? `${label} ${seatEmoji}` : label;
   };
 
   const isMyTurn =
@@ -233,14 +249,19 @@ function Online({ joinCode, onExit }) {
           </p>
         )}
         <label className="big2-field">
-          Your name
-          <input
-            type="text"
-            value={name}
-            maxLength={16}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Player"
-          />
+          Your name and emoji
+          <div className="big2-name-row" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <select value={emoji} onChange={(e) => setEmoji(e.target.value)} aria-label="Select emoji">
+              {EMOJIS.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+            <input
+              type="text"
+              value={name}
+              maxLength={16}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Player"
+            />
+          </div>
         </label>
         <div className="big2-entry-actions">
           <button
@@ -297,7 +318,10 @@ function Online({ joinCode, onExit }) {
         <button type="button" onClick={copyLink}>
           {copied ? "Copied!" : "Copy invite link"}
         </button>
-        <div className="big2-name-row">
+        <div className="big2-name-row" style={{ display: 'flex', gap: '0.5rem' }}>
+          <select value={emoji} onChange={(e) => setEmoji(e.target.value)} aria-label="Select emoji">
+            {EMOJIS.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
           <input
             type="text"
             value={name}
@@ -307,13 +331,13 @@ function Online({ joinCode, onExit }) {
             onKeyDown={(e) => e.key === "Enter" && saveName()}
           />
           <button type="button" onClick={saveName}>
-            {nameSaved ? "Saved!" : "Update name"}
+            {nameSaved ? "Saved!" : "Update profile"}
           </button>
         </div>
         <ul className="big2-roster">
           {roster.map((p) => (
             <li key={p.id}>
-              {p.name}
+              {p.emoji || ""} {p.name}
               {p.id === net.hostId && " (host)"}
               {p.id === net.playerId && " — you"}
             </li>
@@ -363,11 +387,19 @@ function Online({ joinCode, onExit }) {
           note="The game keeps going while this is open — a bot plays your turn if you leave."
           onResume={() => setMenuOpen(false)}
         >
+          <button type="button" className="big2-link-btn" onClick={() => setShowInstructions(true)}>
+            How to Play
+          </button>
+          <button type="button" className="big2-link-btn" onClick={() => setShowStats(true)}>
+            Statistics
+          </button>
           <button type="button" className="big2-link-btn" onClick={onExit}>
             Leave game
           </button>
         </PauseOverlay>
       )}
+      {showInstructions && <InstructionsOverlay onClose={() => setShowInstructions(false)} />}
+      {showStats && <StatsOverlay onClose={() => setShowStats(false)} />}
       {result && (
         <ResultsOverlay
           title={`Round ${result.round} — ${seatName(result.winner)} ${

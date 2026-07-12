@@ -5,10 +5,13 @@ import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import { chooseBotMove } from "./bot.js";
 import { scoreRound } from "./scoring.js";
 import { Network } from "./network.js";
+import { InstructionsOverlay } from "./Instructions.jsx";
+import { StatsOverlay } from "./StatsOverlay.jsx";
+import { recordGame } from "./stats.js";
 import Online from "./Online.jsx";
 import "./big2.css";
 
-const PLAYER_NAMES = ["You", "West", "North", "East"];
+const PLAYER_NAMES = ["You", "West 🤖", "North 🤖", "East 🤖"];
 const LOCAL_PLAYER = 0;
 
 /**
@@ -22,6 +25,8 @@ function SoloGame({ onExit }) {
   const [totals, setTotals] = useState([0, 0, 0, 0]);
   const [roundResult, setRoundResult] = useState(null);
   const [paused, setPaused] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   const isMyTurn = state.turn === LOCAL_PLAYER && state.winner === null;
   const myHand = state.hands[LOCAL_PLAYER];
@@ -54,6 +59,7 @@ function SoloGame({ onExit }) {
     const result = scoreRound(state.hands, state.winner);
     setRoundResult(result);
     setTotals((t) => t.map((v, i) => v + result.deltas[i]));
+    recordGame(state.winner === LOCAL_PLAYER);
   }, [state, roundResult]);
 
   const nextRound = () => {
@@ -99,13 +105,21 @@ function SoloGame({ onExit }) {
 
   return (
     <div className="big2-table-page">
-      {paused && state.winner === null && (
+      {paused && state.winner === null && !showInstructions && !showStats && (
         <PauseOverlay onResume={() => setPaused(false)}>
+          <button type="button" className="big2-link-btn" onClick={() => setShowInstructions(true)}>
+            How to Play
+          </button>
+          <button type="button" className="big2-link-btn" onClick={() => setShowStats(true)}>
+            Statistics
+          </button>
           <button type="button" className="big2-link-btn" onClick={onExit}>
             Back to menu
           </button>
         </PauseOverlay>
       )}
+      {showInstructions && <InstructionsOverlay onClose={() => setShowInstructions(false)} />}
+      {showStats && <StatsOverlay onClose={() => setShowStats(false)} />}
       {state.winner !== null && roundResult && (
         <ResultsOverlay
           title={`Round ${round} — ${PLAYER_NAMES[state.winner]} ${
@@ -179,6 +193,8 @@ function Big2() {
     []
   );
   const [mode, setMode] = useState(joinCode ? "online" : "menu");
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   if (mode === "solo") return <SoloGame onExit={() => setMode("menu")} />;
   if (mode === "online") return <Online joinCode={joinCode} onExit={() => setMode("menu")} />;
@@ -201,12 +217,20 @@ function Big2() {
       >
         👥 Play with friends
       </button>
+      <button type="button" className="big2-menu-btn" onClick={() => setShowInstructions(true)}>
+        📖 How to Play
+      </button>
+      <button type="button" className="big2-menu-btn" onClick={() => setShowStats(true)}>
+        📊 Statistics
+      </button>
       {!Network.isConfigured() && (
         <p className="big2-muted">Multiplayer isn’t configured in this build.</p>
       )}
       <a className="big2-link-btn" href="../">
         ‹ Back to Games
       </a>
+      {showInstructions && <InstructionsOverlay onClose={() => setShowInstructions(false)} />}
+      {showStats && <StatsOverlay onClose={() => setShowStats(false)} />}
     </div>
   );
 }

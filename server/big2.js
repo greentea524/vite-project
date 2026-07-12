@@ -23,7 +23,7 @@ const MIN_BOT_DELAY_MS = 5; // tests dial it down; humans get 800-1200ms
 // turn, and the open trick — never hand contents.
 function publicState(g) {
   return {
-    seats: g.seats.map((s) => ({ name: s.name, isBot: !s.socketId })),
+    seats: g.seats.map((s) => ({ name: s.name, emoji: s.emoji, isBot: !s.socketId })),
     counts: g.state.hands.map((h) => h.length),
     turn: g.state.turn,
     trick: g.state.trick,
@@ -112,8 +112,8 @@ export function attachBig2(io, rooms, socket) {
     const humans = [...ctx.room.players.values()].slice(0, BIG2_MAX_PLAYERS);
     const seats = Array.from({ length: BIG2_MAX_PLAYERS }, (_, i) =>
       i < humans.length
-        ? { socketId: humans[i].id, name: humans[i].name }
-        : { socketId: null, name: BOT_NAMES[i - humans.length] }
+        ? { socketId: humans[i].id, name: humans[i].name, emoji: humans[i].emoji }
+        : { socketId: null, name: BOT_NAMES[i - humans.length], emoji: "🤖" }
     );
     ctx.room.big2 = {
       seats,
@@ -178,6 +178,7 @@ export function attachBig2(io, rooms, socket) {
         const p = waiting.shift();
         seat.socketId = p.id;
         seat.name = p.name;
+        seat.emoji = p.emoji;
       }
     }
     g.round += 1;
@@ -192,7 +193,7 @@ export function big2OnLeave(io, code, room, socketId) {
   if (!g) return;
   const seat = seatOf(g, socketId);
   if (seat === -1) return;
-  g.seats[seat] = { socketId: null, name: `${g.seats[seat].name} (bot)` };
+  g.seats[seat] = { socketId: null, name: `${g.seats[seat].name} (bot)`, emoji: "🤖" };
   broadcast(io, code, g);
   if (!g.result) scheduleBot(io, code, room);
 }

@@ -30,6 +30,7 @@ function roster(room) {
   return [...room.players.values()].map((p) => ({
     id: p.id,
     name: p.name,
+    emoji: p.emoji,
     avatar: p.avatar,
     slot: p.slot,
     level: p.level,
@@ -95,7 +96,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     big2OnLeave(io, code, room, socket.id);
   }
 
-  function join(socket, room, code, { name, avatar }) {
+  function join(socket, room, code, { name, emoji, avatar }) {
     // A stable, monotonic slot per room drives the fanned-out spawn so
     // players don't stack on the start point (never reused, so leaves
     // don't shuffle anyone).
@@ -103,6 +104,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     const player = {
       id: socket.id,
       name: (name || "Player").slice(0, 16),
+      emoji: typeof emoji === "string" ? emoji.slice(0, 4) : "",
       avatar: Number.isInteger(avatar) ? avatar : 0,
       slot,
       level: 0,
@@ -153,7 +155,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies), catchUpShields: room.catchUpShields });
       // Tell everyone else who joined.
       socket.to(code).emit("playerJoined", {
-        id: player.id, name: player.name, avatar: player.avatar, slot: player.slot,
+        id: player.id, name: player.name, emoji: player.emoji, avatar: player.avatar, slot: player.slot,
       });
     });
 
@@ -185,12 +187,13 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
 
     // Name changed in the room lobby: same deal as setAvatar, with the
     // same sanitization as join().
-    socket.on("setName", ({ name } = {}) => {
+    socket.on("setName", ({ name, emoji } = {}) => {
       const code = socket.data.roomCode;
       const player = code && rooms.get(code)?.players.get(socket.id);
-      if (!player || typeof name !== "string") return;
-      player.name = (name.trim() || "Player").slice(0, 16);
-      io.to(code).emit("playerUpdated", { id: socket.id, name: player.name });
+      if (!player) return;
+      if (typeof name === "string") player.name = (name.trim() || "Player").slice(0, 16);
+      if (typeof emoji === "string") player.emoji = emoji.slice(0, 4);
+      io.to(code).emit("playerUpdated", { id: socket.id, name: player.name, emoji: player.emoji });
     });
 
     // Host-only synced start: broadcast a countdown to the whole room so
