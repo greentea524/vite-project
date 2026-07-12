@@ -19,9 +19,9 @@ function Card({ card, selected = false, onClick }) {
     <motion.button
       type="button"
       layoutId={card.id}
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0, opacity: 0 }}
+      initial={{ scale: 0, opacity: 0, y: 0 }}
+      animate={{ scale: 1, opacity: 1, y: selected ? -16 : 0 }}
+      exit={{ scale: 0, opacity: 0, y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={`big2-card big2-card-${SUIT_COLOR[card.suit]}${
         selected ? " big2-card-selected" : ""

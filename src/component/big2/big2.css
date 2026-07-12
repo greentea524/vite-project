@@ -23,10 +23,8 @@
 }
 
 .big2-card-selected {
-  transform: translateY(-12px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   outline: 2px solid #2f6fdb;
-  z-index: 1;
 }
 
 .big2-card-red {
@@ -643,7 +641,6 @@
   /* Selected cards pop further so the lifted state is obvious under a
      thumb. */
   .big2-card-selected {
-    transform: translateY(-18px);
     outline-width: 3px;
   }
 
