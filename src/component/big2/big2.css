@@ -485,6 +485,7 @@
   flex-wrap: wrap;
   justify-content: center;
   padding-top: 14px; /* room for the selected-card lift */
+  gap: 16px 0; /* Vertical gap to utilize room below when wrapping */
   /* Swipe-to-select (#113): keep touch drags as pointer moves instead
      of page scrolls. */
   touch-action: none;
@@ -498,7 +499,7 @@
 }
 
 .big2-my-hand .big2-card + .big2-card {
-  margin-left: -22px;
+  margin-left: -8px; /* Less overlap so cards aren't hidden */
 }
 
 .big2-actions {
@@ -623,8 +624,13 @@
     margin-top: -32px;
   }
 
+  .big2-my-hand .big2-card {
+    width: 48px; /* Larger cards for player view */
+    height: 68px;
+  }
+  
   .big2-my-hand .big2-card + .big2-card {
-    margin-left: -14px;
+    margin-left: -6px; /* Allow cards to take more space and wrap naturally */
   }
 
   .big2-center {
@@ -692,6 +698,6 @@
   }
 
   .big2-my-hand .big2-card + .big2-card {
-    margin-left: -12px;
+    margin-left: -6px;
   }
 }
