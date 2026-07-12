@@ -1,16 +1,8 @@
-import { useEffect, useState } from "react";
 import reactLogo from "../assets/react.svg";
 import viteLogo from "../assets/vite.svg";
 import ProjectLinks from "./ProjectLinks.jsx";
 
 function Home() {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const splashTimer = setTimeout(() => setLoading(false), 500);
-    return () => {
-      clearTimeout(splashTimer);
-    };
-  }, []);
 
   return (
     <div className="home-wrapper">
@@ -40,18 +32,12 @@ function Home() {
           </p>
         </div>
 
-        {loading ? (
-          <output className="spinner-border text-success" aria-live="polite">
-            <span className="sr-only">Loading...</span>
-          </output>
-        ) : (
-          <div
-            className="animate-fade-in-up"
-            style={{ animationDelay: "0.3s" }}
-          >
-            <ProjectLinks />
-          </div>
-        )}
+        <div
+          className="animate-fade-in-up"
+          style={{ animationDelay: "0.3s" }}
+        >
+          <ProjectLinks />
+        </div>
       </div>
     </div>
   );

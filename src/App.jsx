@@ -3,19 +3,13 @@ import ReactTabHeader from "./component/ReactTabHeader.jsx";
 import React, { useReducer, useEffect } from "react";
 
 const ACTIONS = {
-  START_THEME_LOAD: "START_THEME_LOAD",
-  FINISH_THEME_LOAD: "FINISH_THEME_LOAD",
   CHANGE_THEME: "CHANGE_THEME",
 };
 
 function reducer(state, action) {
   switch (action.type) {
-    case ACTIONS.START_THEME_LOAD:
-      return { ...state, loading: true, hidden: true };
-    case ACTIONS.FINISH_THEME_LOAD:
-      return { ...state, loading: false, hidden: false };
     case ACTIONS.CHANGE_THEME:
-      return { ...state, theme: action.payload.theme, hidden: true };
+      return { ...state, theme: action.payload.theme };
     default:
       return state;
   }
@@ -24,20 +18,14 @@ function reducer(state, action) {
 function App() {
   const [state, dispatch] = useReducer(reducer, {
     theme: "xp.css",
-    loading: false,
-    hidden: false,
   });
   const [showCredits, setShowCredits] = React.useState(false);
 
   useEffect(() => {
-    dispatch({ type: ACTIONS.START_THEME_LOAD });
     // Dynamically import the selected theme CSS file from node_modules
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = `https://unpkg.com/${state.theme}`;
-    link.onload = () => {
-      dispatch({ type: ACTIONS.FINISH_THEME_LOAD });
-    };
     document.head.appendChild(link);
 
     return () => {
@@ -54,12 +42,7 @@ function App() {
 
   return (
     <>
-      {state.loading && (
-        <div className="loading-screen">
-          <div className="loading-spinner"></div>
-        </div>
-      )}
-      <div className="App" hidden={state.hidden} data-theme={state.theme}>
+      <div className="App" data-theme={state.theme}>
         <div className="theme-switcher">
           <section className="field-row" style={{ gap: '12px' }}>
             <div className="field-row" style={{ gap: '4px', margin: 0 }}>
