@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Card, { CardBack } from "./Card.jsx";
 import { newGame, playCards, passTurn } from "./game.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
+import { chooseBotMove } from "./bot.js";
 import "./big2.css";
 
 const PLAYER_NAMES = ["You", "West", "North", "East"];
@@ -25,9 +26,8 @@ function OpponentSeat({ name, count, active, side }) {
 
 /**
  * Big 2 game table — KAN-60. Four seats, centre trick display, and the
- * local player's selectable hand with Play/Pass controls. Opponents run
- * a stand-in turn (open with lowest single, else pass) until the real
- * bots arrive in KAN-61.
+ * local player's selectable hand with Play/Pass controls. The three
+ * opponent seats are played by the KAN-61 bots.
  */
 function Big2() {
   const [state, setState] = useState(() => newGame());
@@ -43,17 +43,16 @@ function Big2() {
   const playable = isMyTurn && canBeat(selectedCards, state.trick?.cards);
   const passable = isMyTurn && canPass(state.trick?.cards);
 
-  // Stand-in opponent turns until KAN-61: lead the lowest single when
-  // opening, otherwise pass. Delayed so turns are followable.
+  // Bot turns (KAN-61), randomly delayed 800–1200ms to feel natural.
   useEffect(() => {
     if (state.winner !== null || state.turn === LOCAL_PLAYER) return undefined;
     const timer = setTimeout(() => {
       setState((s) => {
         if (s.winner !== null || s.turn === LOCAL_PLAYER) return s;
-        if (!s.trick) return playCards(s, [s.hands[s.turn][0].id]);
-        return passTurn(s);
+        const move = chooseBotMove(s.hands[s.turn], s.trick?.cards);
+        return move.type === "play" ? playCards(s, move.cardIds) : passTurn(s);
       });
-    }, 900);
+    }, 800 + Math.random() * 400);
     return () => clearTimeout(timer);
   }, [state]);
 
