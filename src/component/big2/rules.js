@@ -37,8 +37,9 @@ export const HAND_TYPE_LABEL = {
 
 // Straights use sequence order, not Big 2 rank order: 2 is always low
 // (no wrapping like K-A-2), A is normally high (10-J-Q-K-A is the top
-// straight) but may also play low for the 5-4-3-2-A wheel.
-const SEQ_VALUE = {
+// straight) but may also play low for the 5-4-3-2-A wheel. Exported for
+// the scoring module's straight-flush detection.
+export const SEQ_VALUE = {
   2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10,
   J: 11, Q: 12, K: 13, A: 14,
 };

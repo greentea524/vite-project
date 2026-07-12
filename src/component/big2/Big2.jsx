@@ -3,6 +3,7 @@ import Card, { CardBack } from "./Card.jsx";
 import { newGame, playCards, passTurn } from "./game.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import { chooseBotMove } from "./bot.js";
+import { scoreRound } from "./scoring.js";
 import "./big2.css";
 
 const PLAYER_NAMES = ["You", "West", "North", "East"];
@@ -32,6 +33,9 @@ function OpponentSeat({ name, count, active, side }) {
 function Big2() {
   const [state, setState] = useState(() => newGame());
   const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [round, setRound] = useState(1);
+  const [totals, setTotals] = useState([0, 0, 0, 0]);
+  const [roundResult, setRoundResult] = useState(null);
 
   const isMyTurn = state.turn === LOCAL_PLAYER && state.winner === null;
   const myHand = state.hands[LOCAL_PLAYER];
@@ -77,9 +81,19 @@ function Big2() {
     setState(passTurn);
   };
 
-  const restart = () => {
-    setState(newGame());
+  // Score the round exactly once when someone goes out (KAN-62).
+  useEffect(() => {
+    if (state.winner === null || roundResult !== null) return;
+    const result = scoreRound(state.hands, state.winner);
+    setRoundResult(result);
+    setTotals((t) => t.map((v, i) => v + result.deltas[i]));
+  }, [state, roundResult]);
+
+  const nextRound = () => {
+    setState(newGame()); // fresh shuffle, deal, and 3♦ lead
     setSelectedIds(new Set());
+    setRoundResult(null);
+    setRound((r) => r + 1);
   };
 
   // Selection feedback doubles as the invalid-play error state.
@@ -102,12 +116,73 @@ function Big2() {
 
   return (
     <div className="big2-table-page">
-      {state.winner !== null && (
-        <div className="big2-banner">
-          <strong>{PLAYER_NAMES[state.winner]} won the round!</strong>
-          <button type="button" onClick={restart}>
-            New game
-          </button>
+      {state.winner !== null && roundResult && (
+        <div className="big2-results-overlay">
+          <div className="big2-results">
+            <h2 className="big2-results-title">
+              Round {round} — {PLAYER_NAMES[state.winner]}{" "}
+              {state.winner === LOCAL_PLAYER ? "win" : "wins"}!
+            </h2>
+            <table className="big2-results-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Cards left</th>
+                  <th>Round</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PLAYER_NAMES.map((name, i) => {
+                  const b = roundResult.breakdown[i];
+                  return (
+                    <tr key={name}>
+                      <td>
+                        {name}
+                        {i === state.winner && " 🏆"}
+                      </td>
+                      <td>
+                        {i === state.winner ? (
+                          <em>went out</em>
+                        ) : (
+                          <span className="big2-results-cards">
+                            {state.hands[i].map((card) => (
+                              <Card key={card.id} card={card} />
+                            ))}
+                          </span>
+                        )}
+                        {(b.doubledByTwos || b.doubledByStrong) && (
+                          <div className="big2-results-doubles">
+                            {b.doubledByTwos && <span>unused 2 ×2</span>}
+                            {b.doubledByStrong && <span>quad/straight flush ×2</span>}
+                          </div>
+                        )}
+                      </td>
+                      <td
+                        className={
+                          roundResult.deltas[i] >= 0
+                            ? "big2-score-pos"
+                            : "big2-score-neg"
+                        }
+                      >
+                        {roundResult.deltas[i] >= 0 ? "+" : ""}
+                        {roundResult.deltas[i]}
+                      </td>
+                      <td>{totals[i]}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="big2-results-actions">
+              <button type="button" onClick={nextRound}>
+                Play again
+              </button>
+              <a className="big2-results-link" href="../">
+                Back to Games
+              </a>
+            </div>
+          </div>
         </div>
       )}
 

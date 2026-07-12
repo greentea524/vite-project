@@ -94,16 +94,109 @@
   max-width: 960px;
 }
 
-.big2-banner {
+/* End-of-round results (KAN-62) */
+.big2-results-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.big2-results {
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px 24px;
+  border-radius: 12px;
+  background: #fdfbf2;
+  border: 2px solid #b9a44c;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+.big2-results-title {
+  margin: 0 0 12px;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.big2-results-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.big2-results-table th,
+.big2-results-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e0d9c2;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.9rem;
+}
+
+.big2-results-cards {
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+
+/* Mini card faces inside the results table */
+.big2-results-cards .big2-card {
+  width: 30px;
+  height: 42px;
+  cursor: default;
+  border-radius: 4px;
+}
+
+.big2-results-cards .big2-card + .big2-card {
+  margin-left: -12px;
+}
+
+.big2-results-cards .big2-card .big2-card-pip {
+  font-size: 0.85rem;
+}
+
+.big2-results-cards .big2-card .big2-card-corner {
+  font-size: 0.5rem;
+  top: 2px;
+  left: 2px;
+}
+
+.big2-results-cards .big2-card .big2-card-corner-bottom {
+  display: none;
+}
+
+.big2-results-doubles {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8a5a00;
+}
+
+.big2-score-pos {
+  color: #1b7a2f;
+  font-weight: 700;
+}
+
+.big2-score-neg {
+  color: #a12626;
+  font-weight: 700;
+}
+
+.big2-results-actions {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  background: #fdf6d8;
-  border: 1px solid #d8c66a;
-  font-size: 1rem;
+  margin-top: 16px;
+}
+
+.big2-results-link {
+  font-size: 0.9rem;
 }
 
 .big2-table {
