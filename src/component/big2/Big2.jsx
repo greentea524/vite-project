@@ -4,6 +4,7 @@ import { newGame, playCards, passTurn } from "./game.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import { chooseBotMove } from "./bot.js";
 import { scoreRound } from "./scoring.js";
+import Card from "./Card.jsx";
 import { Network } from "./network.js";
 import { InstructionsOverlay } from "./Instructions.jsx";
 import { StatsOverlay } from "./StatsOverlay.jsx";
@@ -201,6 +202,14 @@ function Big2() {
 
   return (
     <div className="big2-panel big2-menu">
+      <div className="big2-menu-cards">
+        <div className="big2-menu-card-wrap big2-menu-card-left">
+          <Card card={{ rank: "2", suit: "S", id: "menu-2S" }} />
+        </div>
+        <div className="big2-menu-card-wrap big2-menu-card-right">
+          <Card card={{ rank: "2", suit: "H", id: "menu-2H" }} />
+        </div>
+      </div>
       <h1 className="big2-menu-title">Big 2 大老二</h1>
       <p className="big2-muted">
         Shed all 13 cards first. Singles, pairs, triples, and five-card

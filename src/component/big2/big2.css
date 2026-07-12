@@ -115,6 +115,25 @@
   margin: 0;
 }
 
+.big2-menu-cards {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.big2-menu-card-wrap {
+  pointer-events: none; /* purely decorative */
+}
+
+.big2-menu-card-left {
+  transform: rotate(-12deg) translateY(4px);
+}
+
+.big2-menu-card-right {
+  transform: rotate(12deg) translateY(4px);
+}
+
 .big2-menu-title {
   font-size: 1.6rem;
 }
