@@ -118,6 +118,7 @@ class ReactTabHeader extends Component {
           className="mb-3 px-3"
           variant="pills"
           fill
+          unmountOnExit
         >
           <Tab eventKey="home" title="Home">
             <Home />
@@ -132,6 +133,7 @@ class ReactTabHeader extends Component {
               className="mb-3"
               variant="tabs"
               justify
+              unmountOnExit
             >
               <Tab eventKey="fuelcalculator" title="FuelCalculator">
                 <FuelCalculator />
