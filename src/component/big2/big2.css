@@ -1,0 +1,132 @@
+/* Big 2 — card faces and demo layout (KAN-58) */
+
+.big2-card {
+  position: relative;
+  display: inline-flex;
+  width: 52px;
+  height: 74px;
+  padding: 0;
+  border: 1px solid #9aa0a6;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  font-family: Georgia, "Times New Roman", serif;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  flex: 0 0 auto;
+}
+
+.big2-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.big2-card-selected {
+  transform: translateY(-12px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  outline: 2px solid #2f6fdb;
+}
+
+.big2-card-red {
+  color: #c0392b;
+}
+
+.big2-card-black {
+  color: #1c1c1c;
+}
+
+.big2-card-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.big2-card-corner-top {
+  top: 4px;
+  left: 4px;
+}
+
+.big2-card-corner-bottom {
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(180deg);
+}
+
+.big2-card-pip {
+  margin: auto;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* Face-down back */
+.big2-card-back {
+  cursor: default;
+  background: #fff;
+  overflow: hidden;
+}
+
+.big2-card-back-pattern {
+  position: absolute;
+  inset: 4px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    45deg,
+    #2f6fdb 0,
+    #2f6fdb 4px,
+    #245bb5 4px,
+    #245bb5 8px
+  );
+}
+
+/* Demo screen (replaced by the game table in KAN-60) */
+.big2-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  max-width: 860px;
+}
+
+.big2-demo-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.big2-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #c8c8c8;
+  border-radius: 6px;
+  background: #f4f6f8;
+}
+
+.big2-hand-title {
+  margin: 0 0 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.big2-starting-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #2f6fdb;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.big2-deck-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
