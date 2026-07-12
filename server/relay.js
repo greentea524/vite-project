@@ -8,6 +8,7 @@
 
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+import { attachBig2, big2OnLeave, big2OnRoomClosed } from "./big2.js";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no easily-confused chars
 const CODE_LEN = 4;
@@ -80,6 +81,7 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     room.players.delete(socket.id);
     socket.leave(code);
     if (room.players.size === 0) {
+      big2OnRoomClosed(room); // stop any pending bot timer
       rooms.delete(code); // empty rooms disappear
       return;
     }
@@ -89,6 +91,8 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       room.hostId = room.players.keys().next().value;
       io.to(code).emit("hostChanged", { hostId: room.hostId });
     }
+    // A Big 2 seat left mid-game: a bot takes it over (KAN-63).
+    big2OnLeave(io, code, room, socket.id);
   }
 
   function join(socket, room, code, { name, avatar }) {
@@ -112,6 +116,9 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
   }
 
   io.on("connection", (socket) => {
+    // Server-authoritative Big 2 events (KAN-63) live in big2.js.
+    attachBig2(io, rooms, socket);
+
     socket.on("createRoom", (payload = {}, ack) => {
       const code = makeCode(rooms);
       // Rooms carry a game tag and their own player cap (#79): the

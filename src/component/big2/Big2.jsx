@@ -1,36 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Card, { CardBack } from "./Card.jsx";
+import { TableView, ResultsOverlay } from "./Table.jsx";
 import { newGame, playCards, passTurn } from "./game.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import { chooseBotMove } from "./bot.js";
 import { scoreRound } from "./scoring.js";
+import { Network } from "./network.js";
+import Online from "./Online.jsx";
 import "./big2.css";
 
 const PLAYER_NAMES = ["You", "West", "North", "East"];
 const LOCAL_PLAYER = 0;
 
-/** Face-down hand + card count for an opponent seat. */
-function OpponentSeat({ name, count, active, side }) {
-  return (
-    <div className={`big2-seat big2-seat-${side}${active ? " big2-seat-active" : ""}`}>
-      <div className="big2-seat-name">
-        {name} <span className="big2-seat-count">{count}</span>
-      </div>
-      <div className="big2-seat-cards">
-        {Array.from({ length: count }, (_, i) => (
-          <CardBack key={i} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /**
- * Big 2 game table — KAN-60. Four seats, centre trick display, and the
- * local player's selectable hand with Play/Pass controls. The three
- * opponent seats are played by the KAN-61 bots.
+ * Solo Big 2 vs three bots (KAN-60/61/62): local state machine, bot
+ * turns on a natural delay, scoring overlay between rounds.
  */
-function Big2() {
+function SoloGame({ onExit }) {
   const [state, setState] = useState(() => newGame());
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [round, setRound] = useState(1);
@@ -60,27 +45,6 @@ function Big2() {
     return () => clearTimeout(timer);
   }, [state]);
 
-  const toggleCard = (id) => {
-    if (state.winner !== null) return;
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const submitPlay = () => {
-    if (!playable) return;
-    setState((s) => playCards(s, [...selectedIds]));
-    setSelectedIds(new Set());
-  };
-
-  const submitPass = () => {
-    if (!passable) return;
-    setState(passTurn);
-  };
-
   // Score the round exactly once when someone goes out (KAN-62).
   useEffect(() => {
     if (state.winner === null || roundResult !== null) return;
@@ -96,165 +60,142 @@ function Big2() {
     setRound((r) => r + 1);
   };
 
+  const toggleCard = (id) => {
+    if (state.winner !== null) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   // Selection feedback doubles as the invalid-play error state.
-  let selectionHint = null;
+  let hint = null;
   if (selectedCards.length > 0) {
     if (!selection) {
-      selectionHint = <span className="big2-hint big2-hint-bad">Not a valid combination</span>;
+      hint = <span className="big2-hint big2-hint-bad">Not a valid combination</span>;
     } else if (!playable && isMyTurn) {
-      selectionHint = (
+      hint = (
         <span className="big2-hint big2-hint-bad">
           {HAND_TYPE_LABEL[selection.type]} can’t beat the current trick
         </span>
       );
     } else {
-      selectionHint = (
+      hint = (
         <span className="big2-hint big2-hint-ok">{HAND_TYPE_LABEL[selection.type]}</span>
       );
     }
   }
 
+  const seat = (i) => ({
+    name: PLAYER_NAMES[i],
+    count: state.hands[i].length,
+    active: state.winner === null && state.turn === i,
+  });
+
   return (
     <div className="big2-table-page">
       {state.winner !== null && roundResult && (
-        <div className="big2-results-overlay">
-          <div className="big2-results">
-            <h2 className="big2-results-title">
-              Round {round} — {PLAYER_NAMES[state.winner]}{" "}
-              {state.winner === LOCAL_PLAYER ? "win" : "wins"}!
-            </h2>
-            <table className="big2-results-table">
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Cards left</th>
-                  <th>Round</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {PLAYER_NAMES.map((name, i) => {
-                  const b = roundResult.breakdown[i];
-                  return (
-                    <tr key={name}>
-                      <td>
-                        {name}
-                        {i === state.winner && " 🏆"}
-                      </td>
-                      <td>
-                        {i === state.winner ? (
-                          <em>went out</em>
-                        ) : (
-                          <span className="big2-results-cards">
-                            {state.hands[i].map((card) => (
-                              <Card key={card.id} card={card} />
-                            ))}
-                          </span>
-                        )}
-                        {(b.doubledByTwos || b.doubledByStrong) && (
-                          <div className="big2-results-doubles">
-                            {b.doubledByTwos && <span>unused 2 ×2</span>}
-                            {b.doubledByStrong && <span>quad/straight flush ×2</span>}
-                          </div>
-                        )}
-                      </td>
-                      <td
-                        className={
-                          roundResult.deltas[i] >= 0
-                            ? "big2-score-pos"
-                            : "big2-score-neg"
-                        }
-                      >
-                        {roundResult.deltas[i] >= 0 ? "+" : ""}
-                        {roundResult.deltas[i]}
-                      </td>
-                      <td>{totals[i]}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="big2-results-actions">
-              <button type="button" onClick={nextRound}>
-                Play again
-              </button>
-              <a className="big2-results-link" href="../">
-                Back to Games
-              </a>
-            </div>
-          </div>
-        </div>
+        <ResultsOverlay
+          title={`Round ${round} — ${PLAYER_NAMES[state.winner]} ${
+            state.winner === LOCAL_PLAYER ? "win" : "wins"
+          }!`}
+          rows={PLAYER_NAMES.map((name, i) => ({
+            name,
+            isWinner: i === state.winner,
+            cards: state.hands[i],
+            doubledByTwos: roundResult.breakdown[i].doubledByTwos,
+            doubledByStrong: roundResult.breakdown[i].doubledByStrong,
+            delta: roundResult.deltas[i],
+            total: totals[i],
+          }))}
+        >
+          <button type="button" onClick={nextRound}>
+            Play again
+          </button>
+          <button type="button" className="big2-link-btn" onClick={onExit}>
+            Menu
+          </button>
+        </ResultsOverlay>
       )}
+      <TableView
+        opponents={[seat(1), seat(2), seat(3)]}
+        trick={
+          state.trick
+            ? {
+                cards: state.trick.cards,
+                label: `${HAND_TYPE_LABEL[classifyHand(state.trick.cards)?.type]} by ${PLAYER_NAMES[state.trick.owner]}`,
+              }
+            : null
+        }
+        leadText={`New trick — ${PLAYER_NAMES[state.turn]} lead${
+          state.turn === LOCAL_PLAYER ? "" : "s"
+        } anything`}
+        turnText={
+          state.winner === null
+            ? isMyTurn
+              ? "Your turn"
+              : `${PLAYER_NAMES[state.turn]}’s turn`
+            : null
+        }
+        myActive={isMyTurn}
+        myHand={myHand}
+        selectedIds={selectedIds}
+        onToggleCard={toggleCard}
+        onPlay={() => {
+          if (!playable) return;
+          setState((s) => playCards(s, [...selectedIds]));
+          setSelectedIds(new Set());
+        }}
+        onPass={() => passable && setState(passTurn)}
+        playEnabled={playable}
+        passEnabled={passable}
+        hint={hint}
+      />
+    </div>
+  );
+}
 
-      <div className="big2-table">
-        <OpponentSeat
-          name={PLAYER_NAMES[2]}
-          count={state.hands[2].length}
-          active={state.turn === 2 && state.winner === null}
-          side="north"
-        />
-        <OpponentSeat
-          name={PLAYER_NAMES[1]}
-          count={state.hands[1].length}
-          active={state.turn === 1 && state.winner === null}
-          side="west"
-        />
+/**
+ * Big 2 entry point: main menu choosing solo vs bots (KAN-60/61/62) or
+ * online with friends (KAN-63). A ?join=CODE invite link skips the
+ * menu straight into the online join flow.
+ */
+function Big2() {
+  const joinCode = useMemo(
+    () => new URLSearchParams(window.location.search).get("join") || "",
+    []
+  );
+  const [mode, setMode] = useState(joinCode ? "online" : "menu");
 
-        <div className="big2-center">
-          {state.trick ? (
-            <>
-              <div className="big2-trick-cards">
-                {state.trick.cards.map((card) => (
-                  <Card key={card.id} card={card} />
-                ))}
-              </div>
-              <div className="big2-trick-label">
-                {HAND_TYPE_LABEL[classifyHand(state.trick.cards)?.type]} by{" "}
-                {PLAYER_NAMES[state.trick.owner]}
-              </div>
-            </>
-          ) : (
-            <div className="big2-trick-label">
-              New trick — {PLAYER_NAMES[state.turn]} lead
-              {state.turn === LOCAL_PLAYER ? "" : "s"} anything
-            </div>
-          )}
-          {state.winner === null && (
-            <div className="big2-turn-indicator">
-              {isMyTurn ? "Your turn" : `${PLAYER_NAMES[state.turn]}’s turn`}
-            </div>
-          )}
-        </div>
+  if (mode === "solo") return <SoloGame onExit={() => setMode("menu")} />;
+  if (mode === "online") return <Online joinCode={joinCode} onExit={() => setMode("menu")} />;
 
-        <OpponentSeat
-          name={PLAYER_NAMES[3]}
-          count={state.hands[3].length}
-          active={state.turn === 3 && state.winner === null}
-          side="east"
-        />
-
-        <div className={`big2-seat big2-seat-south${isMyTurn ? " big2-seat-active" : ""}`}>
-          <div className="big2-my-hand">
-            {myHand.map((card) => (
-              <Card
-                key={card.id}
-                card={card}
-                selected={selectedIds.has(card.id)}
-                onClick={() => toggleCard(card.id)}
-              />
-            ))}
-          </div>
-          <div className="big2-actions">
-            <button type="button" onClick={submitPlay} disabled={!playable}>
-              Play
-            </button>
-            <button type="button" onClick={submitPass} disabled={!passable}>
-              Pass
-            </button>
-            {selectionHint}
-          </div>
-        </div>
-      </div>
+  return (
+    <div className="big2-panel big2-menu">
+      <h1 className="big2-menu-title">Big 2 大老二</h1>
+      <p className="big2-muted">
+        Shed all 13 cards first. Singles, pairs, triples, and five-card
+        poker hands — 2s rank highest.
+      </p>
+      <button type="button" className="big2-menu-btn" onClick={() => setMode("solo")}>
+        🤖 Play vs bots
+      </button>
+      <button
+        type="button"
+        className="big2-menu-btn"
+        disabled={!Network.isConfigured()}
+        onClick={() => setMode("online")}
+      >
+        👥 Play with friends
+      </button>
+      {!Network.isConfigured() && (
+        <p className="big2-muted">Multiplayer isn’t configured in this build.</p>
+      )}
+      <a className="big2-link-btn" href="../">
+        ‹ Back to Games
+      </a>
     </div>
   );
 }
