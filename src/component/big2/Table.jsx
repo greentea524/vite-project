@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Card, { CardBack } from "./Card.jsx";
+import { sortHandBySuit } from "./deck.js";
 import "./big2.css";
 
 /**
@@ -45,6 +46,19 @@ export function TableView({
   onMenu,
 }) {
   const [west, north, east] = opponents;
+  // Display sort (#114): hands arrive rank-sorted; "suit" regroups the
+  // view only — selection state keys on card ids, so it's unaffected.
+  const [sortMode, setSortMode] = useState(
+    () => window.localStorage.getItem("big2:sort") || "rank"
+  );
+  const displayHand = useMemo(
+    () => (sortMode === "suit" ? sortHandBySuit(myHand) : myHand),
+    [myHand, sortMode]
+  );
+  const pickSort = (mode) => {
+    setSortMode(mode);
+    window.localStorage.setItem("big2:sort", mode);
+  };
   return (
     <div className="big2-table">
       {onMenu && (
@@ -81,7 +95,7 @@ export function TableView({
 
       <div className={`big2-seat big2-seat-south${myActive ? " big2-seat-active" : ""}`}>
         <div className="big2-my-hand">
-          {myHand.map((card) => (
+          {displayHand.map((card) => (
             <Card
               key={card.id}
               card={card}
@@ -97,6 +111,25 @@ export function TableView({
           <button type="button" onClick={onPass} disabled={!passEnabled}>
             Pass
           </button>
+          <span className="big2-sort" role="group" aria-label="Sort hand">
+            <span className="big2-sort-label">Sort:</span>
+            <button
+              type="button"
+              className={sortMode === "rank" ? "big2-sort-active" : ""}
+              aria-pressed={sortMode === "rank"}
+              onClick={() => pickSort("rank")}
+            >
+              Rank
+            </button>
+            <button
+              type="button"
+              className={sortMode === "suit" ? "big2-sort-active" : ""}
+              aria-pressed={sortMode === "suit"}
+              onClick={() => pickSort("suit")}
+            >
+              Suit
+            </button>
+          </span>
           {hint}
         </div>
       </div>

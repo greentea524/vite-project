@@ -68,6 +68,13 @@ export class Network {
       this.roster = this.roster.filter((r) => r.id !== id);
       this._emit("roster", this.roster);
     });
+    // Lobby renames (#116): the relay's setName broadcast, shared with
+    // the platformer lobby.
+    socket.on("playerUpdated", ({ id, name }) => {
+      if (typeof name !== "string") return;
+      this.roster = this.roster.map((r) => (r.id === id ? { ...r, name } : r));
+      this._emit("roster", this.roster);
+    });
     socket.on("hostChanged", ({ hostId }) => {
       this.hostId = hostId;
       this._emit("roster", this.roster); // re-render lobby (host badge/Start)
@@ -121,6 +128,12 @@ export class Network {
           resolve(res);
         });
     });
+  }
+
+  // Rename in the lobby (#116); the relay sanitizes and broadcasts
+  // playerUpdated to the whole room, sender included.
+  setName(name) {
+    this.socket?.emit("setName", { name });
   }
 
   // Host-only: deal and start; bots fill any empty seats server-side.
