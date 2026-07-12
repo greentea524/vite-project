@@ -1,4 +1,4 @@
-/* Big 2 — card faces and demo layout (KAN-58) */
+/* Big 2 — card faces (KAN-58) and game table (KAN-60) */
 
 .big2-card {
   position: relative;
@@ -19,12 +19,14 @@
 
 .big2-card:hover {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  z-index: 2;
 }
 
 .big2-card-selected {
   transform: translateY(-12px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   outline: 2px solid #2f6fdb;
+  z-index: 1;
 }
 
 .big2-card-red {
@@ -82,51 +84,215 @@
   );
 }
 
-/* Demo screen (replaced by the game table in KAN-60) */
-.big2-demo {
+/* ---------- Game table ---------- */
+
+.big2-table-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 12px;
-  max-width: 860px;
+  gap: 12px;
+  width: 100%;
+  max-width: 960px;
 }
 
-.big2-demo-controls {
+.big2-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: #fdf6d8;
+  border: 1px solid #d8c66a;
+  font-size: 1rem;
 }
 
-.big2-hand {
+.big2-table {
+  display: grid;
+  grid-template-areas:
+    ". north ."
+    "west center east"
+    "south south south";
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #1d7a46;
+  border: 6px solid #14532d;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.25);
+  min-height: 480px;
+  box-sizing: border-box;
+}
+
+.big2-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+}
+
+.big2-seat-active {
+  border-color: #ffd54f;
+  background: rgba(255, 213, 79, 0.12);
+}
+
+.big2-seat-north {
+  grid-area: north;
+}
+
+.big2-seat-west {
+  grid-area: west;
+}
+
+.big2-seat-east {
+  grid-area: east;
+}
+
+.big2-seat-south {
+  grid-area: south;
+}
+
+.big2-seat-name {
+  color: #f2f7f2;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.big2-seat-count {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+/* Opponents: overlapped face-down stacks. North lies flat; the side
+   seats stack vertically so the table stays narrow. */
+.big2-seat-cards {
+  display: flex;
+}
+
+.big2-seat-north .big2-seat-cards .big2-card + .big2-card {
+  margin-left: -38px;
+}
+
+.big2-seat-west .big2-seat-cards,
+.big2-seat-east .big2-seat-cards {
+  flex-direction: column;
+}
+
+.big2-seat-west .big2-seat-cards .big2-card + .big2-card,
+.big2-seat-east .big2-seat-cards .big2-card + .big2-card {
+  margin-top: -60px;
+}
+
+/* Centre: current trick */
+.big2-center {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+}
+
+.big2-trick-cards {
+  display: flex;
+  gap: 4px;
+}
+
+.big2-trick-label {
+  color: #eaf4ea;
+  font-size: 0.9rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.big2-turn-indicator {
+  padding: 2px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffd54f;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Local player's fanned hand + actions */
+.big2-my-hand {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid #c8c8c8;
-  border-radius: 6px;
-  background: #f4f6f8;
+  justify-content: center;
+  padding-top: 14px; /* room for the selected-card lift */
 }
 
-.big2-hand-title {
-  margin: 0 0 4px;
+.big2-my-hand .big2-card + .big2-card {
+  margin-left: -22px;
+}
+
+.big2-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+
+.big2-actions button {
+  min-width: 72px;
+}
+
+.big2-hint {
   font-size: 0.85rem;
   font-weight: 700;
-}
-
-.big2-starting-badge {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 1px 8px;
+  padding: 2px 10px;
   border-radius: 10px;
-  background: #2f6fdb;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
 }
 
-.big2-deck-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.big2-hint-ok {
+  background: rgba(0, 0, 0, 0.35);
+  color: #9be89b;
+}
+
+.big2-hint-bad {
+  background: #7a1d1d;
+  color: #ffd7d7;
+}
+
+/* Compact cards on small screens */
+@media (max-width: 640px) {
+  .big2-card {
+    width: 40px;
+    height: 58px;
+  }
+
+  .big2-card-pip {
+    font-size: 1.2rem;
+  }
+
+  .big2-card-corner {
+    font-size: 0.6rem;
+  }
+
+  .big2-seat-north .big2-seat-cards .big2-card + .big2-card {
+    margin-left: -32px;
+  }
+
+  .big2-seat-west .big2-seat-cards .big2-card + .big2-card,
+  .big2-seat-east .big2-seat-cards .big2-card + .big2-card {
+    margin-top: -50px;
+  }
+
+  .big2-my-hand .big2-card + .big2-card {
+    margin-left: -16px;
+  }
+
+  .big2-table {
+    padding: 8px;
+    gap: 6px;
+    min-height: 0;
+  }
 }
