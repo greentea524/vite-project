@@ -784,6 +784,7 @@ button.game-link {
 }
 
 .data-analytics-hero,
+.data-chart-panel,
 .data-table-panel {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
@@ -795,6 +796,7 @@ button.game-link {
 
 @media (prefers-color-scheme: light) {
   .data-analytics-hero,
+  .data-chart-panel,
   .data-table-panel {
     background: rgba(255, 255, 255, 0.6);
     border: 1px solid rgba(0, 0, 0, 0.05);
@@ -860,9 +862,6 @@ button.game-link {
 .data-chart-panel {
   width: 100%;
   min-height: 480px;
-  border: 1px solid rgba(13, 110, 253, 0.18);
-  border-radius: 16px;
-  background: #fff;
   padding: 0.5rem;
   overflow: hidden;
 }

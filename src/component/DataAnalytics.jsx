@@ -131,12 +131,10 @@ function DataAnalytics({ theme }) {
       legend: { position: "none" },
       colors: ["#0d6efd"],
       chartArea: {
-        left: 70,
+        left: 60,
         top: 50,
-        right: 24,
-        bottom: 80,
-        width: "88%",
-        height: "72%",
+        right: 30,
+        bottom: 60,
       },
       hAxis: {
         title: "Index",
