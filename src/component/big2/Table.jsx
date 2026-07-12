@@ -22,7 +22,14 @@ function OpponentSeat({ name, count, active, side }) {
   return (
     <div className={`big2-seat big2-seat-${side}${active ? " big2-seat-active" : ""}`}>
       <div className="big2-seat-name">
-        {name} <span className="big2-seat-count">{count}</span>
+        {name}
+        {active && (
+          <span className="big2-thinking">
+            thinking<span>.</span><span>.</span><span>.</span>
+          </span>
+        )}
+        {" "}
+        <span className="big2-seat-count">{count}</span>
       </div>
       <div className="big2-seat-cards">
         {Array.from({ length: count }, (_, i) => (
