@@ -447,12 +447,25 @@
   text-align: center;
 }
 
+.big2-thinking-container {
+  height: 14px;
+  width: 100%;
+  position: relative;
+  margin: -2px 0;
+}
+
 .big2-thinking {
-  font-size: 0.8rem;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
   color: #ffd54f;
-  margin: 0 4px;
+  margin: 0;
   font-weight: 500;
   font-style: italic;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .big2-thinking span {
