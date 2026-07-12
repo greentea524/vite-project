@@ -69,6 +69,11 @@ const WEB_GAMES = [
     description:
       "A 2D side-scrolling adventure featuring a multiplayer 'Race a friend' mode.",
   },
+  {
+    title: "Big 2",
+    href: `${import.meta.env.BASE_URL}big2/`,
+    description: "Shed all 13 cards first in this classic climbing card game.",
+  },
 ];
 
 
