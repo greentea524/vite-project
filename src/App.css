@@ -496,7 +496,7 @@ button.game-link {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(90deg, #ff8a00, #e52e71);
+  background: linear-gradient(90deg, #bd34fe, #61dafb);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -518,7 +518,7 @@ button.game-link {
   color: #fff;
   text-decoration: none;
   font-weight: 700;
-  background: linear-gradient(90deg, #ff8a00, #e52e71);
+  background: linear-gradient(90deg, #bd34fe, #61dafb);
   box-shadow: 0 4px 15px rgba(229, 46, 113, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -526,7 +526,7 @@ button.game-link {
 
 .utilities-launch-btn:hover,
 .utilities-launch-btn:focus {
-  background: linear-gradient(90deg, #e52e71, #ff8a00);
+  background: linear-gradient(90deg, #61dafb, #bd34fe);
   color: #fff;
   text-decoration: none;
   transform: translateY(-2px);
@@ -576,7 +576,7 @@ button.game-link {
   margin: 0 0 0.5rem;
   font-weight: 800;
   font-size: 1.8rem;
-  background: linear-gradient(90deg, #ff8a00, #e52e71);
+  background: linear-gradient(90deg, #bd34fe, #61dafb);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -613,7 +613,7 @@ button.game-link {
 
 .fuel-unit-chip.is-active {
   background: #fff;
-  color: #e52e71;
+  color: #61dafb;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -636,7 +636,7 @@ button.game-link {
 
 .fuel-field-error {
   margin-top: 0.35rem;
-  color: #e52e71;
+  color: #61dafb;
   font-size: 0.9rem;
   line-height: 1.35;
 }
@@ -660,7 +660,7 @@ button.game-link {
 
 .modern-calculator-card .form-control:focus {
   background-color: #fff;
-  border-color: #e52e71;
+  border-color: #61dafb;
   outline: 0;
   box-shadow: 0 0 0 4px rgba(229, 46, 113, 0.15);
 }
@@ -731,7 +731,7 @@ button.game-link {
   
   .fuel-unit-chip.is-active {
     background: #2b3035;
-    color: #ff8a00;
+    color: #bd34fe;
   }
   
   .fuel-form-grid label {
@@ -751,7 +751,7 @@ button.game-link {
   
   .modern-calculator-card .form-control:focus {
     background-color: rgba(0, 0, 0, 0.4);
-    border-color: #ff8a00;
+    border-color: #bd34fe;
     box-shadow: 0 0 0 4px rgba(255, 138, 0, 0.15);
   }
   
