@@ -6,6 +6,23 @@ import { buildJoinLink } from "./joinLink.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import "./big2.css";
 
+// First-visit default names (#116): friendlier than "Player" until the
+// user picks their own (which then sticks via localStorage).
+const FUN_NAMES = [
+  "CardShark",
+  "Big2Master",
+  "LuckyAce",
+  "TrickTaker",
+  "DragonHand",
+  "TwoTamer",
+  "FullHouseFan",
+  "SuitedUp",
+];
+
+function randomFunName() {
+  return FUN_NAMES[Math.floor(Math.random() * FUN_NAMES.length)];
+}
+
 /**
  * Online Big 2 (KAN-63): entry (name + create/join), lobby with invite
  * link, then the server-authoritative game. The server deals and
@@ -20,8 +37,9 @@ function Online({ joinCode, onExit }) {
   const [connState, setConnState] = useState("connecting"); // connecting | up | lost
   const [phase, setPhase] = useState("entry"); // entry | lobby | playing
   const [name, setName] = useState(
-    () => window.localStorage.getItem("big2:name") || ""
+    () => window.localStorage.getItem("big2:name") || randomFunName()
   );
+  const [nameSaved, setNameSaved] = useState(false);
   const [codeInput, setCodeInput] = useState(joinCode);
   const [busy, setBusy] = useState(false);
   const [entryError, setEntryError] = useState("");
@@ -113,6 +131,17 @@ function Online({ joinCode, onExit }) {
       cancelled = true;
     };
   }, [joinLink]);
+
+  // Lobby rename (#116): saved locally and broadcast by the relay to
+  // every client in the room (playerUpdated → roster refresh).
+  const saveName = () => {
+    const cleanName = name.trim() || randomFunName();
+    setName(cleanName);
+    window.localStorage.setItem("big2:name", cleanName);
+    net.setName(cleanName);
+    setNameSaved(true);
+    setTimeout(() => setNameSaved(false), 1500);
+  };
 
   const copyLink = async () => {
     try {
@@ -268,6 +297,19 @@ function Online({ joinCode, onExit }) {
         <button type="button" onClick={copyLink}>
           {copied ? "Copied!" : "Copy invite link"}
         </button>
+        <div className="big2-name-row">
+          <input
+            type="text"
+            value={name}
+            maxLength={16}
+            aria-label="Your name"
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && saveName()}
+          />
+          <button type="button" onClick={saveName}>
+            {nameSaved ? "Saved!" : "Update name"}
+          </button>
+        </div>
         <ul className="big2-roster">
           {roster.map((p) => (
             <li key={p.id}>

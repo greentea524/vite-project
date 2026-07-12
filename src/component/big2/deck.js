@@ -49,6 +49,20 @@ export function sortHand(hand) {
 }
 
 /**
+ * Suit-first comparator (#114): groups ♦, ♣, ♥, ♠ with ranks ascending
+ * inside each suit — the layout that makes flushes easy to spot.
+ */
+export function compareBySuit(a, b) {
+  const suit = SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit);
+  return suit !== 0 ? suit : RANKS.indexOf(a.rank) - RANKS.indexOf(b.rank);
+}
+
+/** Sorted copy of a hand grouped by suit (see compareBySuit). */
+export function sortHandBySuit(hand) {
+  return [...hand].sort(compareBySuit);
+}
+
+/**
  * Fisher–Yates shuffle. Returns a new array; the input is not mutated.
  * rng is injectable for deterministic tests.
  */

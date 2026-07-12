@@ -10,6 +10,7 @@ import {
   cardValue,
   compareCards,
   sortHand,
+  sortHandBySuit,
   shuffle,
   deal,
   findStartingPlayer,
@@ -58,6 +59,23 @@ describe("Big 2 ordering", () => {
     const sorted = sortHand(createDeck());
     expect(sorted[0].id).toBe("3D");
     expect(sorted[51].id).toBe("2S");
+  });
+
+  it("sortHandBySuit groups ♦♣♥♠ with ranks ascending inside each suit (#114)", () => {
+    const sorted = sortHandBySuit(createDeck());
+    // 13 diamonds, then clubs, hearts, spades — each run 3 → 2.
+    expect(sorted.map((c) => c.suit)).toEqual(
+      SUITS.flatMap((s) => Array(13).fill(s))
+    );
+    expect(sorted[0].id).toBe("3D");
+    expect(sorted[12].id).toBe("2D");
+    expect(sorted[13].id).toBe("3C");
+    expect(sorted[51].id).toBe("2S");
+    // Does not mutate the input.
+    const hand = [makeCard("2", "S"), makeCard("3", "S"), makeCard("4", "D")];
+    const copy = [...hand];
+    sortHandBySuit(hand);
+    expect(hand).toEqual(copy);
   });
 });
 

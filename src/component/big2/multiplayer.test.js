@@ -83,6 +83,42 @@ describe("big2 multiplayer (KAN-63)", () => {
     guest.destroy();
   });
 
+  it("syncs a lobby rename to every client (#116)", async () => {
+    const host = new Network();
+    const guest = new Network();
+    await connected(host, url);
+    await connected(guest, url);
+    const { code } = await host.createRoom("Ada");
+    await guest.joinRoom(code, "CardShark");
+
+    // Roster events also fire for the join itself, so wait on each
+    // client for the event that actually carries the new name.
+    const sawRename = (net) =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("rename never arrived")), 3000);
+        net.on("roster", (roster) => {
+          if (roster.some((r) => r.name === "Bob the Bold")) {
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+      });
+    const hostSaw = sawRename(host);
+    const guestSaw = sawRename(guest);
+    guest.setName("Bob the Bold");
+    await Promise.all([hostSaw, guestSaw]);
+    expect(host.roster.find((r) => r.id === guest.playerId)?.name).toBe(
+      "Bob the Bold"
+    );
+    // The guest's own roster reflects it too (relay echoes to sender).
+    expect(guest.roster.find((r) => r.id === guest.playerId)?.name).toBe(
+      "Bob the Bold"
+    );
+
+    host.destroy();
+    guest.destroy();
+  });
+
   it("rejects out-of-turn and invalid plays server-side", async () => {
     const host = new Network();
     const guest = new Network();
