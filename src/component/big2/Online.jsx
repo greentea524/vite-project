@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { TableView, ResultsOverlay } from "./Table.jsx";
+import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
 import { Network } from "./network.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import "./big2.css";
@@ -41,6 +41,7 @@ function Online({ joinCode, onExit }) {
   const [result, setResult] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [rejection, setRejection] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     Network.warmUp(); // KAN-53: poke a sleeping free-tier host early
@@ -266,6 +267,17 @@ function Online({ joinCode, onExit }) {
 
   return (
     <div className="big2-table-page">
+      {menuOpen && !result && (
+        <PauseOverlay
+          title="Menu"
+          note="The game keeps going while this is open — a bot plays your turn if you leave."
+          onResume={() => setMenuOpen(false)}
+        >
+          <button type="button" className="big2-link-btn" onClick={onExit}>
+            Leave game
+          </button>
+        </PauseOverlay>
+      )}
       {result && (
         <ResultsOverlay
           title={`Round ${result.round} — ${seatName(result.winner)} ${
@@ -315,6 +327,7 @@ function Online({ joinCode, onExit }) {
         playEnabled={Boolean(playable)}
         passEnabled={Boolean(passable)}
         hint={hint}
+        onMenu={() => setMenuOpen(true)}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { TableView, ResultsOverlay } from "./Table.jsx";
+import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
 import { newGame, playCards, passTurn } from "./game.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import { chooseBotMove } from "./bot.js";
@@ -21,6 +21,7 @@ function SoloGame({ onExit }) {
   const [round, setRound] = useState(1);
   const [totals, setTotals] = useState([0, 0, 0, 0]);
   const [roundResult, setRoundResult] = useState(null);
+  const [paused, setPaused] = useState(false);
 
   const isMyTurn = state.turn === LOCAL_PLAYER && state.winner === null;
   const myHand = state.hands[LOCAL_PLAYER];
@@ -33,8 +34,10 @@ function SoloGame({ onExit }) {
   const passable = isMyTurn && canPass(state.trick?.cards);
 
   // Bot turns (KAN-61), randomly delayed 800–1200ms to feel natural.
+  // Pausing clears the pending timer; resuming reschedules it.
   useEffect(() => {
-    if (state.winner !== null || state.turn === LOCAL_PLAYER) return undefined;
+    if (paused || state.winner !== null || state.turn === LOCAL_PLAYER)
+      return undefined;
     const timer = setTimeout(() => {
       setState((s) => {
         if (s.winner !== null || s.turn === LOCAL_PLAYER) return s;
@@ -43,7 +46,7 @@ function SoloGame({ onExit }) {
       });
     }, 800 + Math.random() * 400);
     return () => clearTimeout(timer);
-  }, [state]);
+  }, [state, paused]);
 
   // Score the round exactly once when someone goes out (KAN-62).
   useEffect(() => {
@@ -96,6 +99,13 @@ function SoloGame({ onExit }) {
 
   return (
     <div className="big2-table-page">
+      {paused && state.winner === null && (
+        <PauseOverlay onResume={() => setPaused(false)}>
+          <button type="button" className="big2-link-btn" onClick={onExit}>
+            Back to menu
+          </button>
+        </PauseOverlay>
+      )}
       {state.winner !== null && roundResult && (
         <ResultsOverlay
           title={`Round ${round} — ${PLAYER_NAMES[state.winner]} ${
@@ -152,6 +162,7 @@ function SoloGame({ onExit }) {
         playEnabled={playable}
         passEnabled={passable}
         hint={hint}
+        onMenu={() => setPaused(true)}
       />
     </div>
   );

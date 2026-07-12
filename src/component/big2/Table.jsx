@@ -25,7 +25,8 @@ function OpponentSeat({ name, count, active, side }) {
 
 /**
  * The table. `opponents` is [west, north, east]; `trick` is
- * { cards, label } or null with `leadText` shown instead.
+ * { cards, label } or null with `leadText` shown instead. `onMenu`
+ * (optional) shows the pause/menu button in the table corner.
  */
 export function TableView({
   opponents,
@@ -41,10 +42,22 @@ export function TableView({
   playEnabled,
   passEnabled,
   hint,
+  onMenu,
 }) {
   const [west, north, east] = opponents;
   return (
     <div className="big2-table">
+      {onMenu && (
+        <button
+          type="button"
+          className="big2-menu-toggle"
+          onClick={onMenu}
+          aria-label="Game menu"
+          title="Game menu"
+        >
+          ⏸
+        </button>
+      )}
       <OpponentSeat {...north} side="north" />
       <OpponentSeat {...west} side="west" />
 
@@ -85,6 +98,28 @@ export function TableView({
             Pass
           </button>
           {hint}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Pause/game menu overlay. Solo really pauses; online keeps running
+ * underneath, so callers pass a fitting `note`. Extra actions (leave
+ * game, back to menu) come in as children below the Resume button.
+ */
+export function PauseOverlay({ title = "Paused", note, onResume, children }) {
+  return (
+    <div className="big2-results-overlay">
+      <div className="big2-results big2-pause">
+        <h2 className="big2-results-title">{title}</h2>
+        {note && <p className="big2-muted">{note}</p>}
+        <div className="big2-pause-actions">
+          <button type="button" onClick={onResume}>
+            Resume
+          </button>
+          {children}
         </div>
       </div>
     </div>
