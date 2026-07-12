@@ -9,7 +9,6 @@ import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 import Sudoku from "./Sudoku.jsx";
 import RubiksCubeSolver from "./rubiks/RubiksCubeSolver.jsx";
-import Big2 from "./big2/Big2.jsx";
 
 const LOCAL_GAMES = [
   {
@@ -35,12 +34,6 @@ const LOCAL_GAMES = [
     title: "TicTacToe",
     icon: "fa-th",
     description: "Classic 3×3 — get three in a row before your opponent.",
-  },
-  {
-    key: "big2",
-    title: "Big 2",
-    icon: "fa-clone",
-    description: "Shed all 13 cards first in this classic climbing card game.",
   },
 ];
 
@@ -76,6 +69,11 @@ const WEB_GAMES = [
     description:
       "A 2D side-scrolling adventure featuring a multiplayer 'Race a friend' mode.",
   },
+  {
+    title: "Big 2",
+    href: `${import.meta.env.BASE_URL}big2/`,
+    description: "Shed all 13 cards first in this classic climbing card game.",
+  },
 ];
 
 
@@ -110,8 +108,6 @@ class ReactTabHeader extends Component {
         return <DiceBlackjack />;
       case "sudoku":
         return <Sudoku />;
-      case "big2":
-        return <Big2 />;
       default:
         return null;
     }
