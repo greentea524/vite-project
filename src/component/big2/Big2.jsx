@@ -44,7 +44,7 @@ function SoloGame({ onExit }) {
         const move = chooseBotMove(s.hands[s.turn], s.trick?.cards);
         return move.type === "play" ? playCards(s, move.cardIds) : passTurn(s);
       });
-    }, 800 + Math.random() * 400);
+    }, 1000 + Math.random() * 1000);
     return () => clearTimeout(timer);
   }, [state, paused]);
 

@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { LayoutGroup } from "framer-motion";
 import Card, { CardBack } from "./Card.jsx";
 import { sortHandBySuit } from "./deck.js";
 import "./big2.css";
@@ -122,7 +123,8 @@ export function TableView({
   };
 
   return (
-    <div className="big2-table">
+    <LayoutGroup>
+      <div className="big2-table">
       {onMenu && (
         <button
           type="button"
@@ -201,7 +203,8 @@ export function TableView({
           {hint}
         </div>
       </div>
-    </div>
+      </div>
+    </LayoutGroup>
   );
 }
 

@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { SUIT_SYMBOL, SUIT_NAME, SUIT_COLOR } from "./deck.js";
 import "./big2.css";
 
@@ -15,8 +16,13 @@ function Card({ card, selected = false, onClick }) {
   const symbol = SUIT_SYMBOL[card.suit];
   const label = `${card.rank} of ${SUIT_NAME[card.suit]}`;
   return (
-    <button
+    <motion.button
       type="button"
+      layoutId={card.id}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={`big2-card big2-card-${SUIT_COLOR[card.suit]}${
         selected ? " big2-card-selected" : ""
       }`}
@@ -37,16 +43,23 @@ function Card({ card, selected = false, onClick }) {
         <span className="big2-card-rank">{card.rank}</span>
         <span className="big2-card-suit">{symbol}</span>
       </span>
-    </button>
+    </motion.button>
   );
 }
 
 /** Face-down card back, used for opponents' hands. */
-export function CardBack() {
+export function CardBack({ layoutId }) {
   return (
-    <span className="big2-card big2-card-back" aria-hidden="true">
+    <motion.span
+      layoutId={layoutId}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      className="big2-card big2-card-back"
+      aria-hidden="true"
+    >
       <span className="big2-card-back-pattern" />
-    </span>
+    </motion.span>
   );
 }
 
