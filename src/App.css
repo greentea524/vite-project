@@ -1025,98 +1025,96 @@ button.game-link {
   }
 }
 
- / *   M o d e r n   B o o t s t r a p   N a v   P i l l s   O v e r r i d e s   * / 
- . t a b s - s h e l l   . n a v - p i l l s   { 
-     g a p :   0 . 5 r e m ; 
-     p a d d i n g :   0 . 5 r e m ; 
-     b a c k g r o u n d :   r g b a ( 2 5 5 ,   2 5 5 ,   2 5 5 ,   0 . 0 3 ) ; 
-     b a c k d r o p - f i l t e r :   b l u r ( 1 2 p x ) ; 
-     - w e b k i t - b a c k d r o p - f i l t e r :   b l u r ( 1 2 p x ) ; 
-     b o r d e r - r a d i u s :   1 2 p x ; 
-     b o r d e r :   1 p x   s o l i d   r g b a ( 2 5 5 ,   2 5 5 ,   2 5 5 ,   0 . 0 5 ) ; 
-     m a r g i n - b o t t o m :   1 . 5 r e m   ! i m p o r t a n t ; 
- } 
- 
- @ m e d i a   ( p r e f e r s - c o l o r - s c h e m e :   l i g h t )   { 
-     . t a b s - s h e l l   . n a v - p i l l s   { 
-         b a c k g r o u n d :   r g b a ( 0 ,   0 ,   0 ,   0 . 0 3 ) ; 
-         b o r d e r :   1 p x   s o l i d   r g b a ( 0 ,   0 ,   0 ,   0 . 0 5 ) ; 
-     } 
- } 
- 
- . t a b s - s h e l l   . n a v - p i l l s   . n a v - l i n k   { 
-     b o r d e r - r a d i u s :   8 p x ; 
-     c o l o r :   # a d b 5 b d ; 
-     f o n t - w e i g h t :   6 0 0 ; 
-     p a d d i n g :   0 . 6 r e m   1 . 2 r e m ; 
-     t r a n s i t i o n :   a l l   0 . 2 s   e a s e ; 
- } 
- 
- @ m e d i a   ( p r e f e r s - c o l o r - s c h e m e :   l i g h t )   { 
-     . t a b s - s h e l l   . n a v - p i l l s   . n a v - l i n k   { 
-         c o l o r :   # 6 c 7 5 7 d ; 
-     } 
- } 
- 
- . t a b s - s h e l l   . n a v - p i l l s   . n a v - l i n k : h o v e r   { 
-     b a c k g r o u n d :   r g b a ( 2 5 5 ,   2 5 5 ,   2 5 5 ,   0 . 1 ) ; 
-     c o l o r :   # f 8 f 9 f a ; 
- } 
- 
- @ m e d i a   ( p r e f e r s - c o l o r - s c h e m e :   l i g h t )   { 
-     . t a b s - s h e l l   . n a v - p i l l s   . n a v - l i n k : h o v e r   { 
-         b a c k g r o u n d :   r g b a ( 0 ,   0 ,   0 ,   0 . 0 5 ) ; 
-         c o l o r :   # 2 1 2 5 2 9 ; 
-     } 
- } 
- 
- . t a b s - s h e l l   . n a v - p i l l s   . n a v - l i n k . a c t i v e   { 
-     b a c k g r o u n d :   l i n e a r - g r a d i e n t ( 9 0 d e g ,   # b d 3 4 f e ,   # 6 1 d a f b ) ; 
-     c o l o r :   # f f f ; 
-     b o x - s h a d o w :   0   4 p x   1 5 p x   r g b a ( 1 8 9 ,   5 2 ,   2 5 4 ,   0 . 3 ) ; 
- } 
- 
- / *   S u b - t a b s   f o r   U t i l i t i e s   * / 
- . t a b s - s h e l l   . n a v - t a b s   { 
-     b o r d e r - b o t t o m :   2 p x   s o l i d   r g b a ( 2 5 5 ,   2 5 5 ,   2 5 5 ,   0 . 1 ) ; 
-     m a r g i n - b o t t o m :   1 . 5 r e m   ! i m p o r t a n t ; 
- } 
- 
- @ m e d i a   ( p r e f e r s - c o l o r - s c h e m e :   l i g h t )   { 
-     . t a b s - s h e l l   . n a v - t a b s   { 
-         b o r d e r - b o t t o m :   2 p x   s o l i d   r g b a ( 0 ,   0 ,   0 ,   0 . 0 5 ) ; 
-     } 
- } 
- 
- . t a b s - s h e l l   . n a v - t a b s   . n a v - l i n k   { 
-     c o l o r :   # a d b 5 b d ; 
-     f o n t - w e i g h t :   6 0 0 ; 
-     b o r d e r :   n o n e ; 
-     b o r d e r - b o t t o m :   2 p x   s o l i d   t r a n s p a r e n t ; 
-     m a r g i n - b o t t o m :   - 2 p x ; 
- } 
- 
- @ m e d i a   ( p r e f e r s - c o l o r - s c h e m e :   l i g h t )   { 
-     . t a b s - s h e l l   . n a v - t a b s   . n a v - l i n k   { 
-         c o l o r :   # 6 c 7 5 7 d ; 
-     } 
- } 
- 
- . t a b s - s h e l l   . n a v - t a b s   . n a v - l i n k : h o v e r   { 
-     b o r d e r - c o l o r :   t r a n s p a r e n t ; 
-     c o l o r :   # f 8 f 9 f a ; 
- } 
- 
- @ m e d i a   ( p r e f e r s - c o l o r - s c h e m e :   l i g h t )   { 
-     . t a b s - s h e l l   . n a v - t a b s   . n a v - l i n k : h o v e r   { 
-         c o l o r :   # 2 1 2 5 2 9 ; 
-     } 
- } 
- 
- . t a b s - s h e l l   . n a v - t a b s   . n a v - l i n k . a c t i v e   { 
-     b a c k g r o u n d :   t r a n s p a r e n t ; 
-     c o l o r :   # b d 3 4 f e ; 
-     b o r d e r - b o t t o m :   2 p x   s o l i d   # b d 3 4 f e ; 
- } 
-  
- 
+/* Modern Bootstrap Nav Pills Overrides */
+.tabs-shell .nav-pills {
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 1.5rem !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .tabs-shell .nav-pills {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
+.tabs-shell .nav-pills .nav-link {
+  border-radius: 8px;
+  color: #adb5bd;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  transition: all 0.2s ease;
+}
+
+@media (prefers-color-scheme: light) {
+  .tabs-shell .nav-pills .nav-link {
+    color: #6c757d;
+  }
+}
+
+.tabs-shell .nav-pills .nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8f9fa;
+}
+
+@media (prefers-color-scheme: light) {
+  .tabs-shell .nav-pills .nav-link:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #212529;
+  }
+}
+
+.tabs-shell .nav-pills .nav-link.active {
+  background: linear-gradient(90deg, #bd34fe, #61dafb);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(189, 52, 254, 0.3);
+}
+
+/* Sub-tabs for Utilities */
+.tabs-shell .nav-tabs {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1.5rem !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .tabs-shell .nav-tabs {
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
+.tabs-shell .nav-tabs .nav-link {
+  color: #adb5bd;
+  font-weight: 600;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+@media (prefers-color-scheme: light) {
+  .tabs-shell .nav-tabs .nav-link {
+    color: #6c757d;
+  }
+}
+
+.tabs-shell .nav-tabs .nav-link:hover {
+  border-color: transparent;
+  color: #f8f9fa;
+}
+
+@media (prefers-color-scheme: light) {
+  .tabs-shell .nav-tabs .nav-link:hover {
+    color: #212529;
+  }
+}
+
+.tabs-shell .nav-tabs .nav-link.active {
+  background: transparent;
+  color: #bd34fe;
+  border-bottom: 2px solid #bd34fe;
+}
