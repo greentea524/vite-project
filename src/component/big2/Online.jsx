@@ -1,17 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
 import { Network } from "./network.js";
+import { buildJoinLink } from "./joinLink.js";
 import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
 import "./big2.css";
-
-// Shareable invite: the current /big2/ page with ?join=CODE, so a
-// friend lands straight in the join flow (same pattern as invasion).
-function buildJoinLink(code) {
-  const url = new URL(window.location.href);
-  url.searchParams.set("join", code);
-  url.hash = "";
-  return url.toString();
-}
 
 /**
  * Online Big 2 (KAN-63): entry (name + create/join), lobby with invite
@@ -34,6 +27,8 @@ function Online({ joinCode, onExit }) {
   const [entryError, setEntryError] = useState("");
   const [roster, setRoster] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const autoJoinTried = useRef(false);
 
   const [mySeat, setMySeat] = useState(null);
   const [myHand, setMyHand] = useState([]);
@@ -82,6 +77,42 @@ function Online({ joinCode, onExit }) {
     if (res?.ok) setPhase("lobby");
     else setEntryError(res?.error || "Something went wrong — try again.");
   };
+
+  // Auto-join (#110): arriving via an invite link / QR scan joins the
+  // room as soon as the socket is up — no button press needed. One
+  // attempt only, so a dead room falls back to the entry form with the
+  // code prefilled and the error shown.
+  useEffect(() => {
+    if (!joinCode || autoJoinTried.current) return;
+    if (connState !== "up" || phase !== "entry" || busy) return;
+    autoJoinTried.current = true;
+    submitEntry(false);
+  });
+
+  // Lobby QR code (#110): render the invite link as a scannable image,
+  // same qrcode.toDataURL flow as the invasion/platformer lobbies.
+  const joinLink = phase === "lobby" && net.roomCode ? buildJoinLink(net.roomCode) : "";
+  useEffect(() => {
+    if (!joinLink) {
+      setQrDataUrl("");
+      return undefined;
+    }
+    let cancelled = false;
+    QRCode.toDataURL(joinLink, {
+      margin: 1,
+      width: 160,
+      color: { dark: "#14532d", light: "#ffffff" },
+    })
+      .then((dataUrl) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [joinLink]);
 
   const copyLink = async () => {
     try {
@@ -154,6 +185,15 @@ function Online({ joinCode, onExit }) {
   }
 
   if (phase === "entry") {
+    // Mid auto-join from an invite link: skip the form entirely.
+    if (joinCode && busy && !entryError) {
+      return (
+        <div className="big2-panel">
+          <h2>Joining room {joinCode.toUpperCase()}…</h2>
+          <p className="big2-muted">Connecting you to the game.</p>
+        </div>
+      );
+    }
     return (
       <div className="big2-panel">
         <h2>Play with friends</h2>
@@ -214,9 +254,17 @@ function Online({ joinCode, onExit }) {
           Room <span className="big2-room-code">{net.roomCode}</span>
         </h2>
         <p className="big2-muted">
-          Share the code or link — bots fill any empty seats when the host
-          starts.
+          Share the code, link, or QR — bots fill any empty seats when the
+          host starts.
         </p>
+        {qrDataUrl && (
+          <img
+            className="big2-qr"
+            src={qrDataUrl}
+            alt={`QR code to join room ${net.roomCode}`}
+          />
+        )}
+        {joinLink && <p className="big2-join-link">{joinLink}</p>}
         <button type="button" onClick={copyLink}>
           {copied ? "Copied!" : "Copy invite link"}
         </button>
