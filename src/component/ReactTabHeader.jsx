@@ -169,6 +169,29 @@ class ReactTabHeader extends Component {
                   </a>
                 </div>
               </Tab>
+              <Tab eventKey="fakeide" title="Fake IDE">
+                <div className="utilities-launch">
+                  <h6 className="utilities-launch-title">
+                    <i className="fa fa-code" aria-hidden="true"></i> Fake IDE
+                  </h6>
+                  <p className="utilities-launch-description">
+                    A fake IDE that codes by itself — realistic-looking
+                    JavaScript, Python, C, and shell files type themselves out
+                    in a dark editor, complete with typos and file switching.
+                    Great for demos and screen recordings. Opens in a new tab
+                    so you can run it fullscreen.
+                  </p>
+                  <a
+                    className="utilities-launch-btn"
+                    href={`${import.meta.env.BASE_URL}fake-ide.html`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <i className="fa fa-play" aria-hidden="true"></i> Launch
+                    fake IDE
+                  </a>
+                </div>
+              </Tab>
               <Tab eventKey="rubikscube" title="Rubik's Cube">
                 <RubiksCubeSolver />
               </Tab>

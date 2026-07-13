@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>retry.js — opsdeck</title>
+<!--
+  Standalone fake coding IDE for screen-recording / demos.
+  Open directly in a browser, or reach it from the app under
+  Utility → Fake IDE. Sibling of hacker-terminal.html.
+
+  Code "types itself" into a VS Code-style dark editor at a human-like
+  cadence — bursts, pauses, the occasional typo that gets backspaced —
+  rotating through fake JavaScript / Python / C / shell files.
+
+  Controls: tap the ⚙ gear (bottom-right) for the settings panel —
+  pause/resume, typing speed, and fullscreen.
+  Shortcuts: Space = pause/resume, f = fullscreen, ↑/↓ = speed, Esc = close.
+-->
+
+<style>
+  :root {
+    --bg-editor: #1e1e1e;
+    --bg-sidebar: #252526;
+    --bg-activity: #333333;
+    --bg-titlebar: #3c3c3c;
+    --bg-tabs: #2d2d2d;
+    --bg-tab-active: #1e1e1e;
+    --bg-status: #007acc;
+    --fg: #d4d4d4;
+    --fg-dim: #858585;
+    --fg-dimmer: #6e6e6e;
+    --sel: #094771;
+    --border: #1b1b1b;
+    --accent: #007acc;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg-editor);
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--fg);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-size: 13px;
+    user-select: none;
+  }
+
+  .mono {
+    font-family: "Cascadia Code", "Fira Code", "Consolas", "Courier New", monospace;
+  }
+
+  /* ---- title bar -------------------------------------------------------- */
+  #titlebar {
+    height: 30px;
+    background: var(--bg-titlebar);
+    display: flex;
+    align-items: center;
+    flex: none;
+    font-size: 12px;
+    color: #cccccc;
+  }
+  #menuItems { display: flex; gap: 2px; padding-left: 8px; }
+  #menuItems span { padding: 4px 8px; color: #b8b8b8; }
+  #winTitle {
+    flex: 1;
+    text-align: center;
+    color: #b0b0b0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 8px;
+  }
+  #winBtns { display: flex; flex: none; }
+  #winBtns span {
+    width: 42px;
+    text-align: center;
+    padding: 6px 0;
+    color: #cccccc;
+    font-size: 11px;
+  }
+
+  /* ---- main row --------------------------------------------------------- */
+  #main { flex: 1; display: flex; min-height: 0; }
+
+  #activitybar {
+    width: 48px;
+    background: var(--bg-activity);
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+  }
+  #activitybar .abtn {
+    width: 48px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7a7a7a;
+  }
+  #activitybar .abtn.on {
+    color: #ffffff;
+    border-left: 2px solid #ffffff;
+  }
+  #activitybar svg { width: 24px; height: 24px; }
+
+  /* ---- sidebar / explorer ------------------------------------------------ */
+  #sidebar {
+    width: 230px;
+    background: var(--bg-sidebar);
+    flex: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-size: 13px;
+  }
+  #sidebar .side-head {
+    padding: 8px 16px 6px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: #a0a0a0;
+  }
+  .trow {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    color: #c5c5c5;
+    line-height: 1.6;
+  }
+  .trow .arrow { color: var(--fg-dim); width: 10px; flex: none; font-size: 10px; }
+  .trow.dir { color: #cfcfcf; }
+  .trow.sel { background: #37373d; color: #ffffff; }
+  .fi {
+    flex: none;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 3px;
+    border-radius: 2px;
+    color: #1e1e1e;
+    font-family: "Consolas", monospace;
+  }
+  .fi-js  { background: #e8d44d; }
+  .fi-py  { background: #519aba; color: #fff; }
+  .fi-c   { background: #a074c4; color: #fff; }
+  .fi-sh  { background: #6fbf6f; }
+  .fi-x   { background: #6e6e6e; color: #ddd; }
+
+  /* ---- editor column ----------------------------------------------------- */
+  #editorcol { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  #tabstrip {
+    height: 35px;
+    background: var(--bg-tabs);
+    display: flex;
+    flex: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  #tabstrip::-webkit-scrollbar { display: none; }
+  .etab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    font-size: 13px;
+    color: #969696;
+    background: var(--bg-tabs);
+    border-right: 1px solid #252526;
+    white-space: nowrap;
+    flex: none;
+  }
+  .etab.on {
+    background: var(--bg-tab-active);
+    color: #ffffff;
+    border-top: 1px solid var(--accent);
+  }
+  .etab .tclose { color: #7a7a7a; font-size: 12px; width: 12px; text-align: center; }
+  .etab .tdot { color: #ffffff; font-size: 14px; width: 12px; text-align: center; }
+
+  #codewrap {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg-editor);
+  }
+  #code {
+    padding: 8px 0 40vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .cline { display: flex; white-space: pre; }
+  .gut {
+    flex: none;
+    width: 54px;
+    text-align: right;
+    padding-right: 18px;
+    color: #6e7681;
+  }
+  .ltxt { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-all; }
+
+  /* syntax colors — VS Code Dark+ conventions */
+  .tok-pln { color: #d4d4d4; }
+  .tok-kw  { color: #569cd6; }
+  .tok-ctl { color: #c586c0; }
+  .tok-str { color: #ce9178; }
+  .tok-com { color: #6a9955; }
+  .tok-num { color: #b5cea8; }
+  .tok-fn  { color: #dcdcaa; }
+  .tok-typ { color: #4ec9b0; }
+  .tok-id  { color: #9cdcfe; }
+
+  #caret {
+    display: inline-block;
+    width: 2px;
+    height: 17px;
+    background: #aeafad;
+    vertical-align: text-bottom;
+    animation: blink 1.06s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---- status bar -------------------------------------------------------- */
+  #statusbar {
+    height: 22px;
+    background: var(--bg-status);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    flex: none;
+    font-size: 12px;
+    padding: 0 10px;
+    gap: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  #statusbar .sb-right { margin-left: auto; display: flex; gap: 14px; }
+
+  /* ---- settings (gear) — same pattern as hacker-terminal.html ------------ */
+  #gearBtn {
+    position: fixed;
+    right: 16px;
+    bottom: 40px;
+    z-index: 20;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(37, 37, 38, 0.92);
+    color: #cccccc;
+    border: 1px solid #454545;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.4s ease, background 0.15s, transform 0.2s ease;
+  }
+  #gearBtn:hover { background: var(--accent); color: #fff; }
+  body.settings-open #gearBtn { transform: rotate(60deg); }
+  /* dim (but never fully hide) the gear when idle, so it stays discoverable
+     on touch while keeping recordings clean; tap/move restores it */
+  body.idle:not(.settings-open) #gearBtn { opacity: 0.18; }
+
+  #controls {
+    position: fixed;
+    right: 16px;
+    bottom: 96px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 260px;
+    max-width: calc(100vw - 32px);
+    padding: 14px 16px;
+    background: rgba(37, 37, 38, 0.97);
+    border: 1px solid #454545;
+    border-radius: 8px;
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+    color: #cccccc;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  body.settings-open #controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .controls-row { display: flex; align-items: center; gap: 10px; }
+  .controls-title {
+    font-weight: bold;
+    color: #ffffff;
+    border-bottom: 1px solid #454545;
+    padding-bottom: 8px;
+  }
+  #controls button {
+    background: transparent;
+    color: #cccccc;
+    border: 1px solid #555555;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    flex: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  #controls button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #controls label { color: #9a9a9a; }
+  #speedVal { color: #ffffff; min-width: 38px; display: inline-block; text-align: right; }
+  #controls input[type="range"] { accent-color: var(--accent); cursor: pointer; flex: 1; min-width: 0; }
+  #status { color: #9a9a9a; }
+
+  /* ---- responsive --------------------------------------------------------- */
+  @media (max-width: 768px) {
+    #sidebar, #activitybar, #menuItems, .sb-opt { display: none; }
+    .gut { width: 34px; padding-right: 10px; }
+    #code { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+  <div id="titlebar">
+    <div id="menuItems" aria-hidden="true">
+      <span>File</span><span>Edit</span><span>Selection</span><span>View</span>
+      <span>Go</span><span>Run</span><span>Terminal</span><span>Help</span>
+    </div>
+    <div id="winTitle">opsdeck</div>
+    <div id="winBtns" aria-hidden="true"><span>─</span><span>▢</span><span>✕</span></div>
+  </div>
+
+  <div id="main">
+    <div id="activitybar" aria-hidden="true">
+      <div class="abtn on">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M8 3h8l4 4v14H8z" /><path d="M4 7h4v14h12" />
+        </svg>
+      </div>
+      <div class="abtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="10" cy="10" r="6" /><path d="M14.5 14.5L21 21" />
+        </svg>
+      </div>
+      <div class="abtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="7" cy="6" r="2.4" /><circle cx="7" cy="18" r="2.4" />
+          <circle cx="17" cy="9" r="2.4" /><path d="M7 8.4v7.2" /><path d="M17 11.4c0 4-6 3-8 4.6" />
+        </svg>
+      </div>
+      <div class="abtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M7 4l12 8-12 8z" />
+        </svg>
+      </div>
+      <div class="abtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="4" y="4" width="7" height="7" /><rect x="13" y="4" width="7" height="7" />
+          <rect x="4" y="13" width="7" height="7" /><rect x="13" y="15" width="7" height="5" />
+        </svg>
+      </div>
+    </div>
+
+    <div id="sidebar">
+      <div class="side-head">EXPLORER: OPSDECK</div>
+      <div id="tree"></div>
+    </div>
+
+    <div id="editorcol">
+      <div id="tabstrip"></div>
+      <div id="codewrap">
+        <div id="code" class="mono" aria-live="off"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <span>⑂ main</span>
+    <span class="sb-opt">⊗ 0  ⚠ 0</span>
+    <span class="sb-right">
+      <span id="lncol">Ln 1, Col 1</span>
+      <span class="sb-opt" id="indent">Spaces: 2</span>
+      <span class="sb-opt">UTF-8</span>
+      <span class="sb-opt">LF</span>
+      <span id="langMode">JavaScript</span>
+    </span>
+  </div>
+
+  <button id="gearBtn" type="button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button>
+
+  <div id="controls" role="dialog" aria-label="IDE settings" aria-hidden="true">
+    <div class="controls-row controls-title">Settings</div>
+    <div class="controls-row">
+      <button id="toggleBtn" type="button" title="Pause / resume (space)">⏸ Pause</button>
+      <button id="fsBtn" type="button" title="Toggle fullscreen (f)">⛶ Fullscreen</button>
+    </div>
+    <div class="controls-row">
+      <label for="speed">speed</label>
+      <input id="speed" type="range" min="1" max="20" value="10" />
+      <span id="speedVal">1.0x</span>
+    </div>
+    <div class="controls-row">
+      <span id="status">typing</span>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ===== snippet corpus ======================================================
+  // Plausible infra-flavored code in four languages. Each file is typed out
+  // line-by-line; keep every snippet single-line-token friendly (no multi-line
+  // strings or /* */ comments — the tokenizer works one line at a time).
+
+  var FILES = [
+    {
+      name: "packetParser.js", dir: "src/net", lang: "js", indent: 2,
+      code: [
+        "// Parse a length-prefixed frame header from a byte buffer.",
+        "const HEADER_SIZE = 12;",
+        "const MAGIC = 0x7f31;",
+        "",
+        "function readU16(buf, off) {",
+        "  return (buf[off] << 8) | buf[off + 1];",
+        "}",
+        "",
+        "function readU32(buf, off) {",
+        "  return (",
+        "    buf[off] * 0x1000000 +",
+        "    (buf[off + 1] << 16) +",
+        "    (buf[off + 2] << 8) +",
+        "    buf[off + 3]",
+        "  );",
+        "}",
+        "",
+        "export function parseHeader(buf) {",
+        "  if (buf.length < HEADER_SIZE) return null;",
+        "  const magic = readU16(buf, 0);",
+        "  if (magic !== MAGIC) {",
+        "    throw new Error(\"bad magic: 0x\" + magic.toString(16));",
+        "  }",
+        "  return {",
+        "    version: buf[2],",
+        "    flags: buf[3],",
+        "    seq: readU32(buf, 4),",
+        "    length: readU32(buf, 8),",
+        "  };",
+        "}"
+      ]
+    },
+    {
+      name: "retry.js", dir: "src/core", lang: "js", indent: 2,
+      code: [
+        "// Retry an async operation with exponential backoff and jitter.",
+        "const BASE_DELAY_MS = 200;",
+        "const MAX_DELAY_MS = 15000;",
+        "",
+        "function sleep(ms) {",
+        "  return new Promise((resolve) => setTimeout(resolve, ms));",
+        "}",
+        "",
+        "export async function withRetry(fn, attempts = 5) {",
+        "  let lastErr;",
+        "  for (let i = 0; i < attempts; i++) {",
+        "    try {",
+        "      return await fn(i);",
+        "    } catch (err) {",
+        "      lastErr = err;",
+        "      const backoff = Math.min(MAX_DELAY_MS, BASE_DELAY_MS * 2 ** i);",
+        "      const jitter = Math.random() * backoff * 0.3;",
+        "      await sleep(backoff + jitter);",
+        "    }",
+        "  }",
+        "  throw lastErr;",
+        "}"
+      ]
+    },
+    {
+      name: "scheduler.js", dir: "src/core", lang: "js", indent: 2,
+      code: [
+        "// Cooperative task queue with a fixed concurrency limit.",
+        "export class TaskQueue {",
+        "  constructor(concurrency = 4) {",
+        "    this.concurrency = concurrency;",
+        "    this.running = 0;",
+        "    this.pending = [];",
+        "  }",
+        "",
+        "  push(task) {",
+        "    return new Promise((resolve, reject) => {",
+        "      this.pending.push({ task, resolve, reject });",
+        "      this.drain();",
+        "    });",
+        "  }",
+        "",
+        "  drain() {",
+        "    while (this.running < this.concurrency && this.pending.length) {",
+        "      const job = this.pending.shift();",
+        "      this.running += 1;",
+        "      job.task()",
+        "        .then(job.resolve, job.reject)",
+        "        .finally(() => {",
+        "          this.running -= 1;",
+        "          this.drain();",
+        "        });",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      name: "cache.js", dir: "src/util", lang: "js", indent: 2,
+      code: [
+        "// Tiny LRU cache backed by an insertion-ordered Map.",
+        "export class LruCache {",
+        "  constructor(capacity = 128) {",
+        "    this.capacity = capacity;",
+        "    this.map = new Map();",
+        "  }",
+        "",
+        "  get(key) {",
+        "    if (!this.map.has(key)) return undefined;",
+        "    const value = this.map.get(key);",
+        "    this.map.delete(key);",
+        "    this.map.set(key, value);",
+        "    return value;",
+        "  }",
+        "",
+        "  set(key, value) {",
+        "    if (this.map.has(key)) this.map.delete(key);",
+        "    this.map.set(key, value);",
+        "    if (this.map.size > this.capacity) {",
+        "      const oldest = this.map.keys().next().value;",
+        "      this.map.delete(oldest);",
+        "    }",
+        "  }",
+        "}"
+      ]
+    },
+    {
+      name: "config_loader.py", dir: "lib", lang: "py", indent: 4,
+      code: [
+        "# Load layered configuration: defaults < file < environment.",
+        "import json",
+        "import os",
+        "",
+        "DEFAULTS = {",
+        "    \"host\": \"127.0.0.1\",",
+        "    \"port\": 8080,",
+        "    \"log_level\": \"info\",",
+        "    \"workers\": 4,",
+        "}",
+        "",
+        "def load_file(path):",
+        "    if not os.path.exists(path):",
+        "        return {}",
+        "    with open(path) as fh:",
+        "        return json.load(fh)",
+        "",
+        "def load_env(prefix=\"APP_\"):",
+        "    out = {}",
+        "    for key, value in os.environ.items():",
+        "        if key.startswith(prefix):",
+        "            out[key[len(prefix):].lower()] = value",
+        "    return out",
+        "",
+        "def load_config(path=\"config.json\"):",
+        "    merged = dict(DEFAULTS)",
+        "    merged.update(load_file(path))",
+        "    merged.update(load_env())",
+        "    return merged"
+      ]
+    },
+    {
+      name: "log_parser.py", dir: "scripts", lang: "py", indent: 4,
+      code: [
+        "# Aggregate error counts per service from a structured log file.",
+        "import re",
+        "from collections import Counter",
+        "",
+        "LINE_RE = re.compile(",
+        "    r\"^(?P<ts>\\S+) (?P<level>[A-Z]+) (?P<svc>[\\w-]+): (?P<msg>.*)$\"",
+        ")",
+        "",
+        "def parse_line(line):",
+        "    match = LINE_RE.match(line.strip())",
+        "    return match.groupdict() if match else None",
+        "",
+        "def summarize(path, level=\"ERROR\"):",
+        "    counts = Counter()",
+        "    with open(path) as fh:",
+        "        for raw in fh:",
+        "            entry = parse_line(raw)",
+        "            if entry and entry[\"level\"] == level:",
+        "                counts[entry[\"svc\"]] += 1",
+        "    return counts.most_common(10)",
+        "",
+        "if __name__ == \"__main__\":",
+        "    for svc, n in summarize(\"var/app.log\"):",
+        "        print(f\"{svc:20s} {n:6d}\")"
+      ]
+    },
+    {
+      name: "probe_hosts.py", dir: "scripts", lang: "py", indent: 4,
+      code: [
+        "# Probe a list of service endpoints and report readiness.",
+        "import socket",
+        "import sys",
+        "",
+        "HOSTS = [",
+        "    (\"db-primary\", 5432),",
+        "    (\"cache-01\", 6379),",
+        "    (\"queue-01\", 5672),",
+        "    (\"api-gw\", 443),",
+        "]",
+        "",
+        "def probe(host, port, timeout=1.5):",
+        "    try:",
+        "        with socket.create_connection((host, port), timeout=timeout):",
+        "            return True",
+        "    except OSError:",
+        "        return False",
+        "",
+        "def main():",
+        "    failed = 0",
+        "    for host, port in HOSTS:",
+        "        ok = probe(host, port)",
+        "        state = \"up\" if ok else \"DOWN\"",
+        "        print(f\"{host}:{port:<6} {state}\")",
+        "        failed += 0 if ok else 1",
+        "    sys.exit(1 if failed else 0)",
+        "",
+        "if __name__ == \"__main__\":",
+        "    main()"
+      ]
+    },
+    {
+      name: "checksum.py", dir: "lib", lang: "py", indent: 4,
+      code: [
+        "# Compute streaming SHA-256 checksums for large files.",
+        "import hashlib",
+        "",
+        "CHUNK = 1 << 20",
+        "",
+        "def file_digest(path):",
+        "    digest = hashlib.sha256()",
+        "    with open(path, \"rb\") as fh:",
+        "        while True:",
+        "            block = fh.read(CHUNK)",
+        "            if not block:",
+        "                break",
+        "            digest.update(block)",
+        "    return digest.hexdigest()",
+        "",
+        "def verify(path, expected):",
+        "    actual = file_digest(path)",
+        "    if actual != expected:",
+        "        raise ValueError(f\"checksum mismatch for {path}\")",
+        "    return True"
+      ]
+    },
+    {
+      name: "ringbuf.c", dir: "src/native", lang: "c", indent: 4,
+      code: [
+        "// Fixed-size ring buffer for single-producer single-consumer use.",
+        "#include <stdint.h>",
+        "#include <string.h>",
+        "",
+        "#define RB_CAPACITY 4096",
+        "",
+        "typedef struct {",
+        "    uint8_t data[RB_CAPACITY];",
+        "    size_t head;",
+        "    size_t tail;",
+        "} ringbuf_t;",
+        "",
+        "size_t rb_write(ringbuf_t *rb, const uint8_t *src, size_t len) {",
+        "    size_t free_space = RB_CAPACITY - (rb->head - rb->tail);",
+        "    if (len > free_space) len = free_space;",
+        "    for (size_t i = 0; i < len; i++) {",
+        "        rb->data[(rb->head + i) % RB_CAPACITY] = src[i];",
+        "    }",
+        "    rb->head += len;",
+        "    return len;",
+        "}",
+        "",
+        "size_t rb_read(ringbuf_t *rb, uint8_t *dst, size_t len) {",
+        "    size_t avail = rb->head - rb->tail;",
+        "    if (len > avail) len = avail;",
+        "    for (size_t i = 0; i < len; i++) {",
+        "        dst[i] = rb->data[(rb->tail + i) % RB_CAPACITY];",
+        "    }",
+        "    rb->tail += len;",
+        "    return len;",
+        "}"
+      ]
+    },
+    {
+      name: "crc32.c", dir: "src/native", lang: "c", indent: 4,
+      code: [
+        "// Bitwise CRC-32 (IEEE 802.3 polynomial), table-free variant.",
+        "#include <stddef.h>",
+        "#include <stdint.h>",
+        "",
+        "#define CRC32_POLY 0xEDB88320u",
+        "",
+        "uint32_t crc32_update(uint32_t crc, const uint8_t *buf, size_t len) {",
+        "    crc = ~crc;",
+        "    for (size_t i = 0; i < len; i++) {",
+        "        crc ^= buf[i];",
+        "        for (int bit = 0; bit < 8; bit++) {",
+        "            uint32_t mask = -(crc & 1u);",
+        "            crc = (crc >> 1) ^ (CRC32_POLY & mask);",
+        "        }",
+        "    }",
+        "    return ~crc;",
+        "}",
+        "",
+        "uint32_t crc32(const uint8_t *buf, size_t len) {",
+        "    return crc32_update(0u, buf, len);",
+        "}"
+      ]
+    },
+    {
+      name: "deploy.sh", dir: "scripts", lang: "sh", indent: 2,
+      code: [
+        "#!/usr/bin/env bash",
+        "# Build and roll out the current release to the app hosts.",
+        "set -euo pipefail",
+        "",
+        "RELEASE=\"$(git rev-parse --short HEAD)\"",
+        "ARTIFACT=\"build/app-${RELEASE}.tar.gz\"",
+        "HOSTS=(app-01 app-02 app-03)",
+        "",
+        "echo \"==> building release ${RELEASE}\"",
+        "npm run build",
+        "tar -czf \"${ARTIFACT}\" dist/",
+        "",
+        "for host in \"${HOSTS[@]}\"; do",
+        "  echo \"==> deploying to ${host}\"",
+        "  scp -q \"${ARTIFACT}\" \"deploy@${host}:/opt/app/releases/\"",
+        "  ssh \"deploy@${host}\" \"cd /opt/app && ./bin/activate ${RELEASE}\"",
+        "done",
+        "",
+        "echo \"==> release ${RELEASE} live on ${#HOSTS[@]} hosts\""
+      ]
+    },
+    {
+      name: "backup.sh", dir: "scripts", lang: "sh", indent: 2,
+      code: [
+        "#!/usr/bin/env bash",
+        "# Nightly database backup with rotation.",
+        "set -euo pipefail",
+        "",
+        "STAMP=\"$(date +%Y%m%d-%H%M%S)\"",
+        "DEST=\"/var/backups/db\"",
+        "KEEP_DAYS=14",
+        "",
+        "mkdir -p \"${DEST}\"",
+        "pg_dump --format=custom appdb > \"${DEST}/appdb-${STAMP}.dump\"",
+        "gzip \"${DEST}/appdb-${STAMP}.dump\"",
+        "",
+        "find \"${DEST}\" -name '*.dump.gz' -mtime \"+${KEEP_DAYS}\" -delete",
+        "echo \"backup complete: appdb-${STAMP}.dump.gz\""
+      ]
+    }
+  ];
+
+  // ===== language definitions ================================================
+
+  function set(words) {
+    var o = {};
+    words.split(" ").forEach(function (w) { o[w] = true; });
+    return o;
+  }
+
+  var LANGS = {
+    js: {
+      label: "JavaScript",
+      comment: "//",
+      strings: { '"': 1, "'": 1, "`": 1 },
+      ctl: set("return if else for while do try catch finally throw await yield export import default from of in switch case break continue"),
+      kw: set("const let var function class new async this null undefined true false typeof instanceof static get set extends delete void =>")
+    },
+    py: {
+      label: "Python",
+      comment: "#",
+      strings: { '"': 1, "'": 1 },
+      ctl: set("return if elif else for while try except finally raise from import with as pass break continue yield assert"),
+      kw: set("def class lambda None True False not and or in is global nonlocal del self")
+    },
+    c: {
+      label: "C",
+      comment: "//",
+      strings: { '"': 1 },
+      preproc: true,
+      ctl: set("return if else for while switch case break continue do goto"),
+      kw: set("int char void unsigned signed long short float double const static struct typedef union enum sizeof extern inline")
+    },
+    sh: {
+      label: "Shell Script",
+      comment: "#",
+      strings: { '"': 1, "'": 1 },
+      dollar: true,
+      ctl: set("if then elif else fi for do done while until in case esac"),
+      kw: set("function local export set readonly shift exit trap echo")
+    }
+  };
+
+  // ===== tokenizer ===========================================================
+  // One line at a time; emits {cls, text} runs. Coloring follows Dark+
+  // conventions closely enough to read as real.
+
+  var IDENT_START = /[A-Za-z_$]/;
+  var IDENT_CHAR = /[\w$]/;
+
+  function tokenize(line, langId) {
+    var L = LANGS[langId];
+    var toks = [];
+    var i = 0;
+    var n = line.length;
+
+    function push(cls, text) {
+      if (!text) return;
+      var last = toks[toks.length - 1];
+      if (last && last.cls === cls) last.text += text;
+      else toks.push({ cls: cls, text: text });
+    }
+
+    // C preprocessor directive: color "#include" / "#define" as keyword
+    var trimmed = line.replace(/^\s*/, "");
+    var preprocLine = L.preproc && trimmed.charAt(0) === "#";
+
+    while (i < n) {
+      var ch = line.charAt(i);
+
+      // whitespace run
+      if (ch === " " || ch === "\t") {
+        var ws = i;
+        while (i < n && (line.charAt(i) === " " || line.charAt(i) === "\t")) i++;
+        push("pln", line.slice(ws, i));
+        continue;
+      }
+
+      // comment to end of line ('#' in sh/py only when line-leading or after space)
+      if (line.substr(i, L.comment.length) === L.comment && !preprocLine) {
+        if (L.comment !== "#" || i === 0 || line.charAt(i - 1) === " ") {
+          push("com", line.slice(i));
+          break;
+        }
+      }
+
+      // preprocessor keyword
+      if (preprocLine && ch === "#") {
+        var pj = i + 1;
+        while (pj < n && IDENT_CHAR.test(line.charAt(pj))) pj++;
+        push("kw", line.slice(i, pj));
+        i = pj;
+        preprocLine = false; // only the directive itself
+        continue;
+      }
+
+      // string
+      if (L.strings[ch]) {
+        var sj = i + 1;
+        while (sj < n) {
+          if (line.charAt(sj) === "\\") { sj += 2; continue; }
+          if (line.charAt(sj) === ch) { sj++; break; }
+          sj++;
+        }
+        push("str", line.slice(i, Math.min(sj, n)));
+        i = Math.min(sj, n);
+        continue;
+      }
+
+      // number
+      if (ch >= "0" && ch <= "9") {
+        var nj = i;
+        while (nj < n && /[\w.]/.test(line.charAt(nj))) nj++;
+        push("num", line.slice(i, nj));
+        i = nj;
+        continue;
+      }
+
+      // shell variable: $VAR or ${...}
+      if (L.dollar && ch === "$" && i + 1 < n && /[{\w]/.test(line.charAt(i + 1))) {
+        var dj = i + 1;
+        if (line.charAt(dj) === "{") {
+          while (dj < n && line.charAt(dj) !== "}") dj++;
+          dj++;
+        } else {
+          while (dj < n && IDENT_CHAR.test(line.charAt(dj))) dj++;
+        }
+        push("id", line.slice(i, Math.min(dj, n)));
+        i = Math.min(dj, n);
+        continue;
+      }
+
+      // identifier / keyword
+      if (IDENT_START.test(ch)) {
+        var ij = i;
+        while (ij < n && IDENT_CHAR.test(line.charAt(ij))) ij++;
+        var word = line.slice(i, ij);
+        var cls;
+        if (L.ctl[word]) cls = "ctl";
+        else if (L.kw[word]) cls = "kw";
+        else if (/^[A-Z]/.test(word) || /_t$/.test(word)) cls = "typ";
+        else if (line.charAt(ij) === "(") cls = "fn";
+        else cls = "id";
+        push(cls, word);
+        i = ij;
+        continue;
+      }
+
+      // anything else: punctuation
+      push("pln", ch);
+      i++;
+    }
+
+    if (!toks.length) toks.push({ cls: "pln", text: "" });
+    return toks;
+  }
+
+  // ===== DOM refs ============================================================
+
+  var codeEl = document.getElementById("code");
+  var codewrap = document.getElementById("codewrap");
+  var tabstrip = document.getElementById("tabstrip");
+  var treeEl = document.getElementById("tree");
+  var winTitle = document.getElementById("winTitle");
+  var lncolEl = document.getElementById("lncol");
+  var indentEl = document.getElementById("indent");
+  var langModeEl = document.getElementById("langMode");
+  var toggleBtn = document.getElementById("toggleBtn");
+  var speedInput = document.getElementById("speed");
+  var speedVal = document.getElementById("speedVal");
+  var statusEl = document.getElementById("status");
+  var fsBtn = document.getElementById("fsBtn");
+  var gearBtn = document.getElementById("gearBtn");
+  var controls = document.getElementById("controls");
+
+  var caret = document.createElement("span");
+  caret.id = "caret";
+
+  // ===== file explorer tree ==================================================
+
+  var BADGE = { js: "JS", py: "PY", c: "C", sh: "SH" };
+
+  function fileRow(fileIdx, depth) {
+    var f = FILES[fileIdx];
+    var row = document.createElement("div");
+    row.className = "trow";
+    row.dataset.file = fileIdx;
+    row.style.paddingLeft = 10 + depth * 12 + "px";
+    row.innerHTML =
+      '<span class="arrow"></span><span class="fi fi-' + f.lang + '">' +
+      BADGE[f.lang] + "</span><span>" + f.name + "</span>";
+    return row;
+  }
+
+  function dirRow(label, depth) {
+    var row = document.createElement("div");
+    row.className = "trow dir";
+    row.style.paddingLeft = 10 + depth * 12 + "px";
+    row.innerHTML = '<span class="arrow">▾</span><span>' + label + "</span>";
+    return row;
+  }
+
+  function extraRow(label, depth) {
+    var row = document.createElement("div");
+    row.className = "trow";
+    row.style.paddingLeft = 10 + depth * 12 + "px";
+    row.innerHTML =
+      '<span class="arrow"></span><span class="fi fi-x">·</span><span>' +
+      label + "</span>";
+    return row;
+  }
+
+  function byName(dir) {
+    return FILES
+      .map(function (f, idx) { return { f: f, idx: idx }; })
+      .filter(function (e) { return e.f.dir === dir; })
+      .sort(function (a, b) { return a.f.name < b.f.name ? -1 : 1; });
+  }
+
+  function buildTree() {
+    // fixed structure: lib/, scripts/, src/{core,native,net,util}, extras
+    var dirs = [
+      { label: "lib", path: "lib", depth: 0 },
+      { label: "scripts", path: "scripts", depth: 0 },
+      { label: "src", path: null, depth: 0 },
+      { label: "core", path: "src/core", depth: 1 },
+      { label: "native", path: "src/native", depth: 1 },
+      { label: "net", path: "src/net", depth: 1 },
+      { label: "util", path: "src/util", depth: 1 }
+    ];
+    dirs.forEach(function (d) {
+      treeEl.appendChild(dirRow(d.label, d.depth));
+      if (d.path) {
+        byName(d.path).forEach(function (e) {
+          treeEl.appendChild(fileRow(e.idx, d.depth + 1));
+        });
+      }
+    });
+    [".gitignore", "Makefile", "package.json", "README.md"].forEach(function (x) {
+      treeEl.appendChild(extraRow(x, 0));
+    });
+  }
+
+  function selectTreeFile(fileIdx) {
+    var rows = treeEl.querySelectorAll(".trow[data-file]");
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle("sel", +rows[i].dataset.file === fileIdx);
+    }
+  }
+
+  // ===== tabs ================================================================
+
+  var openTabs = [];   // fileIdx list, max 5
+  var MAX_TABS = 5;
+
+  function renderTabs(activeIdx, modified) {
+    tabstrip.innerHTML = "";
+    openTabs.forEach(function (idx) {
+      var f = FILES[idx];
+      var tab = document.createElement("div");
+      var active = idx === activeIdx;
+      tab.className = "etab" + (active ? " on" : "");
+      tab.innerHTML =
+        '<span class="fi fi-' + f.lang + '">' + BADGE[f.lang] + "</span>" +
+        "<span>" + f.name + "</span>" +
+        (active && modified
+          ? '<span class="tdot">●</span>'
+          : '<span class="tclose">✕</span>');
+      tabstrip.appendChild(tab);
+      if (active) tab.scrollIntoView({ inline: "nearest", block: "nearest" });
+    });
+  }
+
+  function openTab(fileIdx) {
+    if (openTabs.indexOf(fileIdx) === -1) {
+      openTabs.push(fileIdx);
+      if (openTabs.length > MAX_TABS) {
+        // evict the oldest tab that isn't the one being opened
+        for (var i = 0; i < openTabs.length; i++) {
+          if (openTabs[i] !== fileIdx) { openTabs.splice(i, 1); break; }
+        }
+      }
+    }
+  }
+
+  // ===== typing engine =======================================================
+
+  var BASE_CHAR_MS = 56;   // per keystroke at 1.0x
+  var MAX_BUF_LINES = 300; // safety cap on retained DOM lines
+
+  var paused = false;
+  var timer = null;
+
+  var cur = {
+    file: -1,
+    lines: [],
+    lineNo: 0,      // index of the line being typed
+    toks: null,     // token list for current line
+    tokIdx: 0,
+    charIdx: 0,
+    txtEl: null,    // .ltxt of the line being typed
+    span: null,     // span receiving characters for the current token
+    col: 1,
+    modified: false,
+    phase: "opening" // opening | typing | filedone
+  };
+
+  var typo = null;   // { chars, typed, span, phase: type|pause|del }
+  var queue = [];
+
+  function mult() { return speedInput.value / 10; }
+  function rnd(n) { return Math.floor(Math.random() * n); }
+
+  function nextFile() {
+    if (!queue.length) {
+      queue = FILES.map(function (_, i) { return i; });
+      for (var i = queue.length - 1; i > 0; i--) {
+        var j = rnd(i + 1);
+        var t = queue[i]; queue[i] = queue[j]; queue[j] = t;
+      }
+      // avoid re-opening the file we just finished
+      if (queue[0] === cur.file && queue.length > 1) {
+        queue.push(queue.shift());
+      }
+    }
+    return queue.shift();
+  }
+
+  function updateLnCol() {
+    lncolEl.textContent = "Ln " + (cur.lineNo + 1) + ", Col " + cur.col;
+  }
+
+  function scrollBottom() {
+    codewrap.scrollTop = codewrap.scrollHeight;
+  }
+
+  function renderFullLine(lineIdx) {
+    var f = FILES[cur.file];
+    var div = document.createElement("div");
+    div.className = "cline";
+    var gut = document.createElement("span");
+    gut.className = "gut";
+    gut.textContent = lineIdx + 1;
+    var txt = document.createElement("span");
+    txt.className = "ltxt";
+    tokenize(cur.lines[lineIdx], f.lang).forEach(function (t) {
+      if (!t.text) return;
+      var s = document.createElement("span");
+      s.className = "tok-" + t.cls;
+      s.textContent = t.text;
+      txt.appendChild(s);
+    });
+    div.appendChild(gut);
+    div.appendChild(txt);
+    codeEl.appendChild(div);
+  }
+
+  function openFile(idx) {
+    cur.file = idx;
+    var f = FILES[idx];
+    cur.lines = f.code;
+
+    openTab(idx);
+    cur.modified = false;
+    renderTabs(idx, false);
+    selectTreeFile(idx);
+    winTitle.textContent = f.name + " — opsdeck";
+    document.title = f.name + " — opsdeck";
+    langModeEl.textContent = LANGS[f.lang].label;
+    indentEl.textContent = "Spaces: " + f.indent;
+
+    // the file "already existed": show an opening chunk instantly, then keep
+    // typing from there
+    codeEl.innerHTML = "";
+    var pre = Math.floor(cur.lines.length * (0.15 + Math.random() * 0.3));
+    for (var i = 0; i < pre; i++) renderFullLine(i);
+
+    cur.lineNo = pre;
+    cur.toks = null;
+    cur.tokIdx = 0;
+    cur.charIdx = 0;
+    cur.txtEl = null;
+    cur.span = null;
+    cur.col = 1;
+    typo = null;
+    updateLnCol();
+    scrollBottom();
+  }
+
+  function startLine() {
+    var f = FILES[cur.file];
+    var div = document.createElement("div");
+    div.className = "cline";
+    var gut = document.createElement("span");
+    gut.className = "gut";
+    gut.textContent = cur.lineNo + 1;
+    var txt = document.createElement("span");
+    txt.className = "ltxt";
+    div.appendChild(gut);
+    div.appendChild(txt);
+    codeEl.appendChild(div);
+
+    while (codeEl.children.length > MAX_BUF_LINES) {
+      codeEl.removeChild(codeEl.firstChild);
+    }
+
+    cur.txtEl = txt;
+    cur.toks = tokenize(cur.lines[cur.lineNo], f.lang);
+    cur.tokIdx = 0;
+    cur.charIdx = 0;
+    cur.span = null;
+    cur.col = 1;
+    txt.appendChild(caret);
+
+    // auto-indent: leading whitespace appears instantly, like a real editor
+    var first = cur.toks[0];
+    if (first && first.cls === "pln" && /^\s+$/.test(first.text)) {
+      var ws = document.createElement("span");
+      ws.className = "tok-pln";
+      ws.textContent = first.text;
+      cur.txtEl.insertBefore(ws, caret);
+      cur.col += first.text.length;
+      cur.tokIdx = 1;
+    }
+    scrollBottom();
+  }
+
+  function finishLine() {
+    cur.txtEl.removeChild(caret);
+    cur.txtEl = null;
+    cur.lineNo++;
+  }
+
+  var TYPO_POOL = "qwertyuiopasdfghjklzxcvbnm";
+
+  function maybeStartTypo(justTyped) {
+    if (typo || !/\w/.test(justTyped) || Math.random() > 0.004) return;
+    var len = 2 + rnd(3);
+    var chars = "";
+    for (var i = 0; i < len; i++) chars += TYPO_POOL[rnd(TYPO_POOL.length)];
+    var span = document.createElement("span");
+    span.className = "tok-pln";
+    cur.txtEl.insertBefore(span, caret);
+    typo = { chars: chars, typed: 0, span: span, phase: "type" };
+  }
+
+  function eolDelay() {
+    var d = 300 + rnd(550);
+    var line = cur.lines[cur.lineNo - 1] || "";
+    var last = line.charAt(line.length - 1);
+    if (last === "{" || last === ":" || last === "(") d += 180;
+    if (Math.random() < 0.08) d += 900 + rnd(1400); // "thinking"
+    return d / mult();
+  }
+
+  function charDelay(ch) {
+    var d = BASE_CHAR_MS * (0.45 + Math.random() * 1.2);
+    if (ch === " ") d *= 1.5;
+    return d / mult();
+  }
+
+  // one engine tick; returns the delay until the next tick
+  function step() {
+    if (cur.phase === "filedone") {
+      cur.phase = "opening";
+      openFile(nextFile());
+      return 800 / mult();
+    }
+    if (cur.phase === "opening") cur.phase = "typing";
+
+    // typo state machine: type garbage, pause, backspace it
+    if (typo) {
+      if (typo.phase === "type") {
+        typo.span.textContent += typo.chars.charAt(typo.typed);
+        typo.typed++;
+        cur.col++;
+        updateLnCol();
+        if (typo.typed >= typo.chars.length) {
+          typo.phase = "pause";
+          return (260 + rnd(340)) / mult();
+        }
+        return charDelay("x");
+      }
+      if (typo.phase === "pause") {
+        typo.phase = "del";
+        return 60 / mult();
+      }
+      // deleting
+      typo.span.textContent = typo.span.textContent.slice(0, -1);
+      cur.col--;
+      updateLnCol();
+      if (!typo.span.textContent) {
+        cur.txtEl.removeChild(typo.span);
+        typo = null;
+      }
+      return 42 / mult();
+    }
+
+    // start a new line if needed
+    if (cur.txtEl === null) {
+      if (cur.lineNo >= cur.lines.length) {
+        // file complete: "save" it (dot goes away) and move on
+        cur.modified = false;
+        renderTabs(cur.file, false);
+        cur.phase = "filedone";
+        return (1300 + rnd(900)) / mult();
+      }
+      startLine();
+      if (!cur.modified) {
+        cur.modified = true;
+        renderTabs(cur.file, true);
+      }
+      updateLnCol();
+      // empty line: just a beat, then move on
+      if (cur.tokIdx >= cur.toks.length ||
+          (cur.toks.length === 1 && cur.toks[0].text === "")) {
+        finishLine();
+        return eolDelay() * 0.4;
+      }
+      return 90 / mult();
+    }
+
+    // end of line?
+    if (cur.tokIdx >= cur.toks.length) {
+      finishLine();
+      return eolDelay();
+    }
+
+    // type one character of the current token
+    var tok = cur.toks[cur.tokIdx];
+    if (cur.charIdx === 0) {
+      cur.span = document.createElement("span");
+      cur.span.className = "tok-" + tok.cls;
+      cur.txtEl.insertBefore(cur.span, caret);
+    }
+    var ch = tok.text.charAt(cur.charIdx);
+    cur.span.textContent += ch;
+    cur.charIdx++;
+    cur.col++;
+    if (cur.charIdx >= tok.text.length) {
+      cur.tokIdx++;
+      cur.charIdx = 0;
+      cur.span = null;
+    }
+    updateLnCol();
+    scrollBottom();
+    maybeStartTypo(ch);
+    return charDelay(ch);
+  }
+
+  function loop() {
+    if (paused) return;
+    var delay = step();
+    timer = setTimeout(loop, delay);
+  }
+
+  // ===== controls (same conventions as hacker-terminal.html) ================
+
+  function setPaused(p) {
+    paused = p;
+    toggleBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+    statusEl.textContent = paused ? "paused" : "typing";
+    if (!paused) { clearTimeout(timer); timer = setTimeout(loop, 120); }
+    else clearTimeout(timer);
+  }
+
+  toggleBtn.addEventListener("click", function () { setPaused(!paused); });
+
+  speedInput.addEventListener("input", function () {
+    speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  });
+
+  fsBtn.addEventListener("click", function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  function setSettingsOpen(open) {
+    document.body.classList.toggle("settings-open", open);
+    gearBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    controls.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) poke();
+  }
+  gearBtn.addEventListener("click", function () {
+    setSettingsOpen(!document.body.classList.contains("settings-open"));
+  });
+  document.addEventListener("click", function (e) {
+    if (!document.body.classList.contains("settings-open")) return;
+    if (!controls.contains(e.target) && e.target !== gearBtn) setSettingsOpen(false);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === "f" || e.key === "F") { fsBtn.click(); }
+    else if (e.key === "Escape") { setSettingsOpen(false); }
+    else if (e.key === "ArrowUp") { speedInput.value = Math.min(20, +speedInput.value + 1); speedInput.dispatchEvent(new Event("input")); }
+    else if (e.key === "ArrowDown") { speedInput.value = Math.max(1, +speedInput.value - 1); speedInput.dispatchEvent(new Event("input")); }
+  });
+
+  // auto-dim the gear when idle (clean recordings)
+  var idleTimer = null;
+  function poke() {
+    document.body.classList.remove("idle");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { document.body.classList.add("idle"); }, 2500);
+  }
+  document.addEventListener("mousemove", poke);
+  document.addEventListener("keydown", poke);
+  document.addEventListener("touchstart", poke, { passive: true });
+
+  // ===== boot ================================================================
+
+  buildTree();
+  speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  // seed a couple of "already open" tabs so the strip doesn't start empty
+  openFile(nextFile());
+  openTab(nextFile());
+  renderTabs(cur.file, false);
+  timer = setTimeout(loop, 600);
+  poke();
+})();
+</script>
+</body>
+</html>
