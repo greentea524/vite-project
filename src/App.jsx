@@ -6,6 +6,14 @@ const ACTIONS = {
   CHANGE_THEME: "CHANGE_THEME",
 };
 
+// Self-hosted theme stylesheets (see public/themes/README.md); the keys are
+// the radio-button values, kept as the historical package names
+const THEME_FILES = {
+  "98.css": "themes/98/98.css",
+  "xp.css": "themes/xp/XP.css",
+  "7.css": "themes/7/7.css",
+};
+
 function reducer(state, action) {
   switch (action.type) {
     case ACTIONS.CHANGE_THEME:
@@ -22,15 +30,10 @@ function App() {
   const [showCredits, setShowCredits] = React.useState(false);
 
   useEffect(() => {
-    // Dynamically import the selected theme CSS file from node_modules
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = `https://unpkg.com/${state.theme}`;
-    document.head.appendChild(link);
-
-    return () => {
-      document.head.removeChild(link);
-    };
+    // The default theme is a static <link id="theme-css"> in index.html so
+    // the first paint is already styled; switching just retargets its href
+    const link = document.getElementById("theme-css");
+    link.href = `${import.meta.env.BASE_URL}${THEME_FILES[state.theme]}`;
   }, [state.theme]);
 
   const handleThemeChange = (event) => {
