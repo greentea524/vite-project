@@ -2,6 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Google tag (gtag.js) — same property as the main site so this
+         standalone game page reports under its own /platformer/ path. -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-YL2TN1H62K"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-YL2TN1H62K");
+    </script>
     <link rel="icon" type="image/svg+xml" href="../vite.svg" />
     <!-- Game page: block pinch-zoom so touch controls behave. -->
     <meta
