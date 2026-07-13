@@ -24,6 +24,8 @@
 .big2-card-selected {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   outline: 2px solid #2f6fdb;
+  margin-top: -16px;
+  margin-bottom: 16px;
 }
 
 .big2-card-red {
@@ -685,7 +687,7 @@
   }
   
   .big2-my-hand .big2-card + .big2-card {
-    margin-left: -6px; /* Allow cards to take more space and wrap naturally */
+    margin-left: 2px; /* Side-by-side without overlap */
   }
 
   .big2-center {
@@ -753,6 +755,6 @@
   }
 
   .big2-my-hand .big2-card + .big2-card {
-    margin-left: -6px;
+    margin-left: 2px;
   }
 }

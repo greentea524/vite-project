@@ -169,3 +169,24 @@ export function canBeat(played, current) {
 export function canPass(currentTrick) {
   return Boolean(currentTrick && currentTrick.length > 0);
 }
+
+/**
+ * True if the played combination is absolutely unbeatable by any valid hand in the game.
+ * (e.g. 2 of Spades single, a pair containing 2 of Spades, or a triple of 2s).
+ */
+export function isUnbeatable(cards) {
+  if (!cards || cards.length === 0) return false;
+  const c = classifyHand(cards);
+  if (!c) return false;
+
+  if (c.type === HAND_TYPES.SINGLE) {
+    return cards[0].rank === "2" && cards[0].suit === "S";
+  }
+  if (c.type === HAND_TYPES.PAIR) {
+    return cards[0].rank === "2" && cards.some(card => card.suit === "S");
+  }
+  if (c.type === HAND_TYPES.TRIPLE) {
+    return cards[0].rank === "2";
+  }
+  return false;
+}

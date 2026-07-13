@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
 import { newGame, playCards, passTurn } from "./game.js";
-import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
+import { classifyHand, canBeat, canPass, isUnbeatable, HAND_TYPE_LABEL } from "./rules.js";
 import { chooseBotMove } from "./bot.js";
 import { scoreRound } from "./scoring.js";
 import Card from "./Card.jsx";
@@ -38,6 +38,17 @@ function SoloGame({ onExit }) {
   const selection = classifyHand(selectedCards);
   const playable = isMyTurn && canBeat(selectedCards, state.trick?.cards);
   const passable = isMyTurn && canPass(state.trick?.cards);
+
+  // Auto-pass if the trick is absolutely unbeatable (e.g. 2 of Spades).
+  useEffect(() => {
+    if (paused || state.winner !== null || state.turn !== LOCAL_PLAYER) return;
+    if (state.trick && isUnbeatable(state.trick.cards)) {
+      const timer = setTimeout(() => {
+        setState((s) => passTurn(s));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [state, paused]);
 
   // Bot turns (KAN-61), randomly delayed 800–1200ms to feel natural.
   // Pausing clears the pending timer; resuming reschedules it.
@@ -151,12 +162,15 @@ function SoloGame({ onExit }) {
             ? {
                 cards: state.trick.cards,
                 label: `${HAND_TYPE_LABEL[classifyHand(state.trick.cards)?.type]} by ${PLAYER_NAMES[state.trick.owner]}`,
+                origin: state.trick.owner === 0 ? "south" : state.trick.owner === 1 ? "west" : state.trick.owner === 2 ? "north" : "east",
               }
             : null
         }
-        leadText={`New trick — ${PLAYER_NAMES[state.turn]} lead${
-          state.turn === LOCAL_PLAYER ? "" : "s"
-        } anything`}
+        leadText={
+          state.turn === LOCAL_PLAYER
+            ? "You lead anything"
+            : `${PLAYER_NAMES[state.turn]} leads anything`
+        }
         turnText={
           state.winner === null
             ? isMyTurn

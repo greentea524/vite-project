@@ -12,16 +12,22 @@ import "./big2.css";
  *  - selected: lifts the card up (used by the table UI in KAN-60)
  *  - onClick: optional click handler
  */
-function Card({ card, selected = false, onClick }) {
+function Card({ card, selected = false, origin, onClick }) {
   const symbol = SUIT_SYMBOL[card.suit];
   const label = `${card.rank} of ${SUIT_NAME[card.suit]}`;
   return (
     <motion.button
       type="button"
       layoutId={card.id}
-      initial={{ scale: 0, opacity: 0, y: 0 }}
-      animate={{ scale: 1, opacity: 1, y: selected ? -16 : 0 }}
-      exit={{ scale: 0, opacity: 0, y: 0 }}
+      initial={
+        origin === "west" ? { x: -200, y: 0, scale: 0.5, opacity: 0 } :
+        origin === "east" ? { x: 200, y: 0, scale: 0.5, opacity: 0 } :
+        origin === "north" ? { x: 0, y: -200, scale: 0.5, opacity: 0 } :
+        origin === "south" ? { x: 0, y: 200, scale: 0.5, opacity: 0 } :
+        { scale: 0, opacity: 0 }
+      }
+      animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={`big2-card big2-card-${SUIT_COLOR[card.suit]}${
         selected ? " big2-card-selected" : ""

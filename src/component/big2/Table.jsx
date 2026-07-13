@@ -151,7 +151,7 @@ export function TableView({
           <>
             <div className="big2-trick-cards">
               {trick.cards.map((card) => (
-                <Card key={card.id} card={card} />
+                <Card key={card.id} card={card} origin={trick.origin} />
               ))}
             </div>
             <div className="big2-trick-label">{trick.label}</div>

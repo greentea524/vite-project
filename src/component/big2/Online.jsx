@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
 import { Network } from "./network.js";
 import { buildJoinLink } from "./joinLink.js";
-import { classifyHand, canBeat, canPass, HAND_TYPE_LABEL } from "./rules.js";
+import { classifyHand, canBeat, canPass, isUnbeatable, HAND_TYPE_LABEL } from "./rules.js";
 import { InstructionsOverlay } from "./Instructions.jsx";
 import { StatsOverlay } from "./StatsOverlay.jsx";
 import { recordGame } from "./stats.js";
@@ -179,6 +179,18 @@ function Online({ joinCode, onExit }) {
 
   const isMyTurn =
     gameState && gameState.winner === null && gameState.turn === mySeat;
+
+  // Auto-pass if the trick is absolutely unbeatable (e.g. 2 of Spades).
+  useEffect(() => {
+    if (!gameState || gameState.winner !== null || !isMyTurn) return;
+    if (gameState.trick && isUnbeatable(gameState.trick.cards)) {
+      const timer = setTimeout(() => {
+        net.pass();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, isMyTurn, net]);
+
   const selectedCards = useMemo(
     () => myHand.filter((c) => selectedIds.has(c.id)),
     [myHand, selectedIds]
@@ -376,6 +388,7 @@ function Online({ joinCode, onExit }) {
     ? {
         cards: gameState.trick.cards,
         label: `${HAND_TYPE_LABEL[classifyHand(gameState.trick.cards)?.type]} by ${seatName(gameState.trick.owner)}`,
+        origin: (gameState.trick.owner - mySeat + 4) % 4 === 0 ? "south" : (gameState.trick.owner - mySeat + 4) % 4 === 1 ? "west" : (gameState.trick.owner - mySeat + 4) % 4 === 2 ? "north" : "east",
       }
     : null;
 
@@ -430,9 +443,11 @@ function Online({ joinCode, onExit }) {
       <TableView
         opponents={[seatAt(1), seatAt(2), seatAt(3)]}
         trick={trick}
-        leadText={`New trick — ${seatName(gameState.turn)} lead${
-          gameState.turn === mySeat ? "" : "s"
-        } anything`}
+        leadText={
+          gameState.turn === mySeat
+            ? "You lead anything"
+            : `${seatName(gameState.turn)} leads anything`
+        }
         turnText={
           gameState.winner === null
             ? isMyTurn
