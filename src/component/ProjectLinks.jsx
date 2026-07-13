@@ -10,14 +10,6 @@ function ProjectLinks() {
         >
           <i className="fa fa-folder"></i> Portfolio
         </a>
-        <a
-          className="my-button"
-          href={`${import.meta.env.BASE_URL}platformer/`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <i className="fa fa-gamepad"></i> Platformer
-        </a>
       </div>
 
       <div className="home-social">

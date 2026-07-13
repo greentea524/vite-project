@@ -408,6 +408,10 @@ div.navbrand {
   transition: all 0.3s ease;
 }
 
+.game-link i {
+  color: #fff;
+}
+
 .game-link:hover,
 .game-link:focus {
   background: linear-gradient(90deg, #991deb, #3ebbf0);
