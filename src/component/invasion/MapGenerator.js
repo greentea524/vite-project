@@ -29,7 +29,11 @@ export function generateGalaxyMap(loopCount = 0) {
       }
 
       tierNodes.push({
-        id: `node_${nodeIdCounter++}`,
+        // Namespaced by loopCount so each sector's node ids are unique
+        // across the whole run — otherwise every generated map reuses
+        // node_0..node_8, and once sector 1's ids are in completedNodeIds
+        // the next sector renders as already-cleared (unclickable).
+        id: `node_${loopCount}_${nodeIdCounter++}`,
         tier: tierIndex,
         col: i,
         type: type,
