@@ -182,32 +182,37 @@ export function TableView({
           ))}
         </div>
         <div className="big2-actions">
-          <button type="button" onClick={onPlay} disabled={!playEnabled}>
-            Play
-          </button>
-          <button type="button" onClick={onPass} disabled={!passEnabled}>
-            Pass
-          </button>
-          <span className="big2-sort" role="group" aria-label="Sort hand">
-            <span className="big2-sort-label">Sort:</span>
-            <button
-              type="button"
-              className={sortMode === "rank" ? "big2-sort-active" : ""}
-              aria-pressed={sortMode === "rank"}
-              onClick={() => pickSort("rank")}
-            >
-              Rank
+          <div className="big2-actions-spacer"></div>
+          <div className="big2-play-actions">
+            <button type="button" onClick={onPlay} disabled={!playEnabled}>
+              Play
             </button>
-            <button
-              type="button"
-              className={sortMode === "suit" ? "big2-sort-active" : ""}
-              aria-pressed={sortMode === "suit"}
-              onClick={() => pickSort("suit")}
-            >
-              Suit
+            <button type="button" onClick={onPass} disabled={!passEnabled}>
+              Pass
             </button>
-          </span>
-          {hint}
+            {hint}
+          </div>
+          <div className="big2-actions-spacer big2-sort-wrapper">
+            <span className="big2-sort" role="group" aria-label="Sort hand">
+              <span className="big2-sort-label">Sort:</span>
+              <button
+                type="button"
+                className={sortMode === "rank" ? "big2-sort-active" : ""}
+                aria-pressed={sortMode === "rank"}
+                onClick={() => pickSort("rank")}
+              >
+                Rank
+              </button>
+              <button
+                type="button"
+                className={sortMode === "suit" ? "big2-sort-active" : ""}
+                aria-pressed={sortMode === "suit"}
+                onClick={() => pickSort("suit")}
+              >
+                Suit
+              </button>
+            </span>
+          </div>
         </div>
       </div>
       </div>

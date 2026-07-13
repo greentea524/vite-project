@@ -563,11 +563,29 @@
 .big2-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  width: 100%;
   min-height: 32px;
 }
 
-.big2-actions button {
+.big2-actions-spacer {
+  flex: 1;
+  display: flex;
+}
+
+.big2-sort-wrapper {
+  justify-content: flex-end;
+}
+
+.big2-play-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.big2-play-actions button {
   min-width: 72px;
 }
 
@@ -616,12 +634,16 @@
    finger (any touch device) or the screen is phone-sized. */
 @media (pointer: coarse), (max-width: 640px) {
   .big2-actions {
+    flex-direction: column;
     gap: 12px;
-    flex-wrap: wrap;
     justify-content: center;
   }
 
-  .big2-actions > button {
+  .big2-actions-spacer {
+    display: none; /* Hide spacers on mobile so it stacks neatly */
+  }
+
+  .big2-play-actions > button {
     min-height: 48px;
     min-width: 104px;
     font-size: 1rem;
