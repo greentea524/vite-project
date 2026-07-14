@@ -639,7 +639,7 @@ export class Engine {
       ctx.fill();
     }
     // Idle frame 1 bobs the sprite up by 1px; match costume to that.
-    const idleBob = (p.anim === "idle" && playerFrame(p) === 1) ? -1 : 0;
+    const idleBob = (p.anim === "idle" && playerFrame(p) === 1) ? 1 : 0;
     this.drawPlayerCostume(ctx, Math.round(p.x - ox), Math.round(p.y - oy) + idleBob, p.facing);
     ctx.globalAlpha = 1;
     // Own name tag in a race, so it's easy to tell who's who.
@@ -660,7 +660,7 @@ export class Engine {
       const gy = v.y - oy;
       ctx.globalAlpha = 0.5;
       this.drawFrame(ctx, sheet, animFrameFor(v.anim), gx, gy, { flip: v.facing < 0 });
-      const ghostBob = (v.anim === "idle" && animFrameFor(v.anim) === 1) ? -1 : 0;
+      const ghostBob = (v.anim === "idle" && animFrameFor(v.anim) === 1) ? 1 : 0;
       this.drawPlayerCostume(ctx, Math.round(gx), Math.round(gy) + ghostBob, v.facing);
       ctx.globalAlpha = 1;
       this.drawNameLabel(v.name, gx, gy);
