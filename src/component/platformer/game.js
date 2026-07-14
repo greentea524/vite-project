@@ -1675,7 +1675,7 @@ export class Engine {
   }
 
   drawCyberVisor(ctx, cx, cy, facing) {
-    const hy = cy - 4;
+    const hy = cy - 1; // Eye level
     
     ctx.save();
     
