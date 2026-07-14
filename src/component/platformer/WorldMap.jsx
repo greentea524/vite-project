@@ -77,6 +77,16 @@ export function WorldMap({ state, avatar, onSelectStage }) {
           })}
         </div>
       ))}
+      <div style={{ textAlign: "center", marginTop: "24px" }}>
+        <button
+          type="button"
+          onClick={() => state.unlockAllStages()}
+          className="plat-btn"
+          style={{ fontSize: "0.8rem", padding: "4px 8px", opacity: 0.7 }}
+        >
+          Unlock all stages
+        </button>
+      </div>
     </div>
   );
 }

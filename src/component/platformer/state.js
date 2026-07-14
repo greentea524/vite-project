@@ -152,6 +152,13 @@ export class GameState {
     this.gotoLevel(0);
   }
 
+  // Cheat code to unlock all stages for testing
+  unlockAllStages() {
+    this.levelsCompleted = LEVELS.length;
+    this._persist();
+    this._emit("level", this.currentLevel); // Trigger re-render
+  }
+
   // Resumes the game from the furthest unlocked stage
   continueGame() {
     this.multiplayer = false;

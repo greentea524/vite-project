@@ -29,6 +29,15 @@ function formatTime(ms) {
   return `${m}:${String(s).padStart(2, "0")}.${d}`;
 }
 
+function RunTimer({ state }) {
+  const [time, setTime] = useState(state.runTimeMs);
+  useEffect(() => {
+    const timer = setInterval(() => setTime(state.runTimeMs), 250);
+    return () => clearInterval(timer);
+  }, [state]);
+  return <span>Time: {formatTime(time)}</span>;
+}
+
 const LEVEL_LABEL = (i) => `${Math.floor(i / 3) + 1}-${(i % 3) + 1}`;
 
 // On-screen control button (PLAT-13), usable with touch or mouse.
@@ -630,6 +639,7 @@ function Platformer() {
         {inGame && (
           <div className="plat-hud">
             <span>Coins: {coins}</span>
+            <RunTimer state={state} />
             {/* Current world's stages, world-map style: done stages
                 gold, the current one highlighted, the rest dimmed. */}
             <span
