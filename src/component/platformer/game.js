@@ -638,7 +638,9 @@ export class Engine {
       ctx.fillStyle = p.shield === 2 ? "rgba(255, 215, 0, 0.2)" : "rgba(85, 170, 255, 0.2)";
       ctx.fill();
     }
-    this.drawPlayerCostume(ctx, Math.round(p.x - ox), Math.round(p.y - oy), p.facing);
+    // Idle frame 1 bobs the sprite up by 1px; match costume to that.
+    const idleBob = (p.anim === "idle" && playerFrame(p) === 1) ? -1 : 0;
+    this.drawPlayerCostume(ctx, Math.round(p.x - ox), Math.round(p.y - oy) + idleBob, p.facing);
     ctx.globalAlpha = 1;
     // Own name tag in a race, so it's easy to tell who's who.
     if (this.network && this.state.multiplayer && this.network.selfName) {
@@ -658,7 +660,8 @@ export class Engine {
       const gy = v.y - oy;
       ctx.globalAlpha = 0.5;
       this.drawFrame(ctx, sheet, animFrameFor(v.anim), gx, gy, { flip: v.facing < 0 });
-      this.drawPlayerCostume(ctx, Math.round(gx), Math.round(gy), v.facing);
+      const ghostBob = (v.anim === "idle" && animFrameFor(v.anim) === 1) ? -1 : 0;
+      this.drawPlayerCostume(ctx, Math.round(gx), Math.round(gy) + ghostBob, v.facing);
       ctx.globalAlpha = 1;
       this.drawNameLabel(v.name, gx, gy);
     }
