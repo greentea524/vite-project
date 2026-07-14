@@ -1,12 +1,14 @@
 import React from "react";
 import styles from "./GalaxyMap.module.css";
-import { NODE_TYPES } from "./MapGenerator";
+import { NODE_TYPES, activeTierIndex, tierIsDone } from "./MapGenerator";
 
 export function GalaxyMap({ mapPage, currentPageIndex, totalPages, onPrevPage, onNextPage, completedNodeIds, onNodeClick }) {
   if (!mapPage || mapPage.length === 0) return null;
 
-  const nonBossNodes = mapPage.flat().filter(n => n.type !== "boss");
-  const allOthersDone = nonBossNodes.every(n => completedNodeIds.includes(n.id));
+  // Path progression: one node per row. Only the active row (the first
+  // with nothing cleared) is clickable; clearing any node in it moves
+  // the fight up a row, until the boss row at the top.
+  const activeTier = activeTierIndex(mapPage, completedNodeIds);
 
   return (
     <div className={styles.container}>
@@ -40,8 +42,11 @@ export function GalaxyMap({ mapPage, currentPageIndex, totalPages, onPrevPage, o
             {tier.map((node) => {
               const isDone = completedNodeIds.includes(node.id);
               const isBoss = node.type === "boss";
-              const isClickable = !isDone && (!isBoss || allOthersDone);
-              
+              // Clickable only on the active row; picking one node there
+              // finishes the row — its siblings become bypassed.
+              const isClickable = !isDone && tierIndex === activeTier;
+              const isBypassed = !isDone && tierIsDone(tier, completedNodeIds);
+
               let nodeTypeInfo = NODE_TYPES.find(n => n.id === node.type);
               if (!nodeTypeInfo || isBoss) {
                 nodeTypeInfo = { icon: "👽", color: "#ff3333", name: "Sector Boss", desc: "Defeat to clear sector!" };
@@ -62,7 +67,15 @@ export function GalaxyMap({ mapPage, currentPageIndex, totalPages, onPrevPage, o
                       {isBoss && !isClickable && !isDone ? "LOCKED" : nodeTypeInfo.name}
                     </div>
                     <div style={{color: "#aaa", fontSize: "10px", marginTop: "2px"}}>
-                      {isDone ? "Cleared" : (isBoss && !isClickable ? "Clear all other sectors first" : nodeTypeInfo.desc)}
+                      {isDone
+                        ? "Cleared"
+                        : isBypassed
+                          ? "Bypassed"
+                          : isBoss && !isClickable
+                            ? "Fight up the rows to reach the boss"
+                            : isClickable
+                              ? nodeTypeInfo.desc
+                              : "Locked — clear the row below first"}
                     </div>
                   </div>
                   {isDone && <div className={styles.doneCheck}>✓</div>}

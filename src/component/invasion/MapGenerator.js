@@ -6,6 +6,19 @@ export const NODE_TYPES = [
   { id: "pulsar", name: "Pulsar System", icon: "⚡", color: "#00ffff", desc: "Intense electromagnetic radiation" },
 ];
 
+// Path-style progression: each tier (row) needs just ONE cleared node
+// to advance — pick your route, clear it, move up, and the boss row
+// unlocks after the rows below it, not after clearing everything.
+export function tierIsDone(tier, completedNodeIds) {
+  return tier.some((n) => completedNodeIds.includes(n.id));
+}
+
+// The row the player is currently choosing from: the first tier with
+// no cleared node. -1 once every tier (including the boss) is done.
+export function activeTierIndex(map, completedNodeIds) {
+  return map.findIndex((tier) => !tierIsDone(tier, completedNodeIds));
+}
+
 export function generateGalaxyMap(loopCount = 0) {
   const structure = [1, 2, 3, 2, 1];
   const tiers = [];
