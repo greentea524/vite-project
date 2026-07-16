@@ -848,6 +848,67 @@
     font-size: 12px;
     color: var(--neon-green);
   }
+
+  @media (max-width: 768px) {
+    #dashboard {
+      padding: 10px;
+      gap: 10px;
+    }
+    #header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px;
+      gap: 16px;
+    }
+    #header .meta-info {
+      flex-direction: column;
+      gap: 6px;
+    }
+    #header .right-info {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .docker-layer-row {
+      grid-template-columns: 70px 1fr 40px;
+      grid-template-rows: auto auto;
+      grid-template-areas: 
+        "hash bar pct"
+        "size size status";
+      padding: 8px;
+    }
+    .docker-layer-hash { grid-area: hash; }
+    .docker-layer-size { grid-area: size; font-size: 10px; margin-top: 4px; }
+    .docker-layer-bar-wrap { grid-area: bar; }
+    .docker-layer-pct { grid-area: pct; }
+    .docker-layer-status { grid-area: status; margin-top: 4px; }
+    
+    .k8s-pod-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .k8s-pod-details {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+    }
+    .k8s-pod-metrics {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .k8s-meta-header { display: none; }
+    
+    .stage-row {
+      padding: 10px;
+    }
+    .stage-name { font-size: 14px; }
+    .stage-summary { font-size: 12px; }
+    
+    .banner-stats {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 </head>
 <body>
