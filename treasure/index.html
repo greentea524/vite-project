@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Google tag (gtag.js) — same property as the main site so this
+         standalone game page reports under its own /treasure/ path. -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-YL2TN1H62K"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-YL2TN1H62K");
+    </script>
+    <link rel="icon" type="image/svg+xml" href="../vite.svg" />
+    <!-- Game page: block pinch-zoom so pointer-lock mouse-look behaves. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Treasure Hunt</title>
+    <style>
+      /* Fullscreen canvas shell; HUD is an HTML overlay on top. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #05060d;
+        font-family: "SansSerif", Arial, sans-serif;
+      }
+      #game {
+        position: fixed;
+        inset: 0;
+      }
+      #game canvas {
+        display: block;
+      }
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        padding: 10px 16px;
+        color: #fff;
+        font-size: 22px;
+        font-weight: bold;
+        text-shadow: 0 1px 3px #000;
+        pointer-events: none;
+        user-select: none;
+        line-height: 1.35;
+      }
+      #banner {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+        color: #fff;
+        font-size: 42px;
+        font-weight: bold;
+        text-shadow: 0 2px 6px #000;
+        background: rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+        user-select: none;
+        text-align: center;
+      }
+      #banner small {
+        font-size: 20px;
+        font-weight: normal;
+      }
+      /* Click-to-start overlay: needed for pointer lock + audio autoplay. */
+      #start {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 12px;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.65);
+        cursor: pointer;
+        user-select: none;
+        text-align: center;
+      }
+      #start h1 {
+        margin: 0;
+        font-size: 40px;
+      }
+      #start p {
+        margin: 0;
+        font-size: 18px;
+        opacity: 0.85;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="hud">
+      <div id="hud-life">Life: 5</div>
+      <div id="hud-score">Score: 0</div>
+      <div id="hud-left">Left: 15</div>
+    </div>
+    <div id="banner">
+      <span id="banner-text"></span>
+      <small>Press ESC to exit</small>
+    </div>
+    <div id="start">
+      <h1>Treasure Hunt</h1>
+      <p>Collect 15 rings (+1). Avoid bombs (−1) and ghosts (score → −5).</p>
+      <p>
+        WASD to move, mouse to look (click-and-drag if the cursor stays
+        visible), gamepad supported. Win at score 10.
+      </p>
+      <p><strong>Click to play</strong></p>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

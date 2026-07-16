@@ -11,9 +11,9 @@ export default defineConfig({
     host: true,
   },
   // Multi-page build: the main app plus standalone game pages served
-  // at /platformer/, /space/, and /big2/ (deploying to
-  // .../vite-project/platformer/, .../vite-project/space/, and
-  // .../vite-project/big2/).
+  // at /platformer/, /space/, /big2/, and /treasure/ (deploying to
+  // .../vite-project/platformer/, .../vite-project/space/,
+  // .../vite-project/big2/, and .../vite-project/treasure/).
   build: {
     rollupOptions: {
       input: {
@@ -23,6 +23,9 @@ export default defineConfig({
         ),
         space: fileURLToPath(new URL("./space/index.html", import.meta.url)),
         big2: fileURLToPath(new URL("./big2/index.html", import.meta.url)),
+        treasure: fileURLToPath(
+          new URL("./treasure/index.html", import.meta.url),
+        ),
       },
     },
   },
