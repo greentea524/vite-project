@@ -90,7 +90,7 @@
   @media (max-width: 1100px) {
     #dashboard {
       grid-template-columns: 1fr;
-      grid-template-rows: auto auto auto auto auto;
+      grid-template-rows: auto;
       overflow-y: auto;
       height: auto;
     }
@@ -847,6 +847,24 @@
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--neon-green);
+  }
+
+  /* Single-column mode (must come after the base panel rules to win the
+     cascade): there is no fixed viewport height to divide up, so the desktop
+     flex sizing (flex-basis 0 + min-height 0) would collapse the panels on
+     some browsers. Let every panel take its natural content height... */
+  @media (max-width: 1100px) {
+    .col { height: auto; }
+    .panel { flex: none; }
+    .stages-list, .k8s-grid, .docker-registry-box { overflow-y: visible; }
+    /* ...except the terminal feed, which grows forever as logs stream in:
+       give it a fixed height so it scrolls internally (keeping the page
+       height stable when a redeploy clears the logs) */
+    #feed-container {
+      flex: none;
+      height: 45vh;
+      min-height: 260px;
+    }
   }
 
   @media (max-width: 768px) {
