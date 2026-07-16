@@ -247,6 +247,24 @@ class ReactTabHeader extends Component {
                         A fake IDE that codes by itself — realistic-looking JavaScript, Python, C, and shell files type themselves out in a dark editor, complete with typos and file switching.
                       </p>
                     </div>
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}fake-file-transfer.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fake File Transfer (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-exchange" aria-hidden="true"></i>{" "}
+                          Fake File Transfer
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        A retro scp-style file transfer screen — multiple downloads and uploads with progress bars, transfer speeds, ETAs, and completion checkmarks. Auto-runs for screen recordings.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
