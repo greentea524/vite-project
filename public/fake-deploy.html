@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CI/CD Deployment Pipeline</title>
+<!--
+  Standalone fake CI/CD Deployment Pipeline Dashboard for screen-recording / demos.
+  Open directly in a browser, or reach it from the app under
+  Utility → Fake Deploy.
+
+  Controls: tap the ⚙ gear (bottom-right) for the settings panel —
+  pause/resume, speed, manual redeploy, and fullscreen.
+  Shortcuts: Space = pause/resume, f = fullscreen, ↑/↓ = speed, Esc = close settings.
+-->
+<link
+  rel="stylesheet"
+  href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --neon-green: hsl(140, 100%, 60%);
+    --neon-green-dim: hsl(140, 60%, 30%);
+    --neon-green-glow: hsla(140, 100%, 60%, 0.3);
+    --neon-green-bg: hsla(140, 100%, 8%, 0.4);
+    
+    --cyan: hsl(190, 100%, 55%);
+    --cyan-dim: hsl(190, 60%, 30%);
+    --cyan-glow: hsla(190, 100%, 55%, 0.25);
+    --cyan-bg: hsla(190, 100%, 8%, 0.35);
+
+    --amber: hsl(45, 100%, 55%);
+    --amber-dim: hsl(45, 60%, 30%);
+    --amber-glow: hsla(45, 100%, 55%, 0.25);
+    
+    --red: hsl(0, 100%, 65%);
+    --red-dim: hsl(0, 60%, 35%);
+    --red-glow: hsla(0, 100%, 65%, 0.3);
+    
+    --dark-bg: hsl(145, 15%, 4%);
+    --panel-bg: rgba(6, 12, 8, 0.85);
+    --glass-border: rgba(51, 255, 102, 0.18);
+    
+    --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--dark-bg);
+    color: var(--neon-green);
+    font-family: var(--font-sans);
+    overflow: hidden;
+  }
+
+  /* faint CRT scanline overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.18) 3px,
+      rgba(0, 0, 0, 0) 4px
+    );
+    z-index: 100;
+  }
+
+  #dashboard {
+    display: grid;
+    grid-template-columns: 1.1fr 1.3fr;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    padding: 16px;
+    gap: 16px;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 1100px) {
+    #dashboard {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto auto;
+      overflow-y: auto;
+      height: auto;
+    }
+    html, body {
+      overflow-y: auto;
+      height: auto;
+    }
+  }
+
+  /* Header Styles */
+  #header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--panel-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  #header .left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  #header .status-icon {
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  #header .status-icon.active {
+    animation: rotate-gear 3s linear infinite;
+  }
+
+  @keyframes rotate-gear {
+    100% { transform: rotate(360deg); }
+  }
+
+  #header .title-area h1 {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 10px var(--neon-green-glow);
+  }
+
+  #header .title-area span {
+    font-size: 11px;
+    color: var(--neon-green-dim);
+    font-family: var(--font-mono);
+  }
+
+  #header .meta-info {
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+  }
+
+  #header .meta-info .label {
+    color: var(--neon-green-dim);
+    margin-right: 4px;
+  }
+
+  #header .meta-info .val {
+    color: #fff;
+  }
+
+  #header .right-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+
+  #header .clock-widget {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(51, 255, 102, 0.1);
+  }
+
+  /* Grid Columns */
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Panel Styles */
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    min-height: 0;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--glass-border);
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-subtitle {
+    font-size: 11px;
+    color: var(--neon-green-dim);
+    font-family: var(--font-mono);
+  }
+
+  /* Pipeline Stages Styling */
+  #pipeline-panel {
+    flex: 1.1;
+  }
+
+  .stages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+  }
+
+  .stage-row {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 20, 5, 0.25);
+    border: 1px solid rgba(51, 255, 102, 0.08);
+    border-radius: 6px;
+    padding: 10px 14px;
+    gap: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .stage-row.active {
+    background: rgba(51, 255, 102, 0.06);
+    border-color: rgba(51, 255, 102, 0.4);
+    box-shadow: 0 0 10px rgba(51, 255, 102, 0.1);
+  }
+
+  .stage-row.success {
+    background: rgba(0, 40, 10, 0.2);
+    border-color: rgba(51, 255, 102, 0.2);
+  }
+
+  .stage-row.failed {
+    background: rgba(40, 0, 0, 0.15);
+    border-color: rgba(255, 77, 77, 0.3);
+  }
+
+  .stage-row.retry {
+    background: rgba(255, 204, 51, 0.05);
+    border-color: rgba(255, 204, 51, 0.35);
+  }
+
+  .stage-indicator {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .stage-indicator i {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stage-row.pending .stage-indicator { color: var(--neon-green-dim); }
+  .stage-row.active .stage-indicator { color: var(--neon-green); animation: pulse-icon 1.5s infinite; }
+  .stage-row.success .stage-indicator { color: var(--neon-green); }
+  .stage-row.failed .stage-indicator { color: var(--red); }
+  .stage-row.retry .stage-indicator { color: var(--amber); animation: pulse-icon 1s infinite; }
+
+  @keyframes pulse-icon {
+    50% { opacity: 0.3; }
+  }
+
+  .stage-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stage-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .stage-row.pending .stage-name { color: var(--neon-green-dim); }
+
+  .stage-summary {
+    font-size: 11px;
+    color: var(--neon-green-dim);
+    font-family: var(--font-mono);
+  }
+
+  .stage-row.active .stage-summary {
+    color: var(--neon-green);
+  }
+
+  .stage-meta {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .stage-duration {
+    color: var(--neon-green-dim);
+  }
+
+  .stage-row.active .stage-duration { color: var(--neon-green); }
+
+  .stage-status-badge {
+    margin-top: 2px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 4px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .stage-row.pending .stage-status-badge { background: rgba(51, 255, 102, 0.05); color: var(--neon-green-dim); }
+  .stage-row.active .stage-status-badge { background: rgba(51, 255, 102, 0.2); color: var(--neon-green); }
+  .stage-row.success .stage-status-badge { background: rgba(0, 255, 100, 0.1); color: var(--neon-green); }
+  .stage-row.failed .stage-status-badge { background: rgba(255, 77, 77, 0.2); color: var(--red); }
+  .stage-row.retry .stage-status-badge { background: rgba(255, 204, 51, 0.2); color: var(--amber); }
+
+  /* Kubernetes Pod Rollout Styling */
+  #k8s-panel {
+    flex: 0.9;
+  }
+
+  .k8s-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+
+  .k8s-meta-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--cyan-dim);
+    margin-bottom: 8px;
+    background: rgba(0, 15, 25, 0.25);
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(51, 204, 255, 0.1);
+  }
+
+  .k8s-pod-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 15, 25, 0.2);
+    border: 1px solid rgba(51, 204, 255, 0.1);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    transition: all 0.3s ease;
+  }
+
+  .k8s-pod-row.new {
+    border-color: rgba(51, 204, 255, 0.4);
+    background: rgba(51, 204, 255, 0.04);
+  }
+
+  .k8s-pod-row.terminating {
+    border-color: rgba(255, 77, 77, 0.3);
+    background: rgba(255, 77, 77, 0.04);
+    opacity: 0.7;
+  }
+
+  .k8s-pod-icon {
+    font-size: 16px;
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .k8s-pod-row.running .k8s-pod-icon { color: var(--neon-green); }
+  .k8s-pod-row.pending .k8s-pod-icon { color: #888; }
+  .k8s-pod-row.creating .k8s-pod-icon { color: var(--amber); animation: pulse-icon 1s infinite; }
+  .k8s-pod-row.terminating .k8s-pod-icon { color: var(--red); }
+
+  .k8s-pod-details {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .k8s-pod-name {
+    font-weight: 500;
+    color: #fff;
+  }
+
+  .k8s-pod-version {
+    font-size: 10px;
+    background: rgba(255,255,255,0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: #bbb;
+  }
+
+  .k8s-pod-metrics {
+    display: flex;
+    gap: 12px;
+    color: var(--cyan-dim);
+    font-size: 11px;
+  }
+
+  .k8s-pod-metrics span {
+    display: inline-block;
+    min-width: 54px;
+  }
+
+  .k8s-pod-status {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .k8s-pod-row.running .k8s-pod-status { background: rgba(0, 255, 100, 0.15); color: var(--neon-green); }
+  .k8s-pod-row.pending .k8s-pod-status { background: rgba(255,255,255,0.1); color: #888; }
+  .k8s-pod-row.creating .k8s-pod-status { background: rgba(255, 204, 51, 0.15); color: var(--amber); }
+  .k8s-pod-row.terminating .k8s-pod-status { background: rgba(255, 77, 77, 0.15); color: var(--red); }
+
+  /* Docker Registry Panel */
+  #docker-panel {
+    flex: 0.9;
+  }
+
+  .docker-registry-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+
+  .docker-layer-row {
+    display: grid;
+    grid-template-columns: 80px 100px 1fr 120px;
+    gap: 8px;
+    align-items: center;
+    background: rgba(255, 204, 51, 0.03);
+    border: 1px solid rgba(255, 204, 51, 0.08);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .docker-layer-hash {
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  .docker-layer-size {
+    color: var(--neon-green-dim);
+  }
+
+  .docker-layer-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .docker-layer-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 204, 51, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .docker-layer-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--amber);
+    box-shadow: 0 0 6px var(--amber-glow);
+    transition: width 0.1s linear;
+  }
+
+  .docker-layer-pct {
+    min-width: 28px;
+    text-align: right;
+    font-size: 10px;
+    color: var(--amber-dim);
+  }
+
+  .docker-layer-status {
+    text-align: right;
+    font-weight: bold;
+    color: var(--amber-dim);
+  }
+
+  .docker-layer-row.exists {
+    border-color: rgba(51, 255, 102, 0.1);
+    background: rgba(51, 255, 102, 0.02);
+  }
+  .docker-layer-row.exists .docker-layer-hash { color: var(--neon-green); }
+  .docker-layer-row.exists .docker-layer-status { color: var(--neon-green-dim); }
+
+  .docker-layer-row.pushed {
+    border-color: rgba(51, 255, 102, 0.2);
+    background: rgba(51, 255, 102, 0.04);
+  }
+  .docker-layer-row.pushed .docker-layer-hash { color: var(--neon-green); }
+  .docker-layer-row.pushed .docker-layer-bar-fill { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green-glow); }
+  .docker-layer-row.pushed .docker-layer-status { color: var(--neon-green); }
+  .docker-layer-row.pushed .docker-layer-pct { color: var(--neon-green); }
+
+  /* Live Terminal Logs Panel */
+  #terminal-panel {
+    flex: 1.1;
+  }
+
+  #feed-container {
+    flex: 1;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(51, 255, 102, 0.15);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--neon-green);
+    scrollbar-width: thin;
+    scrollbar-color: var(--neon-green-dim) transparent;
+  }
+
+  .log-line {
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-bottom: 2px;
+  }
+
+  .log-line.dim { color: var(--neon-green-dim); }
+  .log-line.amber { color: var(--amber); }
+  .log-line.red { color: var(--red); text-shadow: 0 0 5px rgba(255, 77, 77, 0.4); }
+  .log-line.green { color: var(--neon-green); }
+  .log-line.cmd { color: #fff; font-weight: bold; }
+  .log-line.cmd::before { content: "$ "; color: var(--neon-green-dim); }
+
+  #cursor {
+    display: inline-block;
+    width: 7px;
+    height: 14px;
+    background: var(--neon-green);
+    vertical-align: middle;
+    margin-left: 2px;
+    animation: blink 1s steps(1) infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Success Banner Overlay */
+  #success-banner {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 5, 2, 0.85);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  #success-banner.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .banner-content {
+    background: hsl(145, 25%, 6%);
+    border: 2px solid var(--neon-green);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 0 40px var(--neon-green-glow);
+    transform: translateY(20px);
+    transition: transform 0.5s ease;
+  }
+
+  #success-banner.visible .banner-content {
+    transform: translateY(0);
+  }
+
+  .success-icon {
+    font-size: 60px;
+    color: var(--neon-green);
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px var(--neon-green-glow);
+    animation: bounce-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes bounce-in {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .banner-content h2 {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #fff;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px var(--neon-green-glow);
+  }
+
+  .banner-content p {
+    font-size: 14px;
+    color: var(--neon-green-dim);
+    margin-bottom: 24px;
+    font-family: var(--font-mono);
+  }
+
+  .banner-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    margin-bottom: 28px;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .banner-stats .item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .banner-stats .stat-label {
+    color: var(--neon-green-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .banner-stats .stat-val {
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .banner-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .banner-btn {
+    background: transparent;
+    color: var(--neon-green);
+    border: 1px solid var(--neon-green);
+    padding: 10px 20px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .banner-btn:hover {
+    background: var(--neon-green);
+    color: #000;
+    box-shadow: 0 0 12px var(--neon-green-glow);
+  }
+
+  .banner-btn.primary {
+    background: var(--neon-green);
+    color: #000;
+  }
+  .banner-btn.primary:hover {
+    background: #fff;
+    border-color: #fff;
+    box-shadow: 0 0 16px rgba(255,255,255,0.4);
+  }
+
+  /* Gear Settings Overlay styling */
+  #gearBtn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2000;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 20, 6, 0.85);
+    color: var(--neon-green);
+    border: 1px solid var(--neon-green-dim);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(51, 255, 102, 0.25);
+    transition: opacity 0.4s ease, background 0.15s, transform 0.2s ease;
+  }
+
+  #gearBtn:hover {
+    background: var(--neon-green-dim);
+    color: #000;
+  }
+
+  body.settings-open #gearBtn {
+    transform: rotate(60deg);
+  }
+
+  body.idle:not(.settings-open) #gearBtn {
+    opacity: 0.25;
+  }
+
+  #controls {
+    position: fixed;
+    right: 16px;
+    bottom: 76px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 280px;
+    max-width: calc(100vw - 32px);
+    padding: 16px;
+    background: rgba(0, 20, 6, 0.95);
+    border: 1px solid var(--neon-green-dim);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  body.settings-open #controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .controls-title {
+    font-weight: bold;
+    color: #fff;
+    border-bottom: 1px solid var(--neon-green-dim);
+    padding-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 13px;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .controls-row label {
+    color: var(--neon-green-dim);
+    font-size: 12px;
+    font-family: var(--font-mono);
+  }
+
+  #controls button {
+    background: transparent;
+    color: var(--neon-green);
+    border: 1px solid var(--neon-green-dim);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    flex: 1;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  #controls button:hover {
+    background: var(--neon-green-dim);
+    color: #000;
+  }
+
+  #controls input[type="range"] {
+    flex: 1;
+    accent-color: var(--neon-green);
+    cursor: pointer;
+  }
+
+  #speedVal {
+    min-width: 36px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--neon-green);
+  }
+</style>
+</head>
+<body>
+
+<div id="dashboard">
+  <!-- Top Bar -->
+  <header id="header">
+    <div class="left">
+      <div class="status-icon active" id="header-status-icon">
+        <i class="fa fa-cog"></i>
+      </div>
+      <div class="title-area">
+        <h1 id="header-title">Pipeline: Deploying</h1>
+        <span>CORE DEPLOYMENT AGENT v2.8.4</span>
+      </div>
+    </div>
+    <div class="meta-info">
+      <div>
+        <span class="label">REPO:</span>
+        <span class="val">greentea524/vite-project</span>
+      </div>
+      <div>
+        <span class="label">BRANCH:</span>
+        <span class="val">main</span>
+      </div>
+      <div>
+        <span class="label">COMMIT:</span>
+        <span class="val" id="commit-hash">a8f9d2c</span>
+      </div>
+      <div>
+        <span class="label">MSG:</span>
+        <span class="val" id="commit-msg">feat(api): update oauth validation flow</span>
+      </div>
+    </div>
+    <div class="right-info">
+      <div>
+        <span class="label" style="color: var(--neon-green-dim)">ELAPSED:</span>
+        <span class="val" id="elapsed-time" style="color: #fff">00:00.0</span>
+      </div>
+      <div class="clock-widget" id="clock-widget">22:01:40</div>
+    </div>
+  </header>
+
+  <!-- Left Column -->
+  <div class="col">
+    <!-- Pipeline Stages Panel -->
+    <div class="panel" id="pipeline-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="fa fa-tasks"></i> Pipeline Stages
+        </div>
+        <div class="panel-subtitle">STAGES CONTROLLER</div>
+      </div>
+      <div class="stages-list" id="stages-list">
+        <!-- Stage 0 -->
+        <div class="stage-row pending" id="stage-0">
+          <div class="stage-indicator"><i class="fa fa-circle-o"></i></div>
+          <div class="stage-details">
+            <div class="stage-name">STG-01: Environment Initialization</div>
+            <div class="stage-summary">Pending build environment checkout...</div>
+          </div>
+          <div class="stage-meta">
+            <div class="stage-duration">--:--</div>
+            <div class="stage-status-badge">pending</div>
+          </div>
+        </div>
+        <!-- Stage 1 -->
+        <div class="stage-row pending" id="stage-1">
+          <div class="stage-indicator"><i class="fa fa-circle-o"></i></div>
+          <div class="stage-details">
+            <div class="stage-name">STG-02: Code Linting & Static Scan</div>
+            <div class="stage-summary">Pending code scan & lint rules validation...</div>
+          </div>
+          <div class="stage-meta">
+            <div class="stage-duration">--:--</div>
+            <div class="stage-status-badge">pending</div>
+          </div>
+        </div>
+        <!-- Stage 2 -->
+        <div class="stage-row pending" id="stage-2">
+          <div class="stage-indicator"><i class="fa fa-circle-o"></i></div>
+          <div class="stage-details">
+            <div class="stage-name">STG-03: Unit & Integration Tests</div>
+            <div class="stage-summary">Pending test suites execution (occasional retries active)...</div>
+          </div>
+          <div class="stage-meta">
+            <div class="stage-duration">--:--</div>
+            <div class="stage-status-badge">pending</div>
+          </div>
+        </div>
+        <!-- Stage 3 -->
+        <div class="stage-row pending" id="stage-3">
+          <div class="stage-indicator"><i class="fa fa-circle-o"></i></div>
+          <div class="stage-details">
+            <div class="stage-name">STG-04: Compile & Build Bundle</div>
+            <div class="stage-summary">Pending production assets compilation...</div>
+          </div>
+          <div class="stage-meta">
+            <div class="stage-duration">--:--</div>
+            <div class="stage-status-badge">pending</div>
+          </div>
+        </div>
+        <!-- Stage 4 -->
+        <div class="stage-row pending" id="stage-4">
+          <div class="stage-indicator"><i class="fa fa-circle-o"></i></div>
+          <div class="stage-details">
+            <div class="stage-name">STG-05: Docker Image Build & Push</div>
+            <div class="stage-summary">Pending container layers generation...</div>
+          </div>
+          <div class="stage-meta">
+            <div class="stage-duration">--:--</div>
+            <div class="stage-status-badge">pending</div>
+          </div>
+        </div>
+        <!-- Stage 5 -->
+        <div class="stage-row pending" id="stage-5">
+          <div class="stage-indicator"><i class="fa fa-circle-o"></i></div>
+          <div class="stage-details">
+            <div class="stage-name">STG-06: Kubernetes Deployment Rollout</div>
+            <div class="stage-summary">Pending rolling upgrade in pods cluster...</div>
+          </div>
+          <div class="stage-meta">
+            <div class="stage-duration">--:--</div>
+            <div class="stage-status-badge">pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kubernetes Rollout Panel -->
+    <div class="panel" id="k8s-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="fa fa-cubes"></i> Kubernetes Rollout
+        </div>
+        <div class="panel-subtitle">STRATEGY: ROLLINGUPDATE</div>
+      </div>
+      <div class="k8s-meta-header">
+        <div>Namespace: <span style="color: #fff">production</span></div>
+        <div>Target: <span style="color: #fff">vite-project-web-svc</span></div>
+      </div>
+      <div class="k8s-grid" id="k8s-pods-grid">
+        <!-- Initial pods loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="col">
+    <!-- Docker Layer Registry -->
+    <div class="panel" id="docker-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="fa fa-database"></i> Docker Registry Push
+        </div>
+        <div class="panel-subtitle">TAG: LATEST</div>
+      </div>
+      <div class="docker-registry-box" id="docker-layer-box">
+        <!-- Layers loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- Live Terminal Logs -->
+    <div class="panel" id="terminal-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="fa fa-terminal"></i> Terminal Logs
+        </div>
+        <div class="panel-subtitle">STDOUT/STDERR FEED</div>
+      </div>
+      <div id="feed-container">
+        <div id="log-feed"></div>
+        <span id="cursor"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Deployment Success Banner Overlay -->
+<div id="success-banner">
+  <div class="banner-content">
+    <div class="success-icon"><i class="fa fa-check-circle"></i></div>
+    <h2>Deployment Successful</h2>
+    <p>All pipeline stages passed. Application is live and healthy.</p>
+    
+    <div class="banner-stats">
+      <div class="item">
+        <span class="stat-label">Version</span>
+        <span class="stat-val" id="banner-val-ver">v1.2.5</span>
+      </div>
+      <div class="item">
+        <span class="stat-label">Duration</span>
+        <span class="stat-val" id="banner-val-duration">34.2s</span>
+      </div>
+      <div class="item">
+        <span class="stat-label">Image Hash</span>
+        <span class="stat-val" style="font-size: 11px;">4b2a901ff8cb</span>
+      </div>
+      <div class="item">
+        <span class="stat-label">Health Status</span>
+        <span class="stat-val" style="color: var(--neon-green)">● Passing (100%)</span>
+      </div>
+    </div>
+
+    <div class="banner-actions">
+      <button class="banner-btn" id="btn-close-banner">Close Window</button>
+      <button class="banner-btn primary" id="btn-redeploy-banner">Redeploy Now (<span id="redeploy-timer">10</span>)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gear Settings Panel -->
+<button id="gearBtn" aria-label="Settings" aria-expanded="false" aria-controls="controls">⚙</button>
+<div id="controls" aria-hidden="true">
+  <div class="controls-title">Simulation Settings</div>
+  <div class="controls-row">
+    <button id="toggleBtn">⏸ Pause</button>
+    <button id="redeployBtn">🔄 Trigger Deploy</button>
+  </div>
+  <div class="controls-row">
+    <label for="speedInput">Speed Factor:</label>
+    <input type="range" id="speedInput" min="5" max="50" value="10" />
+    <span id="speedVal">1.0x</span>
+  </div>
+  <div class="controls-row">
+    <button id="fsBtn">🖥 Fullscreen</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Config & Constants
+  const BASE_TICK = 60; // ms per tick
+  const MAX_ACTIVE_DOCKER_PUSH = 2;
+
+  const DEVELOPERS = ["greentea524", "dave-dev", "alice-coder", "charlie-qa", "sarah-ux"];
+  const COMMITS = [
+    { hash: "89a3f2b", msg: "feat(api): update oauth validation flow" },
+    { hash: "f39d1b0", msg: "fix(ui): resolve layout shift on mobile screens" },
+    { hash: "7c8e9f4", msg: "perf: optimize bundle size with lazy loading" },
+    { hash: "2b8d7c1", msg: "docs: update deployment guidelines in README" },
+    { hash: "a5e4d32", msg: "test: add integration tests for payments" },
+    { hash: "d19e48b", msg: "refactor: simplify container initialization logic" },
+    { hash: "e2c34a8", msg: "chore: upgrade webpack dependencies to latest security patches" }
+  ];
+
+  // DOM elements
+  const logFeed = document.getElementById("log-feed");
+  const feedContainer = document.getElementById("feed-container");
+  const elapsedTimeEl = document.getElementById("elapsed-time");
+  const clockVal = document.getElementById("clock-widget");
+  const headerTitle = document.getElementById("header-title");
+  const headerStatusIcon = document.getElementById("header-status-icon");
+  const commitHashEl = document.getElementById("commit-hash");
+  const commitMsgEl = document.getElementById("commit-msg");
+
+  const successBanner = document.getElementById("success-banner");
+  const bannerVer = document.getElementById("banner-val-ver");
+  const bannerDuration = document.getElementById("banner-val-duration");
+  const redeployTimerText = document.getElementById("redeploy-timer");
+  const btnCloseBanner = document.getElementById("btn-close-banner");
+  const btnRedeployBanner = document.getElementById("btn-redeploy-banner");
+
+  const gearBtn = document.getElementById("gearBtn");
+  const controls = document.getElementById("controls");
+  const toggleBtn = document.getElementById("toggleBtn");
+  const redeployBtn = document.getElementById("redeployBtn");
+  const speedInput = document.getElementById("speedInput");
+  const speedVal = document.getElementById("speedVal");
+  const fsBtn = document.getElementById("fsBtn");
+  const k8sPodsGrid = document.getElementById("k8s-pods-grid");
+  const dockerLayerBox = document.getElementById("docker-layer-box");
+
+  // State
+  let paused = false;
+  let activeStage = 0; // -1 for idle, 0 to 5 for stages, 6 for done
+  let currentCommit = {};
+  let currentDev = "";
+  let durationSeconds = 0;
+  let timerId = null;
+  let elapsedTimerId = null;
+  let eventIndex = 0;
+  let eventTimer = null;
+  let autoRestartTimer = null;
+  let autoRestartCount = 10;
+  let dockerPushing = false;
+  let k8sRolloutActive = false;
+
+  // Docker Data
+  let dockerLayers = [];
+  // Kubernetes Pods Data
+  let pods = [];
+
+  // Helpers
+  function randBetween(min, max) { return Math.random() * (max - min) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+
+  function getSpeed() { return speedInput.value / 10; }
+
+  // Timing Clocks
+  function updateClock() {
+    var d = new Date();
+    clockVal.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function startElapsedTimer() {
+    stopElapsedTimer();
+    durationSeconds = 0;
+    elapsedTimeEl.textContent = "00:00.0";
+    
+    let lastTime = performance.now();
+    elapsedTimerId = setInterval(() => {
+      if (paused) return;
+      const speed = getSpeed();
+      const now = performance.now();
+      const delta = (now - lastTime) / 1000 * speed;
+      lastTime = now;
+      
+      durationSeconds += delta;
+      
+      const mins = Math.floor(durationSeconds / 60);
+      const secs = Math.floor(durationSeconds % 60);
+      const tenths = Math.floor((durationSeconds % 1) * 10);
+      elapsedTimeEl.textContent = pad2(mins) + ":" + pad2(secs) + "." + tenths;
+    }, 100);
+  }
+
+  function stopElapsedTimer() {
+    if (elapsedTimerId) {
+      clearInterval(elapsedTimerId);
+      elapsedTimerId = null;
+    }
+  }
+
+  // Print Log with class
+  function printLog(text, className) {
+    const line = document.createElement("div");
+    line.className = "log-line" + (className ? " " + className : "");
+    line.textContent = text;
+    logFeed.appendChild(line);
+    
+    // Auto-scroll terminal
+    feedContainer.scrollTop = feedContainer.scrollHeight;
+  }
+
+  function clearLogs() {
+    logFeed.innerHTML = "";
+  }
+
+  // Docker Layers Init & Push
+  function initDockerLayers() {
+    dockerLayerBox.innerHTML = "";
+    dockerLayers = [
+      { hash: "f56d2b38ef0e", size: "84.5 MB", pct: 0, status: "pending", exists: true },
+      { hash: "c029a1b87d90", size: "1.2 KB", pct: 0, status: "pending", exists: true },
+      { hash: "e89f81a7b1b3", size: "154 KB", pct: 0, status: "pending", exists: true },
+      { hash: "1d4b68e9d1a2", size: "42.1 MB", pct: 0, status: "pending", exists: true },
+      { hash: "3fa82d3ca45b", size: "12.4 MB", pct: 0, status: "preparing", exists: false },
+      { hash: "a8b87d9a912e", size: "8.9 MB", pct: 0, status: "preparing", exists: false },
+      { hash: "8a2d10f2c75a", size: "22.8 MB", pct: 0, status: "pending", exists: true },
+      { hash: "4b2a901ff8cb", size: "1.1 MB", pct: 0, status: "preparing", exists: false }
+    ];
+
+    dockerLayers.forEach((layer, idx) => {
+      const row = document.createElement("div");
+      row.className = "docker-layer-row" + (layer.exists ? " exists" : "");
+      row.id = "docker-layer-" + idx;
+      
+      const hashSpan = document.createElement("span");
+      hashSpan.className = "docker-layer-hash";
+      hashSpan.textContent = layer.hash;
+
+      const sizeSpan = document.createElement("span");
+      sizeSpan.className = "docker-layer-size";
+      sizeSpan.textContent = layer.size;
+
+      const barWrap = document.createElement("div");
+      barWrap.className = "docker-layer-bar-wrap";
+      
+      const bar = document.createElement("div");
+      bar.className = "docker-layer-bar";
+      const barFill = document.createElement("div");
+      barFill.className = "docker-layer-bar-fill";
+      if (layer.exists) barFill.style.width = "100%";
+      bar.appendChild(barFill);
+      
+      const pctSpan = document.createElement("span");
+      pctSpan.className = "docker-layer-pct";
+      pctSpan.textContent = layer.exists ? "100%" : "0%";
+
+      barWrap.appendChild(bar);
+      barWrap.appendChild(pctSpan);
+
+      const statusSpan = document.createElement("span");
+      statusSpan.className = "docker-layer-status";
+      statusSpan.textContent = layer.exists ? "Exists" : "Preparing";
+
+      row.appendChild(hashSpan);
+      row.appendChild(sizeSpan);
+      row.appendChild(barWrap);
+      row.appendChild(statusSpan);
+      dockerLayerBox.appendChild(row);
+
+      layer.el = row;
+      layer.barFill = barFill;
+      layer.pctEl = pctSpan;
+      layer.statusEl = statusSpan;
+    });
+  }
+
+  function updateDockerLayerUI(idx) {
+    const layer = dockerLayers[idx];
+    if (!layer.el) return;
+    
+    if (layer.status === "pushed") {
+      layer.el.className = "docker-layer-row pushed";
+      layer.barFill.style.width = "100%";
+      layer.pctEl.textContent = "100%";
+      layer.statusEl.textContent = "Pushed";
+    } else if (layer.status === "pushing") {
+      layer.el.className = "docker-layer-row";
+      layer.barFill.style.width = layer.pct + "%";
+      layer.pctEl.textContent = Math.floor(layer.pct) + "%";
+      layer.statusEl.textContent = "Pushing...";
+    }
+  }
+
+  function startDockerPushAnimation() {
+    dockerPushing = true;
+    printLog("The push refers to repository [ghcr.io/greentea524/vite-project]");
+    
+    // Existing layers print
+    dockerLayers.forEach((l, idx) => {
+      if (l.exists) {
+        setTimeout(() => {
+          if (!dockerPushing) return;
+          printLog(l.hash + ": Layer already exists", "dim");
+          l.status = "exists";
+        }, idx * 100 / getSpeed());
+      }
+    });
+
+    // Start pushing active layers
+    let pushTimer = setInterval(() => {
+      if (paused) return;
+      if (!dockerPushing) {
+        clearInterval(pushTimer);
+        return;
+      }
+      
+      const speed = getSpeed();
+      let activeCount = 0;
+      let allDone = true;
+
+      for (let i = 0; i < dockerLayers.length; i++) {
+        const layer = dockerLayers[i];
+        if (layer.exists) continue;
+
+        if (layer.status === "pushed") continue;
+
+        allDone = false;
+
+        if (layer.status === "preparing") {
+          if (activeCount < MAX_ACTIVE_DOCKER_PUSH) {
+            layer.status = "pushing";
+            printLog(layer.hash + ": Pushing...");
+            activeCount++;
+          }
+        } else if (layer.status === "pushing") {
+          activeCount++;
+          layer.pct += randBetween(3, 10) * speed;
+          if (layer.pct >= 100) {
+            layer.pct = 100;
+            layer.status = "pushed";
+            printLog(layer.hash + ": Pushed", "green");
+            activeCount--;
+          }
+          updateDockerLayerUI(i);
+        }
+      }
+
+      if (allDone) {
+        clearInterval(pushTimer);
+        dockerPushing = false;
+        printLog("latest: digest: sha256:7f1b8a9d12e34fa56d2b38efec029a1b87d90e89f81a7b1b3fa82d3ca45b20f size: 1984", "dim");
+        printLog("docker push completed successfully.", "green");
+        
+        // Transition to K8s
+        setTimeout(() => {
+          completeStage(4);
+          startStage(5);
+        }, 1000 / getSpeed());
+      }
+    }, 200);
+  }
+
+  // Kubernetes Pods Init & Rollout
+  function initK8sPods() {
+    k8sPodsGrid.innerHTML = "";
+    pods = [
+      { id: "web-7f89bcd-abc01", ver: "v1.2.4", status: "running", ready: "1/1", cpu: 1.2, age: "14d", isOld: true },
+      { id: "web-7f89bcd-abc02", ver: "v1.2.4", status: "running", ready: "1/1", cpu: 0.8, age: "14d", isOld: true },
+      { id: "web-7f89bcd-abc03", ver: "v1.2.4", status: "running", ready: "1/1", cpu: 1.5, age: "14d", isOld: true }
+    ];
+    renderPods();
+  }
+
+  function renderPods() {
+    k8sPodsGrid.innerHTML = "";
+    pods.forEach(pod => {
+      const row = document.createElement("div");
+      row.className = "k8s-pod-row " + pod.status;
+      if (pod.status === "terminating") row.classList.add("terminating");
+      if (!pod.isOld && pod.status !== "running") row.classList.add("new");
+
+      const icon = document.createElement("div");
+      icon.className = "k8s-pod-icon";
+      icon.innerHTML = pod.status === "terminating" 
+        ? '<i class="fa fa-trash"></i>' 
+        : pod.status === "running"
+          ? '<i class="fa fa-cube"></i>'
+          : '<i class="fa fa-spinner fa-spin"></i>';
+
+      const details = document.createElement("div");
+      details.className = "k8s-pod-details";
+
+      const nameArea = document.createElement("div");
+      const name = document.createElement("span");
+      name.className = "k8s-pod-name";
+      name.textContent = pod.id + " ";
+      const ver = document.createElement("span");
+      ver.className = "k8s-pod-version";
+      ver.textContent = pod.ver;
+      nameArea.appendChild(name);
+      nameArea.appendChild(ver);
+
+      const metrics = document.createElement("div");
+      metrics.className = "k8s-pod-metrics";
+      
+      const cpu = document.createElement("span");
+      cpu.innerHTML = `CPU: <b style="color:#fff">${pod.cpu.toFixed(1)}%</b>`;
+      const ready = document.createElement("span");
+      ready.innerHTML = `READY: <b style="color:#fff">${pod.ready}</b>`;
+      
+      metrics.appendChild(cpu);
+      metrics.appendChild(ready);
+
+      const statusBadge = document.createElement("div");
+      statusBadge.className = "k8s-pod-status";
+      statusBadge.textContent = pod.status;
+
+      details.appendChild(nameArea);
+      details.appendChild(metrics);
+      details.appendChild(statusBadge);
+
+      row.appendChild(icon);
+      row.appendChild(details);
+
+      k8sPodsGrid.appendChild(row);
+    });
+  }
+
+  // Pod CPU utilization fluctuations
+  setInterval(() => {
+    if (paused) return;
+    pods.forEach(pod => {
+      if (pod.status === "running") {
+        pod.cpu += randBetween(-0.3, 0.3);
+        pod.cpu = Math.max(0.2, Math.min(4.5, pod.cpu));
+      } else {
+        pod.cpu = 0;
+      }
+    });
+    // Re-render ready pods CPU in DOM quickly without full rebuilding
+    const rows = k8sPodsGrid.querySelectorAll(".k8s-pod-row");
+    pods.forEach((pod, idx) => {
+      const row = rows[idx];
+      if (row && pod.status === "running") {
+        const cpuEl = row.querySelector(".k8s-pod-metrics span:first-child b");
+        if (cpuEl) cpuEl.textContent = pod.cpu.toFixed(1) + "%";
+      }
+    });
+  }, 1000);
+
+  function generateRandomId() {
+    let result = '';
+    const chars = 'abcdef0123456789';
+    for (let i = 0; i < 5; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  function startKubernetesRolloutAnimation() {
+    k8sRolloutActive = true;
+    
+    // Step by step rolling upgrade rollout simulator
+    let rolloutStep = 0;
+    
+    let nextStep = () => {
+      if (!k8sRolloutActive) return;
+      if (paused) {
+        setTimeout(nextStep, 200);
+        return;
+      }
+
+      const speed = getSpeed();
+      
+      switch (rolloutStep) {
+        case 0:
+          // Spawn pod 1 new
+          const pod1Id = "web-86ef2ab-" + generateRandomId();
+          pods.push({ id: pod1Id, ver: "v1.2.5", status: "pending", ready: "0/1", cpu: 0, age: "0s", isOld: false });
+          printLog("Creating Pod replica " + pod1Id + " (v1.2.5)...");
+          renderPods();
+          
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod1Id);
+            if (p) { p.status = "creating"; renderPods(); }
+          }, 800 / speed);
+
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod1Id);
+            if (p) { p.status = "running"; p.cpu = 0.5; renderPods(); }
+            printLog("Pod " + pod1Id + " container started, running health checks...");
+          }, 2000 / speed);
+
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod1Id);
+            if (p) { p.ready = "1/1"; p.cpu = 1.0; renderPods(); }
+            printLog("Pod " + pod1Id + " reporting ready and healthy. [Liveness / Readiness passed]", "green");
+            
+            // Terminate old 1
+            let oldPod = pods.find(x => x.isOld && x.status === "running");
+            if (oldPod) {
+              oldPod.status = "terminating";
+              oldPod.ready = "0/1";
+              printLog("Terminating replica " + oldPod.id + "...", "dim");
+              renderPods();
+              
+              setTimeout(() => {
+                pods = pods.filter(x => x.id !== oldPod.id);
+                renderPods();
+              }, 2000 / speed);
+            }
+            
+            rolloutStep = 1;
+            setTimeout(nextStep, 1500 / speed);
+          }, 3500 / speed);
+          break;
+
+        case 1:
+          // Spawn pod 2 new
+          const pod2Id = "web-86ef2ab-" + generateRandomId();
+          pods.push({ id: pod2Id, ver: "v1.2.5", status: "pending", ready: "0/1", cpu: 0, age: "0s", isOld: false });
+          printLog("Creating Pod replica " + pod2Id + " (v1.2.5)...");
+          renderPods();
+          
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod2Id);
+            if (p) { p.status = "creating"; renderPods(); }
+          }, 800 / speed);
+
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod2Id);
+            if (p) { p.status = "running"; p.cpu = 0.4; renderPods(); }
+            printLog("Pod " + pod2Id + " container started, running health checks...");
+          }, 2000 / speed);
+
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod2Id);
+            if (p) { p.ready = "1/1"; p.cpu = 1.2; renderPods(); }
+            printLog("Pod " + pod2Id + " reporting ready and healthy.", "green");
+            
+            // Terminate old 2
+            let oldPod = pods.find(x => x.isOld && x.status === "running");
+            if (oldPod) {
+              oldPod.status = "terminating";
+              oldPod.ready = "0/1";
+              printLog("Terminating replica " + oldPod.id + "...", "dim");
+              renderPods();
+              
+              setTimeout(() => {
+                pods = pods.filter(x => x.id !== oldPod.id);
+                renderPods();
+              }, 2000 / speed);
+            }
+            
+            rolloutStep = 2;
+            setTimeout(nextStep, 1500 / speed);
+          }, 3500 / speed);
+          break;
+
+        case 2:
+          // Spawn pod 3 new
+          const pod3Id = "web-86ef2ab-" + generateRandomId();
+          pods.push({ id: pod3Id, ver: "v1.2.5", status: "pending", ready: "0/1", cpu: 0, age: "0s", isOld: false });
+          printLog("Creating Pod replica " + pod3Id + " (v1.2.5)...");
+          renderPods();
+          
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod3Id);
+            if (p) { p.status = "creating"; renderPods(); }
+          }, 800 / speed);
+
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod3Id);
+            if (p) { p.status = "running"; p.cpu = 0.6; renderPods(); }
+            printLog("Pod " + pod3Id + " container started, running health checks...");
+          }, 2000 / speed);
+
+          setTimeout(() => {
+            let p = pods.find(x => x.id === pod3Id);
+            if (p) { p.ready = "1/1"; p.cpu = 1.1; renderPods(); }
+            printLog("Pod " + pod3Id + " reporting ready and healthy.", "green");
+            
+            // Terminate old 3
+            let oldPod = pods.find(x => x.isOld && x.status === "running");
+            if (oldPod) {
+              oldPod.status = "terminating";
+              oldPod.ready = "0/1";
+              printLog("Terminating replica " + oldPod.id + "...", "dim");
+              renderPods();
+              
+              setTimeout(() => {
+                pods = pods.filter(x => x.id !== oldPod.id);
+                renderPods();
+              }, 2000 / speed);
+            }
+            
+            rolloutStep = 3;
+            setTimeout(nextStep, 2000 / speed);
+          }, 3500 / speed);
+          break;
+
+        case 3:
+          printLog("deployment \"vite-project-web\" successfully rolled out!", "green");
+          printLog("runner@deploy-agent:~$ exit", "dim");
+          printLog("Job finished successfully. Status: Success.");
+          
+          k8sRolloutActive = false;
+          completeStage(5);
+          triggerDeploySuccess();
+          break;
+      }
+    };
+    
+    setTimeout(nextStep, 1000 / getSpeed());
+  }
+
+  // Stages State Flow
+  const STAGES = [
+    { name: "Environment Initialization", elId: "stage-0" },
+    { name: "Code Linting & Static Scan", elId: "stage-1" },
+    { name: "Unit & Integration Tests", elId: "stage-2" },
+    { name: "Compile & Build Bundle", elId: "stage-3" },
+    { name: "Docker Image Build & Push", elId: "stage-4" },
+    { name: "Kubernetes Deployment Rollout", elId: "stage-5" }
+  ];
+
+  function startStage(stageIdx) {
+    activeStage = stageIdx;
+    const stage = STAGES[stageIdx];
+    const row = document.getElementById(stage.elId);
+    
+    row.className = "stage-row active";
+    row.querySelector(".stage-indicator").innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    row.querySelector(".stage-status-badge").textContent = "running";
+    row.querySelector(".stage-duration").textContent = "0s";
+    
+    // Custom summaries during active
+    const summaries = [
+      "Cloning repo & installing modules...",
+      "Validating eslint configurations & typings...",
+      "Running 48 tests (retries enabled)...",
+      "Compiling static assets with Vite...",
+      "Building container image layers...",
+      "Rolling out pods in cluster..."
+    ];
+    row.querySelector(".stage-summary").textContent = summaries[stageIdx];
+
+    // Stage timer
+    let elapsed = 0;
+    row.timer = setInterval(() => {
+      if (paused) return;
+      elapsed += 0.1 * getSpeed();
+      row.querySelector(".stage-duration").textContent = elapsed.toFixed(1) + "s";
+    }, 100);
+  }
+
+  function setStageStatus(stageIdx, status) {
+    const stage = STAGES[stageIdx];
+    const row = document.getElementById(stage.elId);
+    if (status === "RETRYING") {
+      row.className = "stage-row retry";
+      row.querySelector(".stage-indicator").innerHTML = '<i class="fa fa-exclamation-triangle"></i>';
+      row.querySelector(".stage-status-badge").textContent = "retrying";
+      row.querySelector(".stage-summary").textContent = "Tests failing, scheduling retry...";
+    }
+  }
+
+  function completeStage(stageIdx) {
+    const stage = STAGES[stageIdx];
+    const row = document.getElementById(stage.elId);
+    clearInterval(row.timer);
+    
+    row.className = "stage-row success";
+    row.querySelector(".stage-indicator").innerHTML = '<i class="fa fa-check-circle"></i>';
+    row.querySelector(".stage-status-badge").textContent = "success";
+    
+    const finishSummaries = [
+      "Dependencies installed successfully.",
+      "No linting errors. Snyk audit clean.",
+      "48/48 unit & integration tests passed.",
+      "Static assets compiled. 162.91 kB bundle.",
+      "Docker image pushed to ghcr.io registry.",
+      "Kubernetes pods rollout successfully completed."
+    ];
+    row.querySelector(".stage-summary").textContent = finishSummaries[stageIdx];
+  }
+
+  function failStage(stageIdx) {
+    const stage = STAGES[stageIdx];
+    const row = document.getElementById(stage.elId);
+    clearInterval(row.timer);
+    row.className = "stage-row failed";
+    row.querySelector(".stage-indicator").innerHTML = '<i class="fa fa-times-circle"></i>';
+    row.querySelector(".stage-status-badge").textContent = "failed";
+  }
+
+  function resetStages() {
+    STAGES.forEach(stage => {
+      const row = document.getElementById(stage.elId);
+      clearInterval(row.timer);
+      row.className = "stage-row pending";
+      row.querySelector(".stage-indicator").innerHTML = '<i class="fa fa-circle-o"></i>';
+      row.querySelector(".stage-status-badge").textContent = "pending";
+      row.querySelector(".stage-duration").textContent = "--:--";
+    });
+    document.getElementById("stage-0").querySelector(".stage-summary").textContent = "Pending build environment checkout...";
+    document.getElementById("stage-1").querySelector(".stage-summary").textContent = "Pending code scan & lint rules validation...";
+    document.getElementById("stage-2").querySelector(".stage-summary").textContent = "Pending test suites execution (occasional retries active)...";
+    document.getElementById("stage-3").querySelector(".stage-summary").textContent = "Pending production assets compilation...";
+    document.getElementById("stage-4").querySelector(".stage-summary").textContent = "Pending container layers generation...";
+    document.getElementById("stage-5").querySelector(".stage-summary").textContent = "Pending rolling upgrade in pods cluster...";
+  }
+
+  // Main Event Timeline Script
+  const TIMELINE_EVENTS = [
+    // Stage 0: Init
+    { stage: 0, delay: 200, action: () => printLog("runner@deploy-agent:~$ git clone --depth=50 --branch=main https://github.com/greentea524/vite-project.git .", "cmd") },
+    { stage: 0, delay: 400, action: () => printLog("Cloning into '.'...") },
+    { stage: 0, delay: 600, action: () => printLog("remote: Enumerating objects: 142, done.\nremote: Counting objects: 100% (142/142), done.\nremote: Compressing objects: 100% (98/98), done.\nReceiving objects: 100% (142/142), 24.84 MiB | 12.42 MiB/s, done.", "dim") },
+    { stage: 0, delay: 200, action: () => printLog("Resolving deltas: 100% (45/45), done.", "dim") },
+    { stage: 0, delay: 300, action: () => printLog("Checking out files: 100% (87/87), done.", "dim") },
+    { stage: 0, delay: 400, action: () => printLog("runner@deploy-agent:~$ npm ci", "cmd") },
+    { stage: 0, delay: 500, action: () => printLog("npm WARN deprecated inflight@1.0.6: Please look at glob-parent...", "amber") },
+    { stage: 0, delay: 900, action: () => printLog("added 842 packages in 4.12s\naudited 843 packages in 5s\nfound 0 vulnerabilities", "dim") },
+    { stage: 0, delay: 400, action: () => { completeStage(0); startStage(1); } },
+
+    // Stage 1: Lint
+    { stage: 1, delay: 300, action: () => printLog("runner@deploy-agent:~$ npm run lint", "cmd") },
+    { stage: 1, delay: 400, action: () => printLog("> eslint src/ --ext .js,.jsx --max-warnings 0", "dim") },
+    { stage: 1, delay: 700, action: () => printLog("Analyzing project structure and lint rules...") },
+    { stage: 1, delay: 600, action: () => printLog("✔ 148 source files linted. No warnings or errors found.", "green") },
+    { stage: 1, delay: 300, action: () => printLog("runner@deploy-agent:~$ npm run typecheck", "cmd") },
+    { stage: 1, delay: 500, action: () => printLog("✔ TypeScript types verified successfully.", "green") },
+    { stage: 1, delay: 400, action: () => { completeStage(1); startStage(2); } },
+
+    // Stage 2: Tests with occasional retries
+    { stage: 2, delay: 300, action: () => printLog("runner@deploy-agent:~$ npm run test", "cmd") },
+    { stage: 2, delay: 400, action: () => printLog("> jest --maxWorkers=4 --passWithNoTests", "dim") },
+    { stage: 2, delay: 400, action: () => printLog(" PASS  src/utils/math.test.js (1.4s)") },
+    { stage: 2, delay: 400, action: () => printLog(" PASS  src/components/Button.test.js (2.1s)") },
+    { stage: 2, delay: 500, action: () => {
+        printLog(" FAIL  src/services/auth.test.js (attempt 1 of 3)", "red");
+        printLog("  ✕ should successfully authenticate with token (timeout connecting to Auth DB)", "red");
+        setStageStatus(2, "RETRYING");
+      }
+    },
+    { stage: 2, delay: 1000, action: () => printLog("Warning: Database connection timed out. Scheduling retry in 1.5s...", "amber") },
+    { stage: 2, delay: 1500, action: () => printLog("  [Retrying src/services/auth.test.js - Attempt 2 of 3]") },
+    { stage: 2, delay: 800, action: () => {
+        printLog(" PASS  src/services/auth.test.js (attempt 2 of 3)", "green");
+        printLog("  ✔ should successfully authenticate with token (242ms)", "green");
+        const row = document.getElementById("stage-2");
+        row.className = "stage-row active";
+        row.querySelector(".stage-indicator").innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+        row.querySelector(".stage-status-badge").textContent = "running";
+        row.querySelector(".stage-summary").textContent = "Running 48 tests...";
+      }
+    },
+    { stage: 2, delay: 500, action: () => printLog(" PASS  src/utils/format.test.js (0.8s)") },
+    { stage: 2, delay: 300, action: () => {
+        printLog("\nTest Suites: 4 passed, 4 total");
+        printLog("Tests:       48 passed, 48 total");
+        printLog("Snapshots:   0 total");
+        printLog("Time:        6.78s");
+      }
+    },
+    { stage: 2, delay: 400, action: () => { completeStage(2); startStage(3); } },
+
+    // Stage 3: Build
+    { stage: 3, delay: 300, action: () => printLog("runner@deploy-agent:~$ npm run build", "cmd") },
+    { stage: 3, delay: 400, action: () => printLog("> vite build", "dim") },
+    { stage: 3, delay: 500, action: () => printLog("vite v5.2.0 building for production...") },
+    { stage: 3, delay: 600, action: () => printLog("transforming (148) src/App.jsx", "dim") },
+    { stage: 3, delay: 500, action: () => printLog("transforming (284) src/component/ReactTabHeader.jsx", "dim") },
+    { stage: 3, delay: 600, action: () => {
+        printLog("✓ 284 modules transformed.", "green");
+        printLog("dist/index.html                  2.71 kB", "dim");
+        printLog("dist/assets/index-D29abf2.css   18.12 kB │ gzip:  4.20 kB", "dim");
+        printLog("dist/assets/index-Bef48a9.js   142.08 kB │ gzip: 46.12 kB", "dim");
+        printLog("dist/platformer/index.html       1.59 kB", "dim");
+        printLog("dist/space/index.html            1.59 kB", "dim");
+        printLog("dist/big2/index.html             1.59 kB", "dim");
+        printLog("✓ built in 3.42s");
+      }
+    },
+    { stage: 3, delay: 400, action: () => { completeStage(3); startStage(4); } },
+
+    // Stage 4: Docker Build
+    { stage: 4, delay: 300, action: () => printLog("runner@deploy-agent:~$ docker build -t ghcr.io/greentea524/vite-project:latest .", "cmd") },
+    { stage: 4, delay: 400, action: () => printLog("Sending build context to Docker daemon  24.84MB", "dim") },
+    { stage: 4, delay: 400, action: () => printLog("Step 1/8 : FROM node:20-alpine AS builder\n ---> f56d2b38ef0e", "dim") },
+    { stage: 4, delay: 300, action: () => printLog("Step 2/8 : WORKDIR /app\n ---> Using cache\n ---> c029a1b87d90", "dim") },
+    { stage: 4, delay: 200, action: () => printLog("Step 3/8 : COPY package*.json ./\n ---> Using cache\n ---> e89f81a7b1b3", "dim") },
+    { stage: 4, delay: 200, action: () => printLog("Step 4/8 : RUN npm ci\n ---> Using cache\n ---> 1d4b68e9d1a2", "dim") },
+    { stage: 4, delay: 200, action: () => printLog("Step 5/8 : COPY . .\n ---> 3fa82d3ca45b", "dim") },
+    { stage: 4, delay: 400, action: () => printLog("Step 6/8 : RUN npm run build\n ---> Running in a32f9024b1bf", "dim") },
+    { stage: 4, delay: 700, action: () => printLog(" ---> Removed intermediate container a32f9024b1bf\n ---> a8b87d9a912e", "dim") },
+    { stage: 4, delay: 300, action: () => printLog("Step 7/8 : FROM nginx:alpine\n ---> 8a2d10f2c75a", "dim") },
+    { stage: 4, delay: 300, action: () => printLog("Step 8/8 : COPY --from=builder /app/dist /usr/share/nginx/html\n ---> 4b2a901ff8cb", "dim") },
+    { stage: 4, delay: 400, action: () => {
+        printLog("Successfully built 4b2a901ff8cb", "green");
+        printLog("Successfully tagged ghcr.io/greentea524/vite-project:latest");
+        printLog("runner@deploy-agent:~$ docker push ghcr.io/greentea524/vite-project:latest", "cmd");
+        startDockerPushAnimation();
+      }
+    }
+    // Docker Push Animation manages transition to Kubernetes stage
+  ];
+
+  function runNextTimelineEvent() {
+    if (paused) return;
+    if (eventIndex >= TIMELINE_EVENTS.length) return;
+
+    const event = TIMELINE_EVENTS[eventIndex];
+    event.action();
+    
+    eventIndex++;
+    
+    if (eventIndex < TIMELINE_EVENTS.length) {
+      const nextEvent = TIMELINE_EVENTS[eventIndex];
+      const speed = getSpeed();
+      const delay = nextEvent.delay / speed;
+      
+      eventTimer = setTimeout(runNextTimelineEvent, delay);
+    }
+  }
+
+  // Trigger Deployment Run
+  function triggerDeployment() {
+    // Reset all states
+    paused = false;
+    activeStage = 0;
+    eventIndex = 0;
+    dockerPushing = false;
+    k8sRolloutActive = false;
+    
+    // Clear timeouts
+    clearTimeout(eventTimer);
+    clearTimeout(autoRestartTimer);
+    
+    // Config panel buttons
+    toggleBtn.textContent = "⏸ Pause";
+    
+    // Pick commit details
+    currentCommit = pick(COMMITS);
+    currentDev = pick(DEVELOPERS);
+    
+    // Set UI details
+    commitHashEl.textContent = currentCommit.hash;
+    commitMsgEl.textContent = currentCommit.msg;
+    
+    headerTitle.textContent = "Pipeline: Deploying";
+    headerStatusIcon.className = "status-icon active";
+    successBanner.classList.remove("visible");
+
+    clearLogs();
+    resetStages();
+    initDockerLayers();
+    initK8sPods();
+    
+    // Start clocks
+    startElapsedTimer();
+    startStage(0);
+    
+    // Schedule first log
+    const speed = getSpeed();
+    eventTimer = setTimeout(runNextTimelineEvent, 200 / speed);
+  }
+
+  function triggerDeploySuccess() {
+    headerTitle.textContent = "Pipeline: Stable";
+    headerStatusIcon.className = "status-icon";
+    stopElapsedTimer();
+
+    // Populate Success Banner values
+    bannerVer.textContent = "v" + (1 + randBetween(0, 99)/100).toFixed(2);
+    bannerDuration.textContent = elapsedTimeEl.textContent;
+    
+    // Show success banner
+    setTimeout(() => {
+      successBanner.classList.add("visible");
+      startAutoRestartCountdown();
+    }, 800);
+  }
+
+  function startAutoRestartCountdown() {
+    clearTimeout(autoRestartTimer);
+    autoRestartCount = 10;
+    redeployTimerText.textContent = autoRestartCount;
+    
+    autoRestartTimer = setInterval(() => {
+      if (paused) return;
+      autoRestartCount--;
+      redeployTimerText.textContent = autoRestartCount;
+      if (autoRestartCount <= 0) {
+        clearInterval(autoRestartTimer);
+        triggerDeployment();
+      }
+    }, 1000);
+  }
+
+  // User Settings Panel Handlers
+  function setPaused(p) {
+    paused = p;
+    toggleBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+    if (paused) {
+      headerStatusIcon.classList.remove("active");
+    } else {
+      if (activeStage >= 0 && activeStage <= 5) {
+        headerStatusIcon.classList.add("active");
+      }
+      
+      // Resume scheduling
+      const speed = getSpeed();
+      if (eventIndex < TIMELINE_EVENTS.length && activeStage < 4) {
+        const nextEvent = TIMELINE_EVENTS[eventIndex];
+        eventTimer = setTimeout(runNextTimelineEvent, nextEvent.delay / speed);
+      }
+    }
+  }
+
+  toggleBtn.addEventListener("click", function() {
+    setPaused(!paused);
+  });
+
+  redeployBtn.addEventListener("click", function() {
+    triggerDeployment();
+    setSettingsOpen(false);
+  });
+
+  speedInput.addEventListener("input", function() {
+    speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  });
+
+  fsBtn.addEventListener("click", function() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  // Banner Actions
+  btnCloseBanner.addEventListener("click", () => {
+    successBanner.classList.remove("visible");
+    clearTimeout(autoRestartTimer);
+  });
+
+  btnRedeployBanner.addEventListener("click", () => {
+    triggerDeployment();
+  });
+
+  // Settings Panel display logic
+  function setSettingsOpen(open) {
+    document.body.classList.toggle("settings-open", open);
+    gearBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    controls.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) poke();
+  }
+
+  gearBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    setSettingsOpen(!document.body.classList.contains("settings-open"));
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!document.body.classList.contains("settings-open")) return;
+    if (!controls.contains(e.target) && e.target !== gearBtn) setSettingsOpen(false);
+  });
+
+  // Keyboard Shortcuts
+  document.addEventListener("keydown", function (e) {
+    if (e.code === "Space") {
+      e.preventDefault();
+      setPaused(!paused);
+    } else if (e.key === "f" || e.key === "F") {
+      fsBtn.click();
+    } else if (e.key === "Escape") {
+      setSettingsOpen(false);
+      successBanner.classList.remove("visible");
+    } else if (e.key === "ArrowUp") {
+      speedInput.value = Math.min(50, +speedInput.value + 5);
+      speedInput.dispatchEvent(new Event("input"));
+    } else if (e.key === "ArrowDown") {
+      speedInput.value = Math.max(5, +speedInput.value - 5);
+      speedInput.dispatchEvent(new Event("input"));
+    }
+  });
+
+  // Idle overlay fade gear icon
+  var idleTimer = null;
+  function poke() {
+    document.body.classList.remove("idle");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      document.body.classList.add("idle");
+    }, 2500);
+  }
+  document.addEventListener("mousemove", poke);
+  document.addEventListener("keydown", poke);
+  document.addEventListener("touchstart", poke, { passive: true });
+
+  // Boot UI
+  triggerDeployment();
+  poke();
+})();
+</script>
+</body>
+</html>

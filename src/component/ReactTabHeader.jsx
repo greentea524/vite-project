@@ -265,6 +265,24 @@ class ReactTabHeader extends Component {
                         A retro scp-style file transfer screen — multiple downloads and uploads with progress bars, transfer speeds, ETAs, and completion checkmarks. Auto-runs for screen recordings.
                       </p>
                     </div>
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}fake-deploy.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fake Deploy Dashboard (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-server" aria-hidden="true"></i>{" "}
+                          Fake Deploy
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        A simulated CI/CD deploy pipeline dashboard — showing live build steps, unit tests (with retries), Docker pushes, Kubernetes rolling rollout, and deployment logs.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
