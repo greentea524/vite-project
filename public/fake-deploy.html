@@ -1823,7 +1823,7 @@
     
     // Clear timeouts
     clearTimeout(eventTimer);
-    clearTimeout(autoRestartTimer);
+    clearInterval(autoRestartTimer);
     
     // Config panel buttons
     toggleBtn.textContent = "⏸ Pause";
@@ -1871,8 +1871,8 @@
   }
 
   function startAutoRestartCountdown() {
-    clearTimeout(autoRestartTimer);
-    autoRestartCount = 10;
+    clearInterval(autoRestartTimer);
+    autoRestartCount = 2;
     redeployTimerText.textContent = autoRestartCount;
     
     autoRestartTimer = setInterval(() => {
@@ -1930,7 +1930,7 @@
   // Banner Actions
   btnCloseBanner.addEventListener("click", () => {
     successBanner.classList.remove("visible");
-    clearTimeout(autoRestartTimer);
+    clearInterval(autoRestartTimer);
   });
 
   btnRedeployBanner.addEventListener("click", () => {
