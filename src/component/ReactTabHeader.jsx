@@ -83,6 +83,7 @@ class ReactTabHeader extends Component {
     this.state = {
       activeKey: "home",
       selectedGame: null,
+      selectedUtility: null,
     };
   }
 
@@ -132,70 +133,124 @@ class ReactTabHeader extends Component {
             <About />
           </Tab> */}
           <Tab eventKey="utilities" title="Utilities">
-            <Tabs
-              defaultActiveKey="fuelcalculator"
-              id="utilities-subtab"
-              className="mb-3"
-              variant="tabs"
-              justify
-              unmountOnExit
-            >
-              <Tab eventKey="fuelcalculator" title="FuelCalculator">
-                <FuelCalculator />
-              </Tab>
-              <Tab eventKey="analytics" title="Analytics">
-                <DataAnalytics theme={this.props.theme} />
-              </Tab>
-              <Tab eventKey="hackerterminal" title="Hacker Terminal">
-                <div className="utilities-launch">
-                  <h6 className="utilities-launch-title">
-                    <i className="fa fa-terminal" aria-hidden="true"></i> Hacker
-                    Terminal
-                  </h6>
-                  <p className="utilities-launch-description">
-                    A fake green-on-black hacker terminal feed for
-                    screen-recordings and demos — auto-scrolling fake logs with
-                    pause/resume and speed controls. Opens in a new tab so you
-                    can run it fullscreen.
-                  </p>
-                  <a
-                    className="utilities-launch-btn"
-                    href={`${import.meta.env.BASE_URL}hacker-terminal.html`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <i className="fa fa-play" aria-hidden="true"></i> Launch
-                    terminal
-                  </a>
+            {this.state.selectedUtility ? (
+              <div className="games-layout">
+                <button
+                  type="button"
+                  className="games-back-btn"
+                  onClick={() => this.setState({ selectedUtility: null })}
+                >
+                  <i className="fa fa-arrow-left" aria-hidden="true"></i> Back to
+                  utilities
+                </button>
+                <div className="d-flex justify-content-center">
+                  {this.state.selectedUtility === "fuelcalculator" && <FuelCalculator />}
+                  {this.state.selectedUtility === "analytics" && <DataAnalytics theme={this.props.theme} />}
+                  {this.state.selectedUtility === "rubikscube" && <RubiksCubeSolver />}
                 </div>
-              </Tab>
-              <Tab eventKey="fakeide" title="Fake IDE">
-                <div className="utilities-launch">
-                  <h6 className="utilities-launch-title">
-                    <i className="fa fa-code" aria-hidden="true"></i> Fake IDE
-                  </h6>
-                  <p className="utilities-launch-description">
-                    A fake IDE that codes by itself — realistic-looking
-                    JavaScript, Python, C, and shell files type themselves out
-                    in a dark editor, complete with typos and file switching.
-                    Great for demos and screen recordings. Opens in a new tab
-                    so you can run it fullscreen.
-                  </p>
-                  <a
-                    className="utilities-launch-btn"
-                    href={`${import.meta.env.BASE_URL}fake-ide.html`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <i className="fa fa-play" aria-hidden="true"></i> Launch
-                    fake IDE
-                  </a>
+              </div>
+            ) : (
+              <div className="games-layout">
+                <div className="games-section">
+                  <h6 className="games-section-title">Tools</h6>
+                  <div className="games-grid">
+                    <div className="game-card">
+                      <button
+                        type="button"
+                        className="game-link"
+                        onClick={() => this.setState({ selectedUtility: "fuelcalculator" })}
+                        aria-label="Open Fuel Calculator"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-tachometer" aria-hidden="true"></i>{" "}
+                          Fuel Calculator
+                        </span>
+                        <i className="fa fa-play" aria-hidden="true"></i>
+                      </button>
+                      <p className="game-link-description">
+                        Calculate fuel cost and efficiency for your trips with real-time unit conversions.
+                      </p>
+                    </div>
+                    <div className="game-card">
+                      <button
+                        type="button"
+                        className="game-link"
+                        onClick={() => this.setState({ selectedUtility: "analytics" })}
+                        aria-label="Open Analytics"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-bar-chart" aria-hidden="true"></i>{" "}
+                          Analytics
+                        </span>
+                        <i className="fa fa-play" aria-hidden="true"></i>
+                      </button>
+                      <p className="game-link-description">
+                        Interactive data analytics dashboard with charts, tables, and export options.
+                      </p>
+                    </div>
+                    <div className="game-card">
+                      <button
+                        type="button"
+                        className="game-link"
+                        onClick={() => this.setState({ selectedUtility: "rubikscube" })}
+                        aria-label="Open Rubik's Cube Solver"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-cube" aria-hidden="true"></i>{" "}
+                          Rubik's Cube
+                        </span>
+                        <i className="fa fa-play" aria-hidden="true"></i>
+                      </button>
+                      <p className="game-link-description">
+                        3D Rubik's Cube solver — input your cube state and get an optimal solution.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </Tab>
-              <Tab eventKey="rubikscube" title="Rubik's Cube">
-                <RubiksCubeSolver />
-              </Tab>
-            </Tabs>
+
+                <div className="games-section">
+                  <h6 className="games-section-title">Demos</h6>
+                  <div className="games-grid">
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}hacker-terminal.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Hacker Terminal (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-terminal" aria-hidden="true"></i>{" "}
+                          Hacker Terminal
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        A fake green-on-black hacker terminal feed for screen-recordings and demos — auto-scrolling fake logs with pause/resume and speed controls.
+                      </p>
+                    </div>
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}fake-ide.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fake IDE (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-code" aria-hidden="true"></i>{" "}
+                          Fake IDE
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        A fake IDE that codes by itself — realistic-looking JavaScript, Python, C, and shell files type themselves out in a dark editor, complete with typos and file switching.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </Tab>
           <Tab eventKey="othergames" title="Games">
             {this.state.selectedGame ? (
