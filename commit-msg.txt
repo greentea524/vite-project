@@ -1,0 +1,3 @@
+feat: add Fake File Transfer demo page
+
+Standalone retro scp-style transfer screen with auto-running progress bars, speeds, and ETAs; linked from Utilities Demos.

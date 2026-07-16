@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Database Console</title>
+<!--
+  Standalone fake database console for screen-recording / demos.
+  Open directly in a browser, or reach it from the app under
+  Utility → Fake Database Console.
+
+  Controls: tap the ⚙ gear (bottom-right) for the settings panel —
+  pause/resume, speed, and fullscreen.
+  Shortcuts: Space = pause/resume, f = fullscreen, ↑/↓ = speed, Esc = close.
+-->
+<style>
+  :root {
+    --cyan: #33ccff;
+    --cyan-dim: #1a7a99;
+    --cyan-glow: rgba(51, 204, 255, 0.55);
+    --green: #33ff66;
+    --green-dim: #1c8a39;
+    --amber: #ffcc33;
+    --red: #ff4d4d;
+    --purple: #cc77ff;
+    --bg: #0a0e14;
+    --panel-bg: rgba(6, 12, 18, 0.92);
+    --border: rgba(51, 204, 255, 0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Cascadia Code", "Fira Code", "Consolas", "Courier New", monospace;
+    color: var(--cyan);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    text-shadow: 0 0 4px var(--cyan-glow);
+  }
+
+  /* CRT scanline overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.18) 3px,
+      rgba(0, 0, 0, 0) 4px
+    );
+    z-index: 5;
+  }
+
+  #header {
+    padding: 12px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  #header .title {
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    color: #fff;
+    text-shadow: 0 0 8px var(--cyan-glow);
+  }
+
+  #header .meta {
+    font-size: 12px;
+    color: var(--cyan-dim);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+  }
+
+  #header .meta .val { color: var(--cyan); }
+  #header .meta .connected { color: var(--green); }
+  #header .meta .connected::before {
+    content: "● ";
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+
+  #console {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px 80px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan-dim) transparent;
+  }
+
+  /* SQL prompt line */
+  .prompt {
+    color: var(--green);
+    margin-top: 12px;
+    margin-bottom: 2px;
+    font-weight: bold;
+  }
+
+  .prompt::before {
+    content: "psql> ";
+    color: var(--cyan-dim);
+    font-weight: normal;
+  }
+
+  /* Query being typed */
+  .query-line {
+    color: #fff;
+    margin-bottom: 2px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .keyword { color: var(--cyan); font-weight: bold; }
+  .string-lit { color: var(--green); }
+  .number-lit { color: var(--amber); }
+  .comment { color: var(--cyan-dim); font-style: italic; }
+  .func { color: var(--purple); }
+  .table-name { color: var(--amber); }
+
+  /* Result table */
+  .result-table {
+    margin: 8px 0;
+    border-collapse: collapse;
+    font-size: 12px;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .result-table th {
+    color: var(--cyan);
+    border-bottom: 2px solid var(--cyan-dim);
+    padding: 4px 12px;
+    text-align: left;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .result-table td {
+    color: rgba(51, 204, 255, 0.8);
+    border-bottom: 1px solid rgba(51, 204, 255, 0.08);
+    padding: 3px 12px;
+    white-space: nowrap;
+  }
+
+  .result-table tr:hover td {
+    background: rgba(51, 204, 255, 0.04);
+  }
+
+  /* Result info line */
+  .result-info {
+    font-size: 11px;
+    color: var(--cyan-dim);
+    margin: 4px 0 8px;
+  }
+
+  .result-info .time { color: var(--green); }
+  .result-info .rows { color: var(--amber); }
+
+  /* EXPLAIN output */
+  .explain-line {
+    font-size: 12px;
+    color: var(--purple);
+    margin: 1px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .explain-line .cost { color: var(--amber); }
+  .explain-line .node { color: var(--cyan); font-weight: bold; }
+
+  /* Error output */
+  .error-line {
+    color: var(--red);
+    text-shadow: 0 0 5px rgba(255, 77, 77, 0.5);
+    margin: 4px 0;
+  }
+
+  /* Cursor */
+  #cursor {
+    display: inline-block;
+    width: 8px;
+    height: 15px;
+    background: var(--cyan);
+    vertical-align: middle;
+    margin-left: 2px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Footer */
+  #footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 8px 20px;
+    background: rgba(6, 12, 18, 0.95);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--cyan-dim);
+    display: flex;
+    justify-content: space-between;
+    z-index: 4;
+  }
+
+  #footer .val { color: var(--cyan); }
+
+  /* Gear button */
+  #gearBtn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(6, 12, 18, 0.85);
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(51, 204, 255, 0.25);
+    transition: opacity 0.4s ease, background 0.15s, transform 0.2s ease;
+  }
+  #gearBtn:hover { background: var(--cyan-dim); color: #000; }
+  body.settings-open #gearBtn { transform: rotate(60deg); }
+  body.idle:not(.settings-open) #gearBtn { opacity: 0.25; }
+
+  /* Controls panel */
+  #controls {
+    position: fixed;
+    right: 16px;
+    bottom: 76px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 260px;
+    max-width: calc(100vw - 32px);
+    padding: 14px 16px;
+    background: rgba(6, 12, 18, 0.95);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 8px;
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  body.settings-open #controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .controls-title {
+    font-weight: bold;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--cyan-dim);
+    padding-bottom: 8px;
+  }
+
+  #controls button {
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    flex: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  #controls button:hover { background: var(--cyan-dim); color: #000; }
+  #controls label { color: var(--cyan-dim); }
+  #speedVal { color: var(--cyan); min-width: 38px; display: inline-block; text-align: right; }
+  #controls input[type="range"] { accent-color: var(--cyan); cursor: pointer; flex: 1; min-width: 0; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    #header { flex-direction: column; align-items: flex-start; }
+    .result-table { font-size: 11px; }
+    .result-table th, .result-table td { padding: 3px 8px; }
+    #console { padding: 10px 10px 80px; font-size: 13px; }
+  }
+
+  /* Overflow wrapper for tables on mobile */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 8px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-wrap .result-table { margin: 0; }
+</style>
+</head>
+<body>
+  <div id="header">
+    <div class="title">PostgreSQL 16.2 — Interactive Terminal</div>
+    <div class="meta">
+      <span>db: <span class="val" id="dbName">production_app</span></span>
+      <span>user: <span class="val">admin</span></span>
+      <span>host: <span class="val">db-primary.internal:5432</span></span>
+      <span>ssl: <span class="val">on</span></span>
+      <span class="connected">connected</span>
+    </div>
+  </div>
+
+  <div id="console"><span id="cursor"></span></div>
+
+  <div id="footer">
+    <span>queries: <span class="val" id="queryCount">0</span> | rows: <span class="val" id="totalRows">0</span> | errors: <span class="val" id="errorCount">0</span></span>
+    <span id="clockVal">--:--:--</span>
+  </div>
+
+  <button id="gearBtn" type="button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button>
+
+  <div id="controls" role="dialog" aria-label="Console settings" aria-hidden="true">
+    <div class="controls-row controls-title">Settings</div>
+    <div class="controls-row">
+      <button id="toggleBtn" type="button" title="Pause / resume (space)">⏸ Pause</button>
+      <button id="fsBtn" type="button" title="Toggle fullscreen (f)">⛶ Fullscreen</button>
+    </div>
+    <div class="controls-row">
+      <label for="speed">speed</label>
+      <input id="speed" type="range" min="1" max="20" value="10" />
+      <span id="speedVal">1.0x</span>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var consoleEl = document.getElementById("console");
+  var cursorEl = document.getElementById("cursor");
+  var toggleBtn = document.getElementById("toggleBtn");
+  var speedInput = document.getElementById("speed");
+  var speedVal = document.getElementById("speedVal");
+  var fsBtn = document.getElementById("fsBtn");
+  var gearBtn = document.getElementById("gearBtn");
+  var controls = document.getElementById("controls");
+  var queryCountEl = document.getElementById("queryCount");
+  var totalRowsEl = document.getElementById("totalRows");
+  var errorCountEl = document.getElementById("errorCount");
+  var clockVal = document.getElementById("clockVal");
+
+  var paused = false;
+  var queryCount = 0;
+  var totalRows = 0;
+  var errorCount = 0;
+
+  // --- Data ---
+  var TABLES = {
+    users: { cols: ["id","username","email","created_at","is_active","plan"], types: ["int","text","text","timestamp","bool","text"] },
+    orders: { cols: ["id","user_id","total","status","created_at","shipped_at"], types: ["int","int","money","text","timestamp","timestamp"] },
+    products: { cols: ["id","name","price","category","stock","sku"], types: ["int","text","money","text","int","text"] },
+    sessions: { cols: ["id","user_id","ip_addr","user_agent","started_at","expires_at"], types: ["int","int","inet","text","timestamp","timestamp"] },
+    payments: { cols: ["id","order_id","amount","method","status","processed_at"], types: ["int","int","money","text","text","timestamp"] },
+    logs: { cols: ["id","level","message","source","created_at"], types: ["int","text","text","text","timestamp"] }
+  };
+
+  var USERNAMES = ["alice","bob","charlie","diana","eve","frank","grace","henry","ivy","jack","karen","leo","mia","noah","olivia","pete","quinn","rose","sam","tara"];
+  var EMAILS_DOMAINS = ["@gmail.com","@outlook.com","@company.io","@dev.org","@mail.co"];
+  var PLANS = ["free","starter","pro","enterprise"];
+  var STATUSES = ["pending","processing","shipped","delivered","cancelled","returned"];
+  var PAY_METHODS = ["credit_card","paypal","wire","crypto","apple_pay"];
+  var PAY_STATUSES = ["completed","pending","failed","refunded"];
+  var CATEGORIES = ["electronics","clothing","books","home","sports","toys","food","beauty"];
+  var LOG_LEVELS = ["INFO","WARN","ERROR","DEBUG"];
+  var LOG_MSGS = [
+    "User login successful","Cache miss for key user:*","Rate limit exceeded","Connection pool exhausted",
+    "Background job completed","Webhook delivered","Email sent","Payment processed",
+    "API response time exceeded 500ms","Memory usage above 80%","Disk I/O spike detected",
+    "SSL certificate expiring in 30 days","Database replication lag: 2.3s","Index scan on orders_user_id",
+    "Deadlock detected, retrying transaction","Query timeout after 30s"
+  ];
+  var SOURCES = ["api-gateway","auth-service","payment-svc","worker-01","scheduler","cache-proxy","web-app"];
+  var USER_AGENTS = ["Mozilla/5.0 Chrome/120","Mozilla/5.0 Safari/17","curl/8.1.2","PostmanRuntime/7.32"];
+  var SKUS = ["SKU-","PRD-","ITM-","WH-"];
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+  function randMoney() { return (Math.random() * 999 + 1).toFixed(2); }
+  function randIP() { return randInt(10,192)+"."+randInt(0,255)+"."+randInt(0,255)+"."+randInt(1,254); }
+  function randTS() {
+    var y = 2024, m = randInt(1,12), d = randInt(1,28), h = randInt(0,23), mi = randInt(0,59), s = randInt(0,59);
+    return y+"-"+pad(m)+"-"+pad(d)+" "+pad(h)+":"+pad(mi)+":"+pad(s);
+  }
+  function pad(n) { return n < 10 ? "0"+n : ""+n; }
+  function randSKU() { return pick(SKUS) + randInt(1000,9999); }
+  function randBool() { return Math.random() > 0.15 ? "t" : "f"; }
+
+  function genRow(table) {
+    var t = TABLES[table];
+    var row = [];
+    for (var i = 0; i < t.cols.length; i++) {
+      var type = t.types[i];
+      if (t.cols[i] === "id") { row.push(randInt(1, 99999)); }
+      else if (t.cols[i] === "user_id" || t.cols[i] === "order_id") { row.push(randInt(1, 50000)); }
+      else if (t.cols[i] === "username") { row.push(pick(USERNAMES) + randInt(1,999)); }
+      else if (t.cols[i] === "email") { row.push(pick(USERNAMES) + randInt(1,99) + pick(EMAILS_DOMAINS)); }
+      else if (t.cols[i] === "plan") { row.push(pick(PLANS)); }
+      else if (t.cols[i] === "status" && table === "orders") { row.push(pick(STATUSES)); }
+      else if (t.cols[i] === "status" && table === "payments") { row.push(pick(PAY_STATUSES)); }
+      else if (t.cols[i] === "method") { row.push(pick(PAY_METHODS)); }
+      else if (t.cols[i] === "category") { row.push(pick(CATEGORIES)); }
+      else if (t.cols[i] === "name") { row.push(pick(CATEGORIES) + " " + pick(["Widget","Pro","Lite","Max","Ultra"]) + " " + randInt(1,50)); }
+      else if (t.cols[i] === "sku") { row.push(randSKU()); }
+      else if (t.cols[i] === "ip_addr") { row.push(randIP()); }
+      else if (t.cols[i] === "user_agent") { row.push(pick(USER_AGENTS)); }
+      else if (t.cols[i] === "level") { row.push(pick(LOG_LEVELS)); }
+      else if (t.cols[i] === "message") { row.push(pick(LOG_MSGS)); }
+      else if (t.cols[i] === "source") { row.push(pick(SOURCES)); }
+      else if (type === "money") { row.push("$" + randMoney()); }
+      else if (type === "int") { row.push(randInt(0, 10000)); }
+      else if (type === "bool") { row.push(randBool()); }
+      else if (type === "timestamp") { row.push(randTS()); }
+      else if (type === "inet") { row.push(randIP()); }
+      else { row.push("val_" + randInt(1,999)); }
+    }
+    return row;
+  }
+
+  // --- SQL Query Templates ---
+  var QUERIES = [
+    // SELECT with WHERE
+    function() {
+      var t = pick(["users","orders","products","payments","logs"]);
+      var cols = TABLES[t].cols;
+      var selCols = cols.slice(0, randInt(3, cols.length)).join(", ");
+      var where = pick(cols.slice(1));
+      var op = pick(["=","!=",">","<",">=","LIKE","IS NOT NULL"]);
+      var val = op === "IS NOT NULL" ? "" : op === "LIKE" ? " '%"+pick(USERNAMES)+"%'" : " " + randInt(1,100);
+      return { sql: "SELECT " + selCols + "\nFROM " + t + "\nWHERE " + where + " " + op + val + "\nORDER BY id DESC\nLIMIT " + randInt(5,25) + ";", table: t, rows: randInt(3,15) };
+    },
+    // SELECT with JOIN
+    function() {
+      return { sql: "SELECT u.username, u.email, o.total, o.status, o.created_at\nFROM users u\nINNER JOIN orders o ON o.user_id = u.id\nWHERE o.status = 'shipped'\n  AND o.total > " + randInt(50,500) + "\nORDER BY o.created_at DESC\nLIMIT " + randInt(5,15) + ";", table: "orders", rows: randInt(4,12), joinCols: ["username","email","total","status","created_at"], joinTypes: ["text","text","money","text","timestamp"] };
+    },
+    // Aggregate
+    function() {
+      var g = pick(["status","plan","category","method","level"]);
+      var t = g === "status" ? "orders" : g === "plan" ? "users" : g === "category" ? "products" : g === "method" ? "payments" : "logs";
+      return { sql: "SELECT " + g + ", COUNT(*) AS cnt, " + (t === "orders" || t === "payments" ? "SUM("+pick(["total","amount"])+") AS total_sum,\n       AVG("+pick(["total","amount"])+") AS avg_val" : "COUNT(DISTINCT "+TABLES[t].cols[1]+") AS unique_vals") + "\nFROM " + t + "\nGROUP BY " + g + "\nORDER BY cnt DESC;", table: t, rows: randInt(3,8), isAggregate: true, groupCol: g };
+    },
+    // INSERT
+    function() {
+      var t = pick(["users","orders","products","payments"]);
+      var cols = TABLES[t].cols.slice(1);
+      return { sql: "INSERT INTO " + t + " (" + cols.join(", ") + ")\nVALUES (" + cols.map(function() { return "'" + pick(USERNAMES) + randInt(1,99) + "'"; }).join(", ") + ")\nRETURNING id;", table: t, rows: 1, isInsert: true };
+    },
+    // UPDATE
+    function() {
+      var t = pick(["users","orders","payments"]);
+      var setCol = pick(TABLES[t].cols.slice(2));
+      return { sql: "UPDATE " + t + "\nSET " + setCol + " = '" + pick(STATUSES) + "',\n    updated_at = NOW()\nWHERE id = " + randInt(1,10000) + "\nRETURNING *;", table: t, rows: 1, isUpdate: true };
+    },
+    // DELETE
+    function() {
+      var t = pick(["sessions","logs"]);
+      return { sql: "DELETE FROM " + t + "\nWHERE created_at < NOW() - INTERVAL '" + randInt(7,90) + " days'\n  AND id < " + randInt(1000,50000) + ";", table: t, rows: randInt(12,450), isDelete: true };
+    },
+    // EXPLAIN ANALYZE
+    function() {
+      var t = pick(["orders","users","products"]);
+      var c = pick(TABLES[t].cols.slice(1));
+      return { sql: "EXPLAIN ANALYZE\nSELECT *\nFROM " + t + "\nWHERE " + c + " = '" + pick(USERNAMES) + randInt(1,99) + "';", table: t, rows: 0, isExplain: true };
+    },
+    // CTE / WITH
+    function() {
+      return { sql: "WITH active_users AS (\n  SELECT id, username, email\n  FROM users\n  WHERE is_active = true\n    AND created_at > NOW() - INTERVAL '90 days'\n),\nrecent_orders AS (\n  SELECT user_id, COUNT(*) AS order_count,\n         SUM(total) AS lifetime_value\n  FROM orders\n  WHERE created_at > NOW() - INTERVAL '30 days'\n  GROUP BY user_id\n)\nSELECT au.username, au.email,\n       ro.order_count, ro.lifetime_value\nFROM active_users au\nJOIN recent_orders ro ON ro.user_id = au.id\nORDER BY ro.lifetime_value DESC\nLIMIT 10;", table: "users", rows: randInt(5,10), joinCols: ["username","email","order_count","lifetime_value"], joinTypes: ["text","text","int","money"] };
+    },
+    // Transaction block
+    function() {
+      return { sql: "BEGIN;\n\nUPDATE products\nSET stock = stock - 1\nWHERE id = " + randInt(1,5000) + " AND stock > 0;\n\nINSERT INTO orders (user_id, total, status, created_at)\nVALUES (" + randInt(1,50000) + ", " + randMoney() + ", 'pending', NOW());\n\nCOMMIT;", table: "products", rows: 0, isTransaction: true };
+    },
+    // Error query (intentional syntax/runtime error)
+    function() {
+      var errors = [
+        { sql: "SELECT * FROM nonexistent_table\nWHERE id = 1;", err: 'ERROR:  relation "nonexistent_table" does not exist\nLINE 1: SELECT * FROM nonexistent_table' },
+        { sql: "UPDATE orders\nSET total = total / 0\nWHERE id = " + randInt(1,1000) + ";", err: "ERROR:  division by zero" },
+        { sql: "INSERT INTO users (username, email)\nVALUES ('duplicate_user', 'dup@test.com');", err: 'ERROR:  duplicate key value violates unique constraint "users_email_key"\nDETAIL:  Key (email)=(dup@test.com) already exists.' },
+        { sql: "ALTER TABLE orders\nADD CONSTRAINT fk_user\nFOREIGN KEY (user_id) REFERENCES users(id);", err: "ERROR:  constraint \"fk_user\" for relation \"orders\" already exists" }
+      ];
+      var e = pick(errors);
+      return { sql: e.sql, table: null, rows: 0, isError: true, errorMsg: e.err };
+    }
+  ];
+
+  // --- EXPLAIN ANALYZE generator ---
+  function generateExplain(table) {
+    var planTime = (Math.random() * 2).toFixed(3);
+    var execTime = (Math.random() * 50 + 0.5).toFixed(3);
+    var rows = randInt(1, 5000);
+    var cost1 = (Math.random() * 10).toFixed(2);
+    var cost2 = (Math.random() * 500 + 10).toFixed(2);
+    var width = randInt(40, 200);
+
+    var scanType = pick(["Index Scan","Seq Scan","Bitmap Heap Scan","Index Only Scan"]);
+    var indexName = table + "_" + pick(TABLES[table].cols.slice(1)) + "_idx";
+
+    var lines = [
+      "                                              QUERY PLAN",
+      "------------------------------------------------------------------------------------------------------",
+      " " + scanType + " on " + table + "  (cost=" + cost1 + ".." + cost2 + " rows=" + rows + " width=" + width + ")",
+    ];
+
+    if (scanType.indexOf("Index") >= 0) {
+      lines.push("   Index Cond: (" + pick(TABLES[table].cols.slice(1)) + " = $1)");
+      lines.push("   Heap Fetches: " + randInt(0, rows));
+    }
+    if (scanType === "Bitmap Heap Scan") {
+      lines.push("   -> Bitmap Index Scan on " + indexName + "  (cost=0.00.." + (Math.random()*5).toFixed(2) + " rows=" + rows + " width=0)");
+      lines.push("        Index Cond: (" + pick(TABLES[table].cols.slice(1)) + " = $1)");
+    }
+
+    lines.push(" Planning Time: " + planTime + " ms");
+    lines.push(" Execution Time: " + execTime + " ms");
+
+    return lines;
+  }
+
+  // --- Syntax-highlighted SQL ---
+  function highlightSQL(sql) {
+    var keywords = /\b(SELECT|FROM|WHERE|AND|OR|NOT|INSERT|INTO|VALUES|UPDATE|SET|DELETE|JOIN|INNER|LEFT|RIGHT|OUTER|ON|ORDER|BY|GROUP|HAVING|LIMIT|OFFSET|AS|DISTINCT|COUNT|SUM|AVG|MIN|MAX|BETWEEN|IN|LIKE|IS|NULL|TRUE|FALSE|EXISTS|CASE|WHEN|THEN|ELSE|END|RETURNING|BEGIN|COMMIT|ROLLBACK|WITH|RECURSIVE|UNION|ALL|CREATE|ALTER|DROP|TABLE|INDEX|CONSTRAINT|FOREIGN|KEY|REFERENCES|ADD|EXPLAIN|ANALYZE|DESC|ASC|NOW|INTERVAL)\b/gi;
+    var strings = /'[^']*'/g;
+    var numbers = /\b\d+(\.\d+)?\b/g;
+    var comments = /--.*$/gm;
+
+    // First escape HTML
+    var escaped = sql.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+    // Tokenize to avoid double-replacing
+    var tokens = [];
+    var tokenized = escaped.replace(comments, function(m) { tokens.push('<span class="comment">'+m+'</span>'); return "%%TOK"+(tokens.length-1)+"%%"; });
+    tokenized = tokenized.replace(strings, function(m) { tokens.push('<span class="string-lit">'+m+'</span>'); return "%%TOK"+(tokens.length-1)+"%%"; });
+    tokenized = tokenized.replace(keywords, function(m) { tokens.push('<span class="keyword">'+m.toUpperCase()+'</span>'); return "%%TOK"+(tokens.length-1)+"%%"; });
+    tokenized = tokenized.replace(numbers, function(m) {
+      if (tokenized.indexOf("%%TOK") >= 0) { /* skip inside tokens */ }
+      tokens.push('<span class="number-lit">'+m+'</span>');
+      return "%%TOK"+(tokens.length-1)+"%%";
+    });
+
+    // Restore tokens
+    tokenized = tokenized.replace(/%%TOK(\d+)%%/g, function(_, i) { return tokens[parseInt(i)]; });
+
+    return tokenized;
+  }
+
+  // --- DOM helpers ---
+  function scrollBottom() {
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  function appendEl(tag, cls, html, parent) {
+    var el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (html !== undefined) el.innerHTML = html;
+    (parent || consoleEl).insertBefore(el, cursorEl);
+    return el;
+  }
+
+  function buildResultTable(columns, types, rowCount, table) {
+    var wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+
+    var tbl = document.createElement("table");
+    tbl.className = "result-table";
+    var thead = document.createElement("thead");
+    var hr = document.createElement("tr");
+    for (var i = 0; i < columns.length; i++) {
+      var th = document.createElement("th");
+      th.textContent = columns[i];
+      hr.appendChild(th);
+    }
+    thead.appendChild(hr);
+    tbl.appendChild(thead);
+
+    var tbody = document.createElement("tbody");
+    for (var r = 0; r < rowCount; r++) {
+      var tr = document.createElement("tr");
+      var rowData = types ? genRowCustom(columns, types) : genRow(table);
+      for (var c = 0; c < columns.length; c++) {
+        var td = document.createElement("td");
+        td.textContent = rowData[c] !== undefined ? rowData[c] : "NULL";
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    return wrap;
+  }
+
+  function genRowCustom(cols, types) {
+    var row = [];
+    for (var i = 0; i < cols.length; i++) {
+      switch(types[i]) {
+        case "text": row.push(pick(USERNAMES) + (Math.random() > 0.5 ? randInt(1,99) + pick(EMAILS_DOMAINS) : "")); break;
+        case "int": row.push(randInt(1, 5000)); break;
+        case "money": row.push("$" + randMoney()); break;
+        case "timestamp": row.push(randTS()); break;
+        case "bool": row.push(randBool()); break;
+        default: row.push(pick(USERNAMES) + randInt(1,99));
+      }
+    }
+    return row;
+  }
+
+  // --- Run a query ---
+  function runQuery(cb) {
+    if (paused) { setTimeout(function() { runQuery(cb); }, 200); return; }
+
+    var q = pick(QUERIES)();
+    var speed = speedInput.value / 10;
+
+    // Type prompt
+    appendEl("div", "prompt", "");
+    var queryEl = appendEl("div", "query-line", "");
+
+    var chars = q.sql;
+    var idx = 0;
+
+    function typeChar() {
+      if (paused) { setTimeout(typeChar, 200); return; }
+      if (idx < chars.length) {
+        // Type in chunks for speed
+        var chunk = Math.max(1, Math.floor(speed * 2));
+        idx += chunk;
+        if (idx > chars.length) idx = chars.length;
+        queryEl.innerHTML = highlightSQL(chars.substring(0, idx));
+        scrollBottom();
+        var delay = (20 + Math.random() * 30) / speed;
+        if (Math.random() < 0.05) delay += 150 / speed; // occasional pause
+        setTimeout(typeChar, delay);
+      } else {
+        // Query done typing, show results
+        setTimeout(function() { showResults(q, cb); }, 300 / speed);
+      }
+    }
+
+    typeChar();
+  }
+
+  function showResults(q, cb) {
+    var speed = speedInput.value / 10;
+    var execMs = (Math.random() * 200 + 0.5).toFixed(3);
+
+    if (q.isError) {
+      appendEl("div", "error-line", q.errorMsg);
+      errorCount++;
+      errorCountEl.textContent = errorCount;
+    } else if (q.isExplain) {
+      var lines = generateExplain(q.table);
+      for (var i = 0; i < lines.length; i++) {
+        appendEl("div", "explain-line", lines[i]);
+      }
+    } else if (q.isInsert) {
+      appendEl("div", "result-info", "INSERT 0 1 — <span class='time'>" + execMs + " ms</span>");
+      totalRows++;
+    } else if (q.isUpdate) {
+      appendEl("div", "result-info", "UPDATE 1 — <span class='time'>" + execMs + " ms</span>");
+      totalRows++;
+    } else if (q.isDelete) {
+      appendEl("div", "result-info", "DELETE <span class='rows'>" + q.rows + "</span> — <span class='time'>" + execMs + " ms</span>");
+      totalRows += q.rows;
+    } else if (q.isTransaction) {
+      appendEl("div", "result-info", "BEGIN");
+      appendEl("div", "result-info", "UPDATE 1");
+      appendEl("div", "result-info", "INSERT 0 1");
+      appendEl("div", "result-info", "COMMIT — <span class='time'>" + execMs + " ms</span>");
+      totalRows += 2;
+    } else if (q.isAggregate) {
+      var aggCols = [q.groupCol, "cnt"];
+      if (q.sql.indexOf("total_sum") >= 0) { aggCols.push("total_sum"); aggCols.push("avg_val"); }
+      else { aggCols.push("unique_vals"); }
+      var aggTypes = aggCols.map(function(c) {
+        return c === "cnt" || c === "unique_vals" ? "int" : c === "total_sum" || c === "avg_val" ? "money" : "text";
+      });
+      var tblEl = buildResultTable(aggCols, aggTypes, q.rows, q.table);
+      consoleEl.insertBefore(tblEl, cursorEl);
+      appendEl("div", "result-info", "(<span class='rows'>" + q.rows + " rows</span>) — <span class='time'>" + execMs + " ms</span>");
+      totalRows += q.rows;
+    } else {
+      // Regular SELECT or JOIN
+      var cols = q.joinCols || TABLES[q.table].cols;
+      var types = q.joinTypes || TABLES[q.table].types;
+      var tblEl2 = buildResultTable(cols, types, q.rows, q.table);
+      consoleEl.insertBefore(tblEl2, cursorEl);
+      appendEl("div", "result-info", "(<span class='rows'>" + q.rows + " rows</span>) — <span class='time'>" + execMs + " ms</span>");
+      totalRows += q.rows;
+    }
+
+    queryCount++;
+    queryCountEl.textContent = queryCount;
+    totalRowsEl.textContent = totalRows;
+    scrollBottom();
+
+    // Trim old content to avoid memory bloat
+    while (consoleEl.children.length > 300) {
+      consoleEl.removeChild(consoleEl.firstChild);
+    }
+
+    // Next query
+    var nextDelay = (800 + Math.random() * 2000) / speed;
+    setTimeout(cb, nextDelay);
+  }
+
+  // --- Main loop ---
+  function loop() {
+    runQuery(loop);
+  }
+
+  // --- Controls ---
+  function setPaused(p) {
+    paused = p;
+    toggleBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+  }
+
+  toggleBtn.addEventListener("click", function () { setPaused(!paused); });
+
+  speedInput.addEventListener("input", function () {
+    speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  });
+
+  fsBtn.addEventListener("click", function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  function setSettingsOpen(open) {
+    document.body.classList.toggle("settings-open", open);
+    gearBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    controls.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) poke();
+  }
+  gearBtn.addEventListener("click", function () {
+    setSettingsOpen(!document.body.classList.contains("settings-open"));
+  });
+  document.addEventListener("click", function (e) {
+    if (!document.body.classList.contains("settings-open")) return;
+    if (!controls.contains(e.target) && e.target !== gearBtn) setSettingsOpen(false);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === "f" || e.key === "F") { fsBtn.click(); }
+    else if (e.key === "Escape") { setSettingsOpen(false); }
+    else if (e.key === "ArrowUp") { speedInput.value = Math.min(20, +speedInput.value + 1); speedInput.dispatchEvent(new Event("input")); }
+    else if (e.key === "ArrowDown") { speedInput.value = Math.max(1, +speedInput.value - 1); speedInput.dispatchEvent(new Event("input")); }
+  });
+
+  // Idle detection
+  var idleTimer = null;
+  function poke() {
+    document.body.classList.remove("idle");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { document.body.classList.add("idle"); }, 2500);
+  }
+  document.addEventListener("mousemove", poke);
+  document.addEventListener("keydown", poke);
+  document.addEventListener("touchstart", poke, { passive: true });
+
+  // Clock
+  function updateClock() {
+    var d = new Date();
+    clockVal.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Boot
+  speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  loop();
+  poke();
+})();
+</script>
+</body>
+</html>

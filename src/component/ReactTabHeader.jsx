@@ -283,6 +283,24 @@ class ReactTabHeader extends Component {
                         A simulated CI/CD deploy pipeline dashboard — showing live build steps, unit tests (with retries), Docker pushes, Kubernetes rolling rollout, and deployment logs.
                       </p>
                     </div>
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}fake-db-console.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fake Database Console (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-database" aria-hidden="true"></i>{" "}
+                          Fake DB Console
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        A PostgreSQL-style console that auto-types SQL queries with syntax highlighting, renders result tables, EXPLAIN ANALYZE plans, transactions, and occasional errors.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
