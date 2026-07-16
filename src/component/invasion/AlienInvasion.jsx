@@ -348,10 +348,17 @@ export default function AlienInvasion() {
     const engine = engineRef.current;
     if (engine) {
       engine.setRogueLite(loopCount, node.tier, node.type);
+      // One-shot guard: the engine should only fire this once per
+      // sector, but if it ever re-fires (it used to, every frame, after
+      // the hyperdrive exit) a duplicate must not re-complete the node
+      // or generate another sector page.
+      let handled = false;
       engine.onSectorClear = (finalState) => {
+        if (handled) return;
+        handled = true;
         setGameState("map");
         setRunState(finalState);
-        
+
         setCompletedNodeIds((prev) => {
           const nextCompleted = [...prev, node.id];
           if (node.type === "boss") {

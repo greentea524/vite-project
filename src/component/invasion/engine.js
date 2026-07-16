@@ -2581,6 +2581,11 @@ export class InvasionEngine {
 
     if (!this.paused) {
       this._update();
+      // _update can park the run: the rogue-lite hyperdrive exit fires
+      // onSectorClear and sets _running = false. Stop here — otherwise
+      // the empty field re-triggers the jump and onSectorClear fires
+      // every frame, spawning endless new sectors.
+      if (!this._running) return;
       this._publishHud();
 
       // Sector cleared!
