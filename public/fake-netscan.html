@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nmap Network Scanner</title>
+<!--
+  Standalone fake nmap network scanner screen for screen-recording / demos.
+  Open directly in a browser, or reach it from the app under
+  Utility → Fake Network Scanner.
+
+  Controls: tap the ⚙ gear (bottom-right) for the settings panel —
+  pause/resume, speed, and fullscreen.
+  Shortcuts: Space = pause/resume, f = fullscreen, ↑/↓ = speed, Esc = close.
+-->
+<style>
+  :root {
+    --green: #33ff66;
+    --green-dim: #1c8a39;
+    --cyan: #33ccff;
+    --cyan-dim: #1a7a99;
+    --amber: #ffcc33;
+    --amber-dim: #997a1f;
+    --red: #ff4d4d;
+    --bg: #03080c;
+    --panel-bg: rgba(6, 14, 20, 0.92);
+    --border: rgba(51, 204, 255, 0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Cascadia Code", "Fira Code", "Consolas", "Courier New", monospace;
+    color: var(--green);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    text-shadow: 0 0 4px rgba(51, 255, 102, 0.4);
+  }
+
+  /* CRT scanline overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.2) 3px,
+      rgba(0, 0, 0, 0) 4px
+    );
+    z-index: 5;
+  }
+
+  #header {
+    padding: 12px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-bg);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  #header .title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(51, 204, 255, 0.6);
+  }
+
+  #header .meta {
+    display: flex;
+    gap: 16px;
+    color: var(--cyan-dim);
+  }
+  #header .meta .val { color: var(--cyan); }
+  #header .meta .active { color: var(--green); }
+
+  #dashboard {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.1fr 1.3fr;
+    gap: 14px;
+    padding: 14px;
+    overflow: hidden;
+  }
+
+  @media (max-width: 900px) {
+    #dashboard {
+      grid-template-columns: 1fr;
+      overflow-y: auto;
+    }
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cyan);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 6px;
+  }
+
+  /* Scan Progress Bar */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .progress-bar-track {
+    flex: 1;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px rgba(51, 204, 255, 0.6);
+    transition: width 0.15s linear;
+  }
+
+  .progress-pct {
+    font-size: 12px;
+    color: var(--cyan);
+    min-width: 42px;
+    text-align: right;
+  }
+
+  /* Log Feed */
+  .log-panel {
+    flex: 1;
+    min-height: 220px;
+  }
+
+  .log-feed {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan-dim) transparent;
+    padding-right: 4px;
+  }
+
+  .log-line { margin-bottom: 2px; }
+  .log-line.dim { color: var(--green-dim); }
+  .log-line.cyan { color: var(--cyan); }
+  .log-line.amber { color: var(--amber); }
+  .log-line.red { color: var(--red); }
+  .log-line.highlight { color: #fff; font-weight: bold; }
+
+  /* Target Hosts Grid */
+  .target-grid {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan-dim) transparent;
+    padding-right: 4px;
+  }
+
+  .host-card {
+    background: rgba(0, 20, 30, 0.4);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .host-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .host-ip {
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .host-name {
+    color: var(--cyan);
+    font-size: 11px;
+  }
+
+  .host-latency {
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  .port-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .port-tag {
+    font-size: 10px;
+    background: rgba(51, 204, 255, 0.1);
+    color: var(--cyan);
+    border: 1px solid rgba(51, 204, 255, 0.25);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .port-tag.ssl {
+    background: rgba(255, 204, 51, 0.1);
+    color: var(--amber);
+    border-color: rgba(255, 204, 51, 0.3);
+  }
+
+  .host-os {
+    font-size: 11px;
+    color: var(--green-dim);
+  }
+
+  /* Footer & Settings Gear */
+  #footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 8px 20px;
+    background: rgba(6, 14, 20, 0.95);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--green-dim);
+    display: flex;
+    justify-content: space-between;
+    z-index: 4;
+  }
+  #footer .val { color: var(--green); }
+
+  #gearBtn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(6, 14, 20, 0.85);
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(51, 204, 255, 0.25);
+    transition: opacity 0.4s ease, background 0.15s, transform 0.2s ease;
+  }
+  #gearBtn:hover { background: var(--cyan-dim); color: #000; }
+  body.settings-open #gearBtn { transform: rotate(60deg); }
+  body.idle:not(.settings-open) #gearBtn { opacity: 0.25; }
+
+  #controls {
+    position: fixed;
+    right: 16px;
+    bottom: 76px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 260px;
+    max-width: calc(100vw - 32px);
+    padding: 14px 16px;
+    background: rgba(6, 14, 20, 0.95);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 8px;
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  body.settings-open #controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .controls-title {
+    font-weight: bold;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--cyan-dim);
+    padding-bottom: 8px;
+  }
+
+  #controls button {
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    flex: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  #controls button:hover { background: var(--cyan-dim); color: #000; }
+  #controls label { color: var(--cyan-dim); }
+  #speedVal { color: var(--cyan); min-width: 38px; display: inline-block; text-align: right; }
+  #controls input[type="range"] { accent-color: var(--cyan); cursor: pointer; flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+  <div id="header">
+    <div class="title">Nmap 7.94 — Network Discovery & Vulnerability Scanner</div>
+    <div class="meta">
+      <span>Target Subnet: <span class="val" id="targetSubnetVal">192.168.1.0/24</span></span>
+      <span>Scan Type: <span class="val">SYN Stealth (-sS -O -sV)</span></span>
+      <span>Status: <span class="active" id="statusVal">Scanning</span></span>
+    </div>
+  </div>
+
+  <div id="dashboard">
+    <!-- Left Column: Scan Console Logs -->
+    <div class="col">
+      <div class="card log-panel">
+        <div class="card-title">
+          <span>Scanner Terminal Log</span>
+          <span style="color: var(--green-dim);" id="scannedCountVal">Hosts Probe: 0 / 256</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progressBar"></div>
+          </div>
+          <span class="progress-pct" id="progressPct">0%</span>
+        </div>
+        <div class="log-feed" id="logFeed">
+          <!-- Log output appended dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Discovered Target Cards -->
+    <div class="col">
+      <div class="card" style="flex: 1; min-height: 0;">
+        <div class="card-title">
+          <span>Discovered Host Targets</span>
+          <span style="color: var(--cyan);" id="hostsFoundVal">0 Active Hosts</span>
+        </div>
+        <div class="target-grid" id="targetGrid">
+          <!-- Host cards prepended dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <span>Scan Progress: <span class="val" id="footerPct">0%</span> | Open Ports Found: <span class="val" id="totalPortsVal">0</span> | Hosts Up: <span class="val" id="footerHosts">0</span></span>
+    <span id="clockVal">--:--:--</span>
+  </div>
+
+  <button id="gearBtn" type="button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button>
+
+  <div id="controls" role="dialog" aria-label="Scanner settings" aria-hidden="true">
+    <div class="controls-row controls-title">Settings</div>
+    <div class="controls-row">
+      <button id="toggleBtn" type="button" title="Pause / resume (space)">⏸ Pause</button>
+      <button id="fsBtn" type="button" title="Toggle fullscreen (f)">⛶ Fullscreen</button>
+    </div>
+    <div class="controls-row">
+      <label for="speed">speed</label>
+      <input id="speed" type="range" min="1" max="20" value="10" />
+      <span id="speedVal">1.0x</span>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var toggleBtn = document.getElementById("toggleBtn");
+  var speedInput = document.getElementById("speed");
+  var speedVal = document.getElementById("speedVal");
+  var fsBtn = document.getElementById("fsBtn");
+  var gearBtn = document.getElementById("gearBtn");
+  var controls = document.getElementById("controls");
+  var clockVal = document.getElementById("clockVal");
+
+  var targetSubnetVal = document.getElementById("targetSubnetVal");
+  var statusVal = document.getElementById("statusVal");
+  var scannedCountVal = document.getElementById("scannedCountVal");
+  var progressBar = document.getElementById("progressBar");
+  var progressPct = document.getElementById("progressPct");
+  var logFeed = document.getElementById("logFeed");
+  var targetGrid = document.getElementById("targetGrid");
+  var hostsFoundVal = document.getElementById("hostsFoundVal");
+  var footerPct = document.getElementById("footerPct");
+  var totalPortsVal = document.getElementById("totalPortsVal");
+  var footerHosts = document.getElementById("footerHosts");
+
+  var paused = false;
+  var timer = null;
+
+  var SUBNETS = ["192.168.1.0/24", "10.0.4.0/24", "172.16.0.0/24", "192.168.10.0/24"];
+  var currentSubnetIdx = 0;
+
+  var HOST_PRESETS = [
+    { ip: "192.168.1.1", name: "gateway.router.local", mac: "D4:6E:0E:12:34:56 (Cisco Systems)", os: "Cisco IOS 15.2 / Linux 3.x", ports: ["22/tcp ssh", "80/tcp http", "443/tcp https ssl", "53/udp domain"] },
+    { ip: "192.168.1.10", name: "nas-storage.local", mac: "00:11:32:45:67:89 (Synology Inc)", os: "Synology DSM 7.2 (Linux 4.4)", ports: ["80/tcp http", "443/tcp https ssl", "445/tcp smb", "2049/tcp nfs", "3260/tcp iscsi"] },
+    { ip: "192.168.1.15", name: "db-primary.prod", mac: "52:54:00:12:34:56 (QEMU/KVM)", os: "Ubuntu 22.04 LTS (Linux 5.15)", ports: ["22/tcp ssh", "5432/tcp postgresql", "6379/tcp redis"] },
+    { ip: "192.168.1.22", name: "web-worker-01", mac: "B8:27:EB:78:9A:BC (Raspberry Pi)", os: "Debian 12 (Linux 6.1)", ports: ["22/tcp ssh", "80/tcp http", "443/tcp https ssl", "8080/tcp http-alt"] },
+    { ip: "192.168.1.47", name: "k8s-node-alpha", mac: "00:50:56:AB:CD:EF (VMware Inc)", os: "Alpine Linux 3.18", ports: ["22/tcp ssh", "6443/tcp k8s-api ssl", "10250/tcp kubelet"] },
+    { ip: "192.168.1.80", name: "auth-service.internal", mac: "AC:DE:48:11:22:33 (Apple Inc)", os: "macOS Sonoma 14.1 (Darwin 23)", ports: ["22/tcp ssh", "3000/tcp node-api", "27017/tcp mongodb"] },
+    { ip: "192.168.1.102", name: "monitoring-grafana", mac: "00:1A:2B:3C:4D:5E (Intel Corp)", os: "Fedora 39 (Linux 6.5)", ports: ["80/tcp http", "3000/tcp grafana", "9090/tcp prometheus"] }
+  ];
+
+  var scanStep = 0;
+  var scannedProbeCount = 0;
+  var discoveredHostsCount = 0;
+  var discoveredPortsCount = 0;
+
+  function randBetween(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function appendLog(text, cls) {
+    var line = document.createElement("div");
+    line.className = "log-line" + (cls ? " " + cls : "");
+    line.textContent = text;
+    logFeed.appendChild(line);
+    logFeed.scrollTop = logFeed.scrollHeight;
+  }
+
+  function addHostCard(hostData) {
+    discoveredHostsCount++;
+    discoveredPortsCount += hostData.ports.length;
+
+    hostsFoundVal.textContent = discoveredHostsCount + " Active Hosts";
+    footerHosts.textContent = discoveredHostsCount;
+    totalPortsVal.textContent = discoveredPortsCount;
+
+    var card = document.createElement("div");
+    card.className = "host-card";
+
+    var latency = (randBetween(2, 45) / 10).toFixed(2) + "ms";
+    var portTagsHtml = hostData.ports.map(function(p) {
+      var isSsl = p.indexOf("ssl") >= 0 || p.indexOf("443") >= 0;
+      return '<span class="port-tag' + (isSsl ? " ssl" : "") + '">' + p + '</span>';
+    }).join("");
+
+    card.innerHTML =
+      '<div class="host-header">' +
+        '<div><span class="host-ip">' + hostData.ip + '</span> <span class="host-name">(' + hostData.name + ')</span></div>' +
+        '<span class="host-latency">RTT: ' + latency + '</span>' +
+      '</div>' +
+      '<div class="host-os">MAC: ' + hostData.mac + ' | OS: ' + hostData.os + '</div>' +
+      '<div class="port-tags">' + portTagsHtml + '</div>';
+
+    targetGrid.insertBefore(card, targetGrid.firstChild);
+  }
+
+  function setProgress(pct) {
+    progressBar.style.width = pct + "%";
+    progressPct.textContent = pct + "%";
+    footerPct.textContent = pct + "%";
+    scannedProbeCount = Math.floor((pct / 100) * 256);
+    scannedCountVal.textContent = "Hosts Probe: " + scannedProbeCount + " / 256";
+  }
+
+  function resetScan() {
+    scanStep = 0;
+    scannedProbeCount = 0;
+    discoveredHostsCount = 0;
+    discoveredPortsCount = 0;
+
+    logFeed.innerHTML = "";
+    targetGrid.innerHTML = "";
+    setProgress(0);
+
+    hostsFoundVal.textContent = "0 Active Hosts";
+    footerHosts.textContent = "0";
+    totalPortsVal.textContent = "0";
+
+    var subnet = SUBNETS[currentSubnetIdx % SUBNETS.length];
+    currentSubnetIdx++;
+    targetSubnetVal.textContent = subnet;
+    statusVal.textContent = "Scanning";
+    statusVal.className = "active";
+
+    appendLog("Starting Nmap 7.94 ( https://nmap.org ) at " + new Date().toLocaleTimeString(), "highlight");
+    appendLog("Nmap scan report for subnet target " + subnet, "cyan");
+    appendLog("Initiating ARP Ping Scan on 256 hosts...", "dim");
+  }
+
+  function tickScan() {
+    if (paused) { setTimeout(tickScan, 200); return; }
+
+    var speed = speedInput.value / 10;
+    scanStep++;
+
+    if (scanStep <= 100) {
+      setProgress(scanStep);
+
+      // Trigger host discoveries at key percentages
+      if (scanStep === 12) {
+        appendLog("Host 192.168.1.1 is up (0.42s latency). Discovered open ports 22, 80, 443, 53.", "green");
+        addHostCard(HOST_PRESETS[0]);
+      } else if (scanStep === 28) {
+        appendLog("Host 192.168.1.10 is up (0.85s latency). Discovered storage services 80, 443, 445, 2049.", "green");
+        addHostCard(HOST_PRESETS[1]);
+      } else if (scanStep === 45) {
+        appendLog("Host 192.168.1.15 is up (0.31s latency). Discovered database ports 22, 5432, 6379.", "green");
+        addHostCard(HOST_PRESETS[2]);
+      } else if (scanStep === 62) {
+        appendLog("Host 192.168.1.22 is up (1.12s latency). Discovered web application 80, 443, 8080.", "green");
+        addHostCard(HOST_PRESETS[3]);
+      } else if (scanStep === 78) {
+        appendLog("Host 192.168.1.47 is up (0.64s latency). Discovered K8s cluster API 6443, 10250.", "green");
+        addHostCard(HOST_PRESETS[4]);
+      } else if (scanStep === 88) {
+        appendLog("Host 192.168.1.80 is up (0.52s latency). Discovered Node API 3000, MongoDB 27017.", "green");
+        addHostCard(HOST_PRESETS[5]);
+      } else if (scanStep === 96) {
+        appendLog("Host 192.168.1.102 is up (0.78s latency). Discovered Grafana/Prometheus 3000, 9090.", "green");
+        addHostCard(HOST_PRESETS[6]);
+      }
+
+      var nextDelay = (60 + Math.random() * 40) / speed;
+      setTimeout(tickScan, nextDelay);
+    } else if (scanStep === 101) {
+      // Complete report
+      appendLog("----------------------------------------------------------------------", "dim");
+      appendLog("Nmap done: 256 IP addresses (7 hosts up) scanned in 7.42 seconds", "highlight");
+      appendLog("OS fingerprints & service detection completed successfully.", "cyan");
+      statusVal.textContent = "Completed";
+      statusVal.className = "val";
+
+      // Loop restart after 3 seconds
+      setTimeout(function () {
+        resetScan();
+        tickScan();
+      }, 3000 / speed);
+    }
+  }
+
+  // Settings Panel Handlers
+  function setPaused(p) {
+    paused = p;
+    toggleBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+  }
+
+  toggleBtn.addEventListener("click", function () { setPaused(!paused); });
+
+  speedInput.addEventListener("input", function () {
+    speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  });
+
+  fsBtn.addEventListener("click", function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  function setSettingsOpen(open) {
+    document.body.classList.toggle("settings-open", open);
+    gearBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    controls.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) poke();
+  }
+  gearBtn.addEventListener("click", function () {
+    setSettingsOpen(!document.body.classList.contains("settings-open"));
+  });
+  document.addEventListener("click", function (e) {
+    if (!document.body.classList.contains("settings-open")) return;
+    if (!controls.contains(e.target) && e.target !== gearBtn) setSettingsOpen(false);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === "f" || e.key === "F") { fsBtn.click(); }
+    else if (e.key === "Escape") { setSettingsOpen(false); }
+    else if (e.key === "ArrowUp") { speedInput.value = Math.min(20, +speedInput.value + 1); speedInput.dispatchEvent(new Event("input")); }
+    else if (e.key === "ArrowDown") { speedInput.value = Math.max(1, +speedInput.value - 1); speedInput.dispatchEvent(new Event("input")); }
+  });
+
+  var idleTimer = null;
+  function poke() {
+    document.body.classList.remove("idle");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { document.body.classList.add("idle"); }, 2500);
+  }
+  document.addEventListener("mousemove", poke);
+  document.addEventListener("keydown", poke);
+  document.addEventListener("touchstart", poke, { passive: true });
+
+  function updateClock() {
+    var d = new Date();
+    clockVal.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+  }
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Boot
+  speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  resetScan();
+  tickScan();
+  poke();
+})();
+</script>
+</body>
+</html>

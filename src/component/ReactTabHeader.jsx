@@ -337,6 +337,24 @@ class ReactTabHeader extends Component {
                         A busy open-source repository simulation featuring live commit streams, animated GitHub contribution heatmap graphs, and real-time PR merge & CI build events.
                       </p>
                     </div>
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}fake-netscan.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fake Network Scanner (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-wifi" aria-hidden="true"></i>{" "}
+                          Fake Network Scanner
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        An nmap-style terminal network scanner simulating subnet ARP discovery, port probes (HTTP, SSH, MySQL, Postgres, K8s), OS fingerprinting, and live target cards.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
