@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Git History & Activity Stream</title>
+<!--
+  Standalone fake Git history & contribution stream for screen-recording / demos.
+  Open directly in a browser, or reach it from the app under
+  Utility → Fake Git History.
+
+  Controls: tap the ⚙ gear (bottom-right) for the settings panel —
+  pause/resume, speed, and fullscreen.
+  Shortcuts: Space = pause/resume, f = fullscreen, ↑/↓ = speed, Esc = close.
+-->
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel-bg: rgba(22, 27, 34, 0.92);
+    --border: #30363d;
+    --green: #3fb950;
+    --green-bright: #56d364;
+    --green-dim: #238636;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+    --amber: #d29922;
+    --red: #f85149;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* CRT scanline overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.15) 3px,
+      rgba(0, 0, 0, 0) 4px
+    );
+    z-index: 5;
+  }
+
+  #header {
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .repo-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .repo-badge {
+    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px;
+    color: var(--text-muted);
+  }
+
+  .repo-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: "Cascadia Code", "Fira Code", monospace;
+  }
+
+  .repo-stats .val { color: var(--text); font-weight: 600; }
+  .repo-stats .star { color: var(--amber); }
+
+  #dashboard {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  @media (max-width: 900px) {
+    #dashboard {
+      grid-template-columns: 1fr;
+      overflow-y: auto;
+    }
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+  }
+
+  .card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-bottom: 6px;
+  }
+
+  /* Heatmap Graph */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(26, 1fr);
+    gap: 4px;
+  }
+  .heatmap-cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    background: #161b22;
+    transition: background 0.3s ease, transform 0.15s ease;
+  }
+  .heatmap-cell.l1 { background: #0e4429; }
+  .heatmap-cell.l2 { background: #006d32; }
+  .heatmap-cell.l3 { background: #26a641; }
+  .heatmap-cell.l4 { background: #39d353; box-shadow: 0 0 6px rgba(57, 211, 83, 0.6); }
+
+  /* Commit Stream */
+  .commit-panel {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .commit-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    padding-right: 4px;
+  }
+
+  .commit-item {
+    background: rgba(13, 17, 23, 0.6);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .commit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .commit-msg {
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .commit-hash {
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 11px;
+    color: var(--blue);
+    background: rgba(88, 166, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .commit-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .commit-author {
+    color: var(--green);
+    font-weight: 500;
+  }
+
+  .commit-tag {
+    background: rgba(188, 140, 255, 0.15);
+    color: var(--purple);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-family: monospace;
+  }
+
+  .commit-diff {
+    font-family: monospace;
+    font-size: 11px;
+    margin-left: auto;
+  }
+  .diff-add { color: var(--green); }
+  .diff-del { color: var(--red); }
+
+  /* PR & Event Log */
+  .events-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .event-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(13, 17, 23, 0.4);
+    border-radius: 4px;
+    font-size: 12px;
+    border-left: 3px solid var(--purple);
+  }
+
+  .event-item.merge { border-left-color: var(--purple); }
+  .event-item.pr { border-left-color: var(--green); }
+  .event-item.ci { border-left-color: var(--blue); }
+  .event-item.release { border-left-color: var(--amber); }
+
+  .event-icon {
+    font-size: 14px;
+    margin-top: 1px;
+  }
+
+  .event-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .event-title {
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .event-time {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Footer & Settings Gear */
+  #footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 8px 20px;
+    background: rgba(13, 17, 23, 0.95);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    z-index: 4;
+  }
+  #footer .val { color: var(--green); }
+
+  #gearBtn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(22, 27, 34, 0.9);
+    color: var(--green);
+    border: 1px solid var(--border);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(63, 185, 80, 0.25);
+    transition: opacity 0.4s ease, background 0.15s, transform 0.2s ease;
+  }
+  #gearBtn:hover { background: var(--border); color: #fff; }
+  body.settings-open #gearBtn { transform: rotate(60deg); }
+  body.idle:not(.settings-open) #gearBtn { opacity: 0.25; }
+
+  #controls {
+    position: fixed;
+    right: 16px;
+    bottom: 76px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 260px;
+    max-width: calc(100vw - 32px);
+    padding: 14px 16px;
+    background: rgba(22, 27, 34, 0.95);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  body.settings-open #controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .controls-title {
+    font-weight: bold;
+    color: var(--green);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  #controls button {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    flex: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  #controls button:hover { background: var(--border); color: #fff; }
+  #controls label { color: var(--text-muted); }
+  #speedVal { color: var(--green); min-width: 38px; display: inline-block; text-align: right; }
+  #controls input[type="range"] { accent-color: var(--green); cursor: pointer; flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+  <div id="header">
+    <div class="repo-title">
+      <span>greentea524 / <strong>super-framework</strong></span>
+      <span class="repo-badge">Public</span>
+    </div>
+    <div class="repo-stats">
+      <span><span class="star">★</span> <span class="val">14.8k</span></span>
+      <span>Forks: <span class="val">1.9k</span></span>
+      <span>Branch: <span class="val" style="color: var(--blue);">main</span></span>
+    </div>
+  </div>
+
+  <div id="dashboard">
+    <!-- Left Column: Commit Feed -->
+    <div class="col">
+      <div class="card commit-panel">
+        <div class="card-title">
+          <span>Live Commit Stream</span>
+          <span style="color: var(--blue); font-family: monospace;">git log --graph --oneline</span>
+        </div>
+        <div class="commit-list" id="commitList">
+          <!-- Commit items prepended dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Heatmap + Activity Stream -->
+    <div class="col">
+      <!-- Heatmap Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Contribution Activity</span>
+          <span style="color: var(--green);" id="commitCountTotal">1,482 commits</span>
+        </div>
+        <div class="heatmap-grid" id="heatmapGrid">
+          <!-- 130 tiles generated -->
+        </div>
+      </div>
+
+      <!-- PR / Event Stream Card -->
+      <div class="card" style="flex: 1; min-height: 0;">
+        <div class="card-title">
+          <span>Pull Requests & Releases</span>
+          <span style="color: var(--purple);">Automated CI/CD</span>
+        </div>
+        <div class="events-list" id="eventsList">
+          <!-- Event items prepended dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <span>Repo: <span class="val">active</span> | Total Commits: <span class="val" id="footerCommits">1,482</span> | Contributors: <span class="val">24</span></span>
+    <span id="clockVal">--:--:--</span>
+  </div>
+
+  <button id="gearBtn" type="button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button>
+
+  <div id="controls" role="dialog" aria-label="Git Stream settings" aria-hidden="true">
+    <div class="controls-row controls-title">Settings</div>
+    <div class="controls-row">
+      <button id="toggleBtn" type="button" title="Pause / resume (space)">⏸ Pause</button>
+      <button id="fsBtn" type="button" title="Toggle fullscreen (f)">⛶ Fullscreen</button>
+    </div>
+    <div class="controls-row">
+      <label for="speed">speed</label>
+      <input id="speed" type="range" min="1" max="20" value="10" />
+      <span id="speedVal">1.0x</span>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var toggleBtn = document.getElementById("toggleBtn");
+  var speedInput = document.getElementById("speed");
+  var speedVal = document.getElementById("speedVal");
+  var fsBtn = document.getElementById("fsBtn");
+  var gearBtn = document.getElementById("gearBtn");
+  var controls = document.getElementById("controls");
+  var clockVal = document.getElementById("clockVal");
+
+  var commitList = document.getElementById("commitList");
+  var eventsList = document.getElementById("eventsList");
+  var heatmapGrid = document.getElementById("heatmapGrid");
+  var commitCountTotal = document.getElementById("commitCountTotal");
+  var footerCommits = document.getElementById("footerCommits");
+
+  var paused = false;
+  var timer = null;
+  var totalCommits = 1482;
+
+  // Data pools
+  var AUTHORS = ["@torvalds", "@dan_abramov", "@sindresorhus", "@gaearon", "@tj", "@yyx99", "@Rich_Harris", "@ry", "@addyosmani", "@developit"];
+  var BRANCHES = ["main", "feature/v2.0", "fix/mem-leak", "refactor/core", "patch/sec-fix", "feat/wasm-engine"];
+  var COMMIT_MSGS = [
+    "fix(core): resolve memory leak in reactive store listener",
+    "feat(compiler): add support for async JSX component rendering",
+    "refactor(parser): optimize AST traversal algorithm (#412)",
+    "perf(virtual-dom): reduce allocation overhead during diffing",
+    "fix(api): handle connection timeout on WebSocket reconnect",
+    "docs(readme): update benchmarking & deployment guide",
+    "test(runner): add integration suite for edge worker runtime",
+    "style(theme): modernize dark mode tokens and contrast ratios",
+    "chore(deps): bump rollup from 4.1.0 to 4.2.3 in root",
+    "feat(router): implement nested route prefetching and caching",
+    "fix(ssr): hydrate streaming HTML chunks in deterministic order",
+    "ci(actions): cache pnpm store across workflow matrix runs",
+    "feat(auth): add OAuth2 PKCE PKCE PKCE extension challenge",
+    "refactor(state): rewrite state machine using typed transitions"
+  ];
+
+  var EVENT_TYPES = [
+    { type: "pr", icon: "🔀", template: function(author, num) { return "PR #" + num + " merged by " + author + ": 'Add WebGL renderer support'"; } },
+    { type: "ci", icon: "✅", template: function(author, num) { return "CI Workflow #" + (num + 200) + " Passed (build & test matrix)"; } },
+    { type: "merge", icon: "🔀", template: function(author) { return "Merged branch 'feature/v2.0' into main"; } },
+    { type: "release", icon: "🏷️", template: function(author, num) { return "Release v2." + Math.floor(num / 10) + "." + (num % 10) + " published to npm"; } }
+  ];
+
+  function randBetween(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+  function randomHash() {
+    return Math.random().toString(16).substring(2, 9);
+  }
+
+  // Generate 130 heatmap cells
+  var cells = [];
+  function initHeatmap() {
+    heatmapGrid.innerHTML = "";
+    cells = [];
+    for (var i = 0; i < 130; i++) {
+      var cell = document.createElement("div");
+      cell.className = "heatmap-cell";
+      var rand = Math.random();
+      if (rand > 0.85) cell.classList.add("l3");
+      else if (rand > 0.65) cell.classList.add("l2");
+      else if (rand > 0.45) cell.classList.add("l1");
+      heatmapGrid.appendChild(cell);
+      cells.push(cell);
+    }
+  }
+
+  function pulseHeatmapCell() {
+    var idx = Math.floor(Math.random() * cells.length);
+    var cell = cells[idx];
+    cell.className = "heatmap-cell l4";
+    setTimeout(function () {
+      cell.className = "heatmap-cell l3";
+    }, 800);
+  }
+
+  function addCommit() {
+    totalCommits++;
+    commitCountTotal.textContent = totalCommits.toLocaleString() + " commits";
+    footerCommits.textContent = totalCommits.toLocaleString();
+
+    var hash = randomHash();
+    var author = pick(AUTHORS);
+    var branch = pick(BRANCHES);
+    var msg = pick(COMMIT_MSGS);
+    var adds = "+" + randBetween(4, 380);
+    var dels = "-" + randBetween(1, 140);
+
+    var item = document.createElement("div");
+    item.className = "commit-item";
+    item.innerHTML =
+      '<div class="commit-header">' +
+        '<span class="commit-msg">' + msg + '</span>' +
+        '<span class="commit-hash">' + hash + '</span>' +
+      '</div>' +
+      '<div class="commit-meta">' +
+        '<span class="commit-author">' + author + '</span>' +
+        '<span class="commit-tag">' + branch + '</span>' +
+        '<span>just now</span>' +
+        '<span class="commit-diff"><span class="diff-add">' + adds + '</span> <span class="diff-del">' + dels + '</span></span>' +
+      '</div>';
+
+    commitList.insertBefore(item, commitList.firstChild);
+
+    // Keep list length capped
+    while (commitList.children.length > 40) {
+      commitList.removeChild(commitList.lastChild);
+    }
+
+    pulseHeatmapCell();
+
+    // Occasional event PR / CI / Release
+    if (Math.random() > 0.45) {
+      addEvent();
+    }
+  }
+
+  function addEvent() {
+    var ev = pick(EVENT_TYPES);
+    var prNum = randBetween(102, 499);
+    var author = pick(AUTHORS);
+    var text = ev.template(author, prNum);
+
+    var item = document.createElement("div");
+    item.className = "event-item " + ev.type;
+    item.innerHTML =
+      '<span class="event-icon">' + ev.icon + '</span>' +
+      '<div class="event-content">' +
+        '<span class="event-title">' + text + '</span>' +
+        '<span class="event-time">just now</span>' +
+      '</div>';
+
+    eventsList.insertBefore(item, eventsList.firstChild);
+
+    while (eventsList.children.length > 30) {
+      eventsList.removeChild(eventsList.lastChild);
+    }
+  }
+
+  function currentDelay() {
+    var mult = speedInput.value / 10;
+    return (700 + Math.random() * 800) / mult;
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    if (paused) return;
+    timer = setTimeout(function () {
+      addCommit();
+      schedule();
+    }, currentDelay());
+  }
+
+  function setPaused(p) {
+    paused = p;
+    toggleBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+    if (!paused) schedule();
+    else clearTimeout(timer);
+  }
+
+  toggleBtn.addEventListener("click", function () { setPaused(!paused); });
+
+  speedInput.addEventListener("input", function () {
+    speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+    if (!paused) schedule();
+  });
+
+  fsBtn.addEventListener("click", function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  function setSettingsOpen(open) {
+    document.body.classList.toggle("settings-open", open);
+    gearBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    controls.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) poke();
+  }
+  gearBtn.addEventListener("click", function () {
+    setSettingsOpen(!document.body.classList.contains("settings-open"));
+  });
+  document.addEventListener("click", function (e) {
+    if (!document.body.classList.contains("settings-open")) return;
+    if (!controls.contains(e.target) && e.target !== gearBtn) setSettingsOpen(false);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === "f" || e.key === "F") { fsBtn.click(); }
+    else if (e.key === "Escape") { setSettingsOpen(false); }
+    else if (e.key === "ArrowUp") { speedInput.value = Math.min(20, +speedInput.value + 1); speedInput.dispatchEvent(new Event("input")); }
+    else if (e.key === "ArrowDown") { speedInput.value = Math.max(1, +speedInput.value - 1); speedInput.dispatchEvent(new Event("input")); }
+  });
+
+  var idleTimer = null;
+  function poke() {
+    document.body.classList.remove("idle");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { document.body.classList.add("idle"); }, 2500);
+  }
+  document.addEventListener("mousemove", poke);
+  document.addEventListener("keydown", poke);
+  document.addEventListener("touchstart", poke, { passive: true });
+
+  function updateClock() {
+    var d = new Date();
+    clockVal.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+  }
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Boot
+  speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  initHeatmap();
+  for (var i = 0; i < 6; i++) {
+    addCommit();
+  }
+  schedule();
+  poke();
+})();
+</script>
+</body>
+</html>

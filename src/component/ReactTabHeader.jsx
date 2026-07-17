@@ -319,6 +319,24 @@ class ReactTabHeader extends Component {
                         A terminal-style system monitor (htop clone) featuring live-updating CPU core bars, memory and swap usage, network I/O sparklines, and a dynamic process list sorting by CPU usage.
                       </p>
                     </div>
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}fake-git-history.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fake Git History (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-code-fork" aria-hidden="true"></i>{" "}
+                          Fake Git History
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        A busy open-source repository simulation featuring live commit streams, animated GitHub contribution heatmap graphs, and real-time PR merge & CI build events.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
