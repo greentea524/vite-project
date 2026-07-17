@@ -80,7 +80,7 @@ const WEB_GAMES = [
   },
   {
     title: "Lantern Keeper",
-    href: "https://greentea524.github.io/game/js-lantern-keeper/",
+    href: "https://greentea524.github.io/games/lantern-keeper/",
     description:
       "A fantasy adventure game where you light the way through dark forests.",
   },
