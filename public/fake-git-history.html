@@ -111,9 +111,22 @@
   }
 
   @media (max-width: 900px) {
+    html, body {
+      overflow-y: auto;
+      height: auto;
+    }
     #dashboard {
       grid-template-columns: 1fr;
-      overflow-y: auto;
+      overflow: visible;
+      height: auto;
+      padding-bottom: 75px;
+    }
+    .commit-panel {
+      max-height: 450px;
+    }
+    .commit-list, .events-list {
+      max-height: 360px;
+      -webkit-overflow-scrolling: touch;
     }
   }
 
@@ -569,6 +582,8 @@
     var adds = "+" + randBetween(4, 380);
     var dels = "-" + randBetween(1, 140);
 
+    var isScrolled = commitList.scrollTop > 10;
+
     var item = document.createElement("div");
     item.className = "commit-item";
     item.innerHTML =
@@ -584,6 +599,10 @@
       '</div>';
 
     commitList.insertBefore(item, commitList.firstChild);
+
+    if (isScrolled) {
+      commitList.scrollTop += item.offsetHeight + 8;
+    }
 
     // Keep list length capped
     while (commitList.children.length > 40) {
@@ -604,6 +623,8 @@
     var author = pick(AUTHORS);
     var text = ev.template(author, prNum);
 
+    var isScrolled = eventsList.scrollTop > 10;
+
     var item = document.createElement("div");
     item.className = "event-item " + ev.type;
     item.innerHTML =
@@ -614,6 +635,10 @@
       '</div>';
 
     eventsList.insertBefore(item, eventsList.firstChild);
+
+    if (isScrolled) {
+      eventsList.scrollTop += item.offsetHeight + 8;
+    }
 
     while (eventsList.children.length > 30) {
       eventsList.removeChild(eventsList.lastChild);
