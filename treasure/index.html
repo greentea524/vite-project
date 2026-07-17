@@ -71,33 +71,54 @@
         user-select: none;
         text-align: center;
       }
-      #banner small {
-        font-size: 20px;
-        font-weight: normal;
+      /* The banner ignores clicks except for its Back to Menu button. */
+      #banner button {
+        pointer-events: auto;
       }
-      /* Click-to-start overlay: needed for pointer lock + audio autoplay. */
-      #start {
+      /* Full-screen menu overlays (main menu, pause). Starting the game
+         from a click here also satisfies pointer lock + audio autoplay. */
+      .overlay {
         position: fixed;
         inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-direction: column;
-        gap: 12px;
+        gap: 14px;
         color: #fff;
         background: rgba(0, 0, 0, 0.65);
-        cursor: pointer;
         user-select: none;
         text-align: center;
       }
-      #start h1 {
+      .overlay h1 {
         margin: 0;
         font-size: 40px;
       }
-      #start p {
+      .overlay p {
         margin: 0;
         font-size: 18px;
         opacity: 0.85;
+        max-width: 640px;
+      }
+      .menu-btn {
+        min-width: 220px;
+        padding: 12px 28px;
+        font-size: 20px;
+        font-weight: bold;
+        font-family: inherit;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid #ffd700;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .menu-btn:hover:not(:disabled) {
+        background: rgba(255, 215, 0, 0.25);
+      }
+      .menu-btn:disabled {
+        border-color: #888;
+        color: #aaa;
+        cursor: default;
       }
     </style>
   </head>
@@ -110,16 +131,21 @@
     </div>
     <div id="banner">
       <span id="banner-text"></span>
-      <small>Press ESC to exit</small>
+      <button id="banner-menu" class="menu-btn">Back to Menu</button>
     </div>
-    <div id="start">
+    <div id="menu" class="overlay">
       <h1>Treasure Hunt</h1>
       <p>Collect 15 rings (+1). Avoid bombs (−1) and ghosts (score → −5).</p>
       <p>
         WASD to move, mouse to look (click-and-drag if the cursor stays
-        visible), gamepad supported. Win at score 10.
+        visible), gamepad supported. Win at score 10. ESC pauses.
       </p>
-      <p><strong>Click to play</strong></p>
+      <button id="menu-play" class="menu-btn" disabled>Loading…</button>
+    </div>
+    <div id="pause" class="overlay" style="display: none">
+      <h1>Paused</h1>
+      <button id="pause-resume" class="menu-btn">Resume</button>
+      <button id="pause-menu" class="menu-btn">Back to Menu</button>
     </div>
     <script type="module" src="./main.ts"></script>
   </body>

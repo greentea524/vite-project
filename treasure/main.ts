@@ -2,6 +2,9 @@
 // page (see rollupOptions.input in vite.config.js). Plain TypeScript —
 // the game renders its own canvas and needs no React shell. Mirrors
 // the /space/ and /platformer/ entry pattern otherwise.
+//
+// Screen flow: menu → playing ⇄ paused, with Back to Menu from the
+// pause screen and the game-over banner (both reset the world).
 
 import { TreasureGame, type Hud } from "./game";
 
@@ -12,8 +15,9 @@ const byId = (id: string): HTMLElement => {
 };
 
 const container = byId("game");
-const startOverlay = byId("start");
-const startTitle = startOverlay.querySelector("h1")!;
+const menu = byId("menu");
+const pauseOverlay = byId("pause");
+const playBtn = byId("menu-play") as HTMLButtonElement;
 
 const hud: Hud = {
   score: byId("hud-score"),
@@ -30,30 +34,56 @@ if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__treasureGame = game;
 }
 
-startTitle.textContent = "Loading…";
 game
   .load()
   .then(() => {
-    startTitle.textContent = "Treasure Hunt";
+    playBtn.disabled = false;
+    playBtn.textContent = "Play";
   })
   .catch((err: unknown) => {
-    startTitle.textContent = "Failed to load assets";
+    playBtn.textContent = "Failed to load assets";
     console.error(err);
   });
 
-startOverlay.addEventListener("click", () => {
-  if (game.gameOver) return;
-  startOverlay.style.display = "none";
+const show = (el: HTMLElement, visible: boolean): void => {
+  el.style.display = visible ? "flex" : "none";
+};
+
+let playing = false;
+
+function startPlaying(): void {
+  playing = true;
+  show(menu, false);
+  show(pauseOverlay, false);
   game.start();
   game.requestLook();
-});
+}
 
-// ESC releases pointer lock; treat that as pause (or exit on game over),
-// standing in for the original QuitGameAction.
-document.addEventListener("pointerlockchange", () => {
-  if (document.pointerLockElement === game.renderer.domElement) return;
-  if (game.gameOver) return;
+function pauseGame(): void {
+  if (!playing || game.gameOver) return;
+  playing = false;
   game.pause();
-  startTitle.textContent = "Paused — click to resume";
-  startOverlay.style.display = "flex";
+  show(pauseOverlay, true);
+}
+
+function backToMenu(): void {
+  playing = false;
+  game.reset();
+  show(pauseOverlay, false);
+  show(menu, true);
+}
+
+playBtn.addEventListener("click", startPlaying);
+byId("pause-resume").addEventListener("click", startPlaying);
+byId("pause-menu").addEventListener("click", backToMenu);
+byId("banner-menu").addEventListener("click", backToMenu);
+
+// ESC pauses: releasing pointer lock fires pointerlockchange, and the
+// keydown covers drag-look mode where there is no lock to release.
+// (Both fire when locked; pauseGame is a no-op the second time.)
+document.addEventListener("pointerlockchange", () => {
+  if (document.pointerLockElement !== game.renderer.domElement) pauseGame();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Escape") pauseGame();
 });

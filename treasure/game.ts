@@ -193,6 +193,25 @@ export class TreasureGame {
     this.audio.stopBgm();
   }
 
+  /** Clears the world back to a fresh game; start() respawns items. */
+  reset(): void {
+    this.pause();
+    this.audio.stopAll();
+    for (const item of this.items) this.scene.remove(item.object);
+    this.items = [];
+    this.score = 0;
+    this.treasures = 0;
+    this.treasuresFound = 0;
+    this.gameOver = false;
+    this.keys.clear();
+    this.camera.position.set(0, 0, 0);
+    this.yaw = 0;
+    this.pitch = 0;
+    this.camera.quaternion.identity();
+    this.hud.banner.style.display = "none";
+    this.updateHud();
+  }
+
   private tick(): void {
     const now = performance.now();
     const dt = Math.min((now - this.lastTick) / 1000, 0.1);
