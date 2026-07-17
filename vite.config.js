@@ -15,6 +15,7 @@ export default defineConfig({
   // .../vite-project/platformer/, .../vite-project/space/,
   // .../vite-project/big2/, and .../vite-project/treasure/).
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       input: {
         main: fileURLToPath(new URL("./index.html", import.meta.url)),

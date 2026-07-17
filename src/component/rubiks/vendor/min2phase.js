@@ -1400,8 +1400,4 @@ var min2phase = (function() {
 	}
 })();
 
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-	module.exports = min2phase;
-}
-
 export default min2phase;
