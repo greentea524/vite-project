@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>System Monitor (htop)</title>
+<!--
+  Standalone fake htop / system monitor screen for screen-recording / demos.
+  Open directly in a browser, or reach it from the app under
+  Utility → Fake System Monitor.
+
+  Controls: tap the ⚙ gear (bottom-right) for the settings panel —
+  pause/resume, speed, and fullscreen.
+  Shortcuts: Space = pause/resume, f = fullscreen, ↑/↓ = speed, Esc = close.
+-->
+<style>
+  :root {
+    --green: #33ff66;
+    --green-dim: #1c8a39;
+    --cyan: #33ccff;
+    --cyan-dim: #1a7a99;
+    --amber: #ffcc33;
+    --amber-dim: #997a1f;
+    --red: #ff4d4d;
+    --magenta: #ff66cc;
+    --blue: #4d94ff;
+    --bg: #050a0e;
+    --panel-bg: rgba(8, 16, 24, 0.92);
+    --border: rgba(51, 204, 255, 0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Cascadia Code", "Fira Code", "Consolas", "Courier New", monospace;
+    color: var(--green);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    text-shadow: 0 0 4px rgba(51, 255, 102, 0.4);
+  }
+
+  /* faint CRT scanline overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.2) 3px,
+      rgba(0, 0, 0, 0) 4px
+    );
+    z-index: 5;
+  }
+
+  #top-bar {
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-bg);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  #top-bar .title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(51, 204, 255, 0.6);
+  }
+
+  #top-bar .meta {
+    display: flex;
+    gap: 16px;
+    color: var(--green-dim);
+  }
+  #top-bar .meta .val { color: var(--cyan); }
+  #top-bar .meta .highlight { color: var(--amber); }
+
+  #dashboard {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 12px 16px 70px;
+    gap: 12px;
+  }
+
+  /* Grid for Top Stats (CPUs + Memory + Network) */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 850px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .stat-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .card-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed rgba(51, 204, 255, 0.15);
+    padding-bottom: 4px;
+  }
+
+  /* CPU Cores Display */
+  .cpu-cores-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    font-size: 12px;
+  }
+
+  @media (max-width: 480px) {
+    .cpu-cores-list {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .cpu-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cpu-label {
+    min-width: 24px;
+    color: var(--cyan);
+  }
+  .meter-bar-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--green-dim);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+  }
+  .meter-bar-fill {
+    height: 100%;
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(51, 255, 102, 0.4);
+    transition: width 0.15s linear;
+  }
+  .meter-bar-fill.medium {
+    background: var(--amber);
+    box-shadow: 0 0 6px rgba(255, 204, 51, 0.4);
+  }
+  .meter-bar-fill.high {
+    background: var(--red);
+    box-shadow: 0 0 6px rgba(255, 77, 77, 0.5);
+  }
+
+  .cpu-pct {
+    min-width: 45px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--green-dim);
+  }
+
+  /* Memory & Swap Meters */
+  .mem-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  /* Network / Disk Activity Graphs */
+  .net-sparklines {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .graph-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .graph-title { color: var(--cyan); min-width: 60px; }
+  .graph-visual {
+    flex: 1;
+    font-family: var(--font-mono);
+    color: var(--cyan);
+    letter-spacing: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: right;
+  }
+  .graph-val {
+    min-width: 85px;
+    text-align: right;
+    color: var(--amber);
+    font-size: 11px;
+  }
+
+  /* Process Table Panel */
+  .process-panel {
+    flex: 1;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 200px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .process-table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan-dim) transparent;
+  }
+
+  table.proc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+  }
+
+  table.proc-table th {
+    position: sticky;
+    top: 0;
+    background: #0d1b26;
+    color: var(--cyan);
+    padding: 6px 10px;
+    border-bottom: 2px solid var(--border);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    z-index: 2;
+  }
+
+  table.proc-table td {
+    padding: 4px 10px;
+    border-bottom: 1px solid rgba(51, 204, 255, 0.05);
+    white-space: nowrap;
+  }
+
+  table.proc-table tr:hover {
+    background: rgba(51, 204, 255, 0.08);
+  }
+
+  .col-pid { color: var(--cyan-dim); }
+  .col-user { color: var(--green); }
+  .col-pri { color: var(--green-dim); text-align: right; }
+  .col-ni { color: var(--green-dim); text-align: right; }
+  .col-virt { color: var(--amber-dim); text-align: right; }
+  .col-res { color: var(--amber); text-align: right; }
+  .col-cpu { color: var(--green); text-align: right; font-weight: bold; }
+  .col-cpu.high { color: var(--red); }
+  .col-cpu.med { color: var(--amber); }
+  .col-mem { color: var(--cyan); text-align: right; }
+  .col-time { color: var(--cyan-dim); text-align: right; }
+  .col-cmd { color: #fff; }
+
+  /* Footer & Settings Gear */
+  #footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 8px 20px;
+    background: rgba(6, 12, 18, 0.95);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--green-dim);
+    display: flex;
+    justify-content: space-between;
+    z-index: 4;
+  }
+  #footer .val { color: var(--green); }
+
+  #gearBtn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(6, 12, 18, 0.85);
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(51, 255, 102, 0.25);
+    transition: opacity 0.4s ease, background 0.15s, transform 0.2s ease;
+  }
+  #gearBtn:hover { background: var(--green-dim); color: #000; }
+  body.settings-open #gearBtn { transform: rotate(60deg); }
+  body.idle:not(.settings-open) #gearBtn { opacity: 0.25; }
+
+  #controls {
+    position: fixed;
+    right: 16px;
+    bottom: 76px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 260px;
+    max-width: calc(100vw - 32px);
+    padding: 14px 16px;
+    background: rgba(6, 12, 18, 0.95);
+    border: 1px solid var(--green-dim);
+    border-radius: 8px;
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  body.settings-open #controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .controls-title {
+    font-weight: bold;
+    color: var(--green);
+    border-bottom: 1px solid var(--green-dim);
+    padding-bottom: 8px;
+  }
+
+  #controls button {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    flex: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  #controls button:hover { background: var(--green-dim); color: #000; }
+  #controls label { color: var(--green-dim); }
+  #speedVal { color: var(--green); min-width: 38px; display: inline-block; text-align: right; }
+  #controls input[type="range"] { accent-color: var(--green); cursor: pointer; flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+  <div id="top-bar">
+    <div class="title">htop 3.3.0 - system overview</div>
+    <div class="meta">
+      <span>Tasks: <span class="val" id="tasksVal">142, 3 running</span></span>
+      <span>Load: <span class="val" id="loadVal">1.45 1.22 0.98</span></span>
+      <span>Uptime: <span class="val" id="uptimeVal">14 days, 06:42:11</span></span>
+    </div>
+  </div>
+
+  <div id="dashboard">
+    <div class="stats-grid">
+      <!-- CPU Cores Card -->
+      <div class="stat-card">
+        <div class="card-header">
+          <span>CPU Cores Usage</span>
+          <span id="avgCpuVal" style="color: var(--green);">Avg: 24.5%</span>
+        </div>
+        <div class="cpu-cores-list" id="cpuCoresContainer">
+          <!-- Dynamically generated cores -->
+        </div>
+      </div>
+
+      <!-- Memory & Network Activity Card -->
+      <div class="stat-card">
+        <div class="card-header">
+          <span>Memory & Network Activity</span>
+          <span id="memPctVal" style="color: var(--amber);">Mem: 38.2%</span>
+        </div>
+        <div class="mem-lines">
+          <!-- Memory Bar -->
+          <div class="cpu-line">
+            <span class="cpu-label">Mem</span>
+            <div class="meter-bar-track">
+              <div class="meter-bar-fill" id="memBarFill" style="width: 38%;"></div>
+            </div>
+            <span class="cpu-pct" id="memText">6.12G/16G</span>
+          </div>
+          <!-- Swap Bar -->
+          <div class="cpu-line">
+            <span class="cpu-label">Swp</span>
+            <div class="meter-bar-track">
+              <div class="meter-bar-fill" id="swpBarFill" style="width: 4%;"></div>
+            </div>
+            <span class="cpu-pct" id="swpText">320M/8G</span>
+          </div>
+        </div>
+
+        <div class="net-sparklines" style="margin-top: 10px;">
+          <div class="graph-line">
+            <span class="graph-title">Net RX</span>
+            <span class="graph-visual" id="rxSparkline"> ▂▃▅▇█▇▅▃▂ </span>
+            <span class="graph-val" id="rxRate">1.45 MB/s</span>
+          </div>
+          <div class="graph-line">
+            <span class="graph-title">Net TX</span>
+            <span class="graph-visual" id="txSparkline"> ▂ ▃▅▃▂  ▂</span>
+            <span class="graph-val" id="txRate">340 KB/s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Process Table -->
+    <div class="process-panel">
+      <div class="card-header" style="padding: 8px 12px; margin: 0;">
+        <span>Active Process List</span>
+        <span style="color: var(--green-dim);">Sorted by: %CPU</span>
+      </div>
+      <div class="process-table-wrap">
+        <table class="proc-table">
+          <thead>
+            <tr>
+              <th>PID</th>
+              <th>USER</th>
+              <th style="text-align: right;">PRI</th>
+              <th style="text-align: right;">NI</th>
+              <th style="text-align: right;">VIRT</th>
+              <th style="text-align: right;">RES</th>
+              <th style="text-align: right;">%CPU</th>
+              <th style="text-align: right;">%MEM</th>
+              <th style="text-align: right;">TIME+</th>
+              <th>Command</th>
+            </tr>
+          </thead>
+          <tbody id="procTbody">
+            <!-- Process rows generated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <span>Processes: <span class="val" id="totalProcCount">142</span> total | CPU: <span class="val" id="totalCpuVal">24.5%</span></span>
+    <span id="clockVal">--:--:--</span>
+  </div>
+
+  <button id="gearBtn" type="button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button>
+
+  <div id="controls" role="dialog" aria-label="Monitor settings" aria-hidden="true">
+    <div class="controls-row controls-title">Settings</div>
+    <div class="controls-row">
+      <button id="toggleBtn" type="button" title="Pause / resume (space)">⏸ Pause</button>
+      <button id="fsBtn" type="button" title="Toggle fullscreen (f)">⛶ Fullscreen</button>
+    </div>
+    <div class="controls-row">
+      <label for="speed">speed</label>
+      <input id="speed" type="range" min="1" max="20" value="10" />
+      <span id="speedVal">1.0x</span>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var toggleBtn = document.getElementById("toggleBtn");
+  var speedInput = document.getElementById("speed");
+  var speedVal = document.getElementById("speedVal");
+  var fsBtn = document.getElementById("fsBtn");
+  var gearBtn = document.getElementById("gearBtn");
+  var controls = document.getElementById("controls");
+  var clockVal = document.getElementById("clockVal");
+
+  var cpuCoresContainer = document.getElementById("cpuCoresContainer");
+  var avgCpuVal = document.getElementById("avgCpuVal");
+  var memBarFill = document.getElementById("memBarFill");
+  var memText = document.getElementById("memText");
+  var memPctVal = document.getElementById("memPctVal");
+  var swpBarFill = document.getElementById("swpBarFill");
+  var swpText = document.getElementById("swpText");
+  var rxSparkline = document.getElementById("rxSparkline");
+  var rxRate = document.getElementById("rxRate");
+  var txSparkline = document.getElementById("txSparkline");
+  var txRate = document.getElementById("txRate");
+  var procTbody = document.getElementById("procTbody");
+  var tasksVal = document.getElementById("tasksVal");
+  var loadVal = document.getElementById("loadVal");
+  var uptimeVal = document.getElementById("uptimeVal");
+  var totalProcCount = document.getElementById("totalProcCount");
+  var totalCpuVal = document.getElementById("totalCpuVal");
+
+  var NUM_CORES = 8;
+  var paused = false;
+  var timer = null;
+  var uptimeSeconds = 1233731; // ~14 days
+
+  // Sparkline blocks
+  var SPARK_CHARS = [" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
+  var rxHistory = [1, 2, 3, 5, 8, 7, 5, 3, 2, 1, 4, 6, 9, 7, 4, 2];
+  var txHistory = [0, 1, 2, 3, 2, 1, 0, 1, 2, 4, 3, 1, 2, 1, 0, 1];
+
+  // System Process Data Definitions
+  var PROCESS_TEMPLATES = [
+    { user: "root", cmd: "/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock", baseCpu: 18.5, mem: 4.2, virt: "1.4G", res: "280M" },
+    { user: "node", cmd: "node /app/server.js --cluster --instances 4", baseCpu: 28.2, mem: 6.5, virt: "2.1G", res: "420M" },
+    { user: "postgres", cmd: "postgres: writer process (production_db)", baseCpu: 12.0, mem: 5.1, virt: "890M", res: "310M" },
+    { user: "postgres", cmd: "postgres: walwriter process", baseCpu: 4.5, mem: 1.2, virt: "450M", res: "95M" },
+    { user: "www-data", cmd: "nginx: worker process", baseCpu: 8.4, mem: 0.8, virt: "120M", res: "32M" },
+    { user: "www-data", cmd: "nginx: worker process", baseCpu: 7.1, mem: 0.8, virt: "120M", res: "32M" },
+    { user: "redis", cmd: "redis-server 127.0.0.1:6379", baseCpu: 3.8, mem: 2.4, virt: "340M", res: "180M" },
+    { user: "root", cmd: "/usr/bin/containerd", baseCpu: 6.2, mem: 1.8, virt: "680M", res: "115M" },
+    { user: "admin", cmd: "vite --host --port 5173", baseCpu: 15.4, mem: 3.9, virt: "950M", res: "260M" },
+    { user: "admin", cmd: "python3 -m uvicorn main:app --reload --port 8000", baseCpu: 9.8, mem: 2.9, virt: "520M", res: "190M" },
+    { user: "root", cmd: "htop", baseCpu: 1.2, mem: 0.3, virt: "24M", res: "8M" },
+    { user: "root", cmd: "/lib/systemd/systemd --user", baseCpu: 0.1, mem: 0.2, virt: "18M", res: "6M" },
+    { user: "root", cmd: "[kworker/u16:2-events_unbound]", baseCpu: 0.8, mem: 0.0, virt: "0K", res: "0K" },
+    { user: "root", cmd: "[kworker/0:1H-kblockd]", baseCpu: 0.3, mem: 0.0, virt: "0K", res: "0K" },
+    { user: "admin", cmd: "git status --porcelain", baseCpu: 2.1, mem: 0.4, virt: "35M", res: "12M" },
+    { user: "admin", cmd: "/usr/bin/code-server --bind-addr 0.0.0.0:8080", baseCpu: 11.2, mem: 4.8, virt: "1.1G", res: "310M" },
+    { user: "root", cmd: "rsyslogd -n -iNONE", baseCpu: 0.2, mem: 0.3, virt: "42M", res: "5M" }
+  ];
+
+  var processes = [];
+  var pidCounter = 1024;
+
+  function randBetween(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  function initProcesses() {
+    processes = PROCESS_TEMPLATES.map(function (tmpl) {
+      pidCounter += Math.floor(randBetween(10, 85));
+      return {
+        pid: pidCounter,
+        user: tmpl.user,
+        pri: 20,
+        ni: 0,
+        virt: tmpl.virt,
+        res: tmpl.res,
+        cpu: tmpl.baseCpu,
+        mem: tmpl.mem,
+        timeSecs: Math.floor(randBetween(10, 3600)),
+        cmd: tmpl.cmd
+      };
+    });
+  }
+
+  // Generate CPU Cores HTML
+  var cpuElements = [];
+  function initCpuCores() {
+    cpuCoresContainer.innerHTML = "";
+    cpuElements = [];
+
+    for (var i = 1; i <= NUM_CORES; i++) {
+      var line = document.createElement("div");
+      line.className = "cpu-line";
+
+      var label = document.createElement("span");
+      label.className = "cpu-label";
+      label.textContent = i;
+
+      var track = document.createElement("div");
+      track.className = "meter-bar-track";
+
+      var fill = document.createElement("div");
+      fill.className = "meter-bar-fill";
+      fill.style.width = "20%";
+      track.appendChild(fill);
+
+      var pct = document.createElement("span");
+      pct.className = "cpu-pct";
+      pct.textContent = "20.0%";
+
+      line.appendChild(label);
+      line.appendChild(track);
+      line.appendChild(pct);
+
+      cpuCoresContainer.appendChild(line);
+      cpuElements.push({ fill: fill, pct: pct, val: 20 });
+    }
+  }
+
+  function formatTime(totalSecs) {
+    var m = Math.floor(totalSecs / 60);
+    var s = totalSecs % 60;
+    var ms = Math.floor(Math.random() * 99);
+    var mStr = m < 10 ? "0" + m : "" + m;
+    var sStr = s < 10 ? "0" + s : "" + s;
+    var msStr = ms < 10 ? "0" + ms : "" + ms;
+    return mStr + ":" + sStr + "." + msStr;
+  }
+
+  function renderSparkline(arr) {
+    var str = "";
+    for (var i = 0; i < arr.length; i++) {
+      var val = Math.min(SPARK_CHARS.length - 1, Math.max(0, arr[i]));
+      str += SPARK_CHARS[val];
+    }
+    return str;
+  }
+
+  function tick() {
+    var mult = speedInput.value / 10;
+
+    // 1. Update CPU Cores
+    var totalCpu = 0;
+    for (var i = 0; i < cpuElements.length; i++) {
+      var c = cpuElements[i];
+      var delta = randBetween(-12, 12) * mult;
+      c.val = Math.max(2, Math.min(99.9, c.val + delta));
+      totalCpu += c.val;
+
+      c.fill.style.width = c.val.toFixed(1) + "%";
+      c.pct.textContent = c.val.toFixed(1) + "%";
+
+      if (c.val > 75) {
+        c.fill.className = "meter-bar-fill high";
+      } else if (c.val > 45) {
+        c.fill.className = "meter-bar-fill medium";
+      } else {
+        c.fill.className = "meter-bar-fill";
+      }
+    }
+
+    var avgCpu = totalCpu / NUM_CORES;
+    avgCpuVal.textContent = "Avg: " + avgCpu.toFixed(1) + "%";
+    totalCpuVal.textContent = avgCpu.toFixed(1) + "%";
+
+    // 2. Memory & Swap
+    var memPct = Math.max(20, Math.min(85, 38.2 + randBetween(-2, 2) * mult));
+    var memUsed = (16 * (memPct / 100)).toFixed(2);
+    memBarFill.style.width = memPct.toFixed(1) + "%";
+    memText.textContent = memUsed + "G/16G";
+    memPctVal.textContent = "Mem: " + memPct.toFixed(1) + "%";
+
+    // 3. Network Graphs
+    rxHistory.shift();
+    rxHistory.push(Math.floor(randBetween(0, 9)));
+    txHistory.shift();
+    txHistory.push(Math.floor(randBetween(0, 9)));
+
+    rxSparkline.textContent = renderSparkline(rxHistory);
+    txSparkline.textContent = renderSparkline(txHistory);
+
+    var rxVal = (randBetween(0.8, 4.5) * mult).toFixed(2);
+    var txVal = Math.floor(randBetween(120, 950) * mult);
+    rxRate.textContent = rxVal + " MB/s";
+    txRate.textContent = txVal + " KB/s";
+
+    // 4. Update Processes
+    processes.forEach(function (p) {
+      p.cpu = Math.max(0, p.cpu + randBetween(-4, 4) * mult);
+      p.timeSecs += Math.floor(randBetween(0, 2) * mult);
+    });
+
+    // Sort by %CPU descending
+    processes.sort(function (a, b) { return b.cpu - a.cpu; });
+
+    // Render Process Rows
+    procTbody.innerHTML = "";
+    var activeRunningCount = 0;
+
+    processes.forEach(function (p) {
+      if (p.cpu > 5.0) activeRunningCount++;
+      var tr = document.createElement("tr");
+
+      var cpuCls = "col-cpu";
+      if (p.cpu > 40) cpuCls += " high";
+      else if (p.cpu > 15) cpuCls += " med";
+
+      tr.innerHTML =
+        '<td class="col-pid">' + p.pid + '</td>' +
+        '<td class="col-user">' + p.user + '</td>' +
+        '<td class="col-pri">' + p.pri + '</td>' +
+        '<td class="col-ni">' + p.ni + '</td>' +
+        '<td class="col-virt">' + p.virt + '</td>' +
+        '<td class="col-res">' + p.res + '</td>' +
+        '<td class="' + cpuCls + '">' + p.cpu.toFixed(1) + '</td>' +
+        '<td class="col-mem">' + p.mem.toFixed(1) + '</td>' +
+        '<td class="col-time">' + formatTime(p.timeSecs) + '</td>' +
+        '<td class="col-cmd">' + p.cmd + '</td>';
+
+      procTbody.appendChild(tr);
+    });
+
+    // 5. Update Header Meta
+    var totalProcs = processes.length + 125; // simulating background daemons
+    tasksVal.textContent = totalProcs + ", " + (activeRunningCount + 1) + " running";
+    totalProcCount.textContent = totalProcs;
+
+    var l1 = (avgCpu / 20).toFixed(2);
+    var l2 = (avgCpu / 22).toFixed(2);
+    var l3 = (avgCpu / 25).toFixed(2);
+    loadVal.textContent = l1 + " " + l2 + " " + l3;
+  }
+
+  function currentDelay() {
+    var mult = speedInput.value / 10;
+    return 350 / mult;
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    if (paused) return;
+    timer = setTimeout(function () {
+      tick();
+      schedule();
+    }, currentDelay());
+  }
+
+  function setPaused(p) {
+    paused = p;
+    toggleBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+    if (!paused) schedule();
+    else clearTimeout(timer);
+  }
+
+  toggleBtn.addEventListener("click", function () { setPaused(!paused); });
+
+  speedInput.addEventListener("input", function () {
+    speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+    if (!paused) schedule();
+  });
+
+  fsBtn.addEventListener("click", function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  function setSettingsOpen(open) {
+    document.body.classList.toggle("settings-open", open);
+    gearBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    controls.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) poke();
+  }
+  gearBtn.addEventListener("click", function () {
+    setSettingsOpen(!document.body.classList.contains("settings-open"));
+  });
+  document.addEventListener("click", function (e) {
+    if (!document.body.classList.contains("settings-open")) return;
+    if (!controls.contains(e.target) && e.target !== gearBtn) setSettingsOpen(false);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); setPaused(!paused); }
+    else if (e.key === "f" || e.key === "F") { fsBtn.click(); }
+    else if (e.key === "Escape") { setSettingsOpen(false); }
+    else if (e.key === "ArrowUp") { speedInput.value = Math.min(20, +speedInput.value + 1); speedInput.dispatchEvent(new Event("input")); }
+    else if (e.key === "ArrowDown") { speedInput.value = Math.max(1, +speedInput.value - 1); speedInput.dispatchEvent(new Event("input")); }
+  });
+
+  var idleTimer = null;
+  function poke() {
+    document.body.classList.remove("idle");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { document.body.classList.add("idle"); }, 2500);
+  }
+  document.addEventListener("mousemove", poke);
+  document.addEventListener("keydown", poke);
+  document.addEventListener("touchstart", poke, { passive: true });
+
+  function updateClock() {
+    var d = new Date();
+    clockVal.textContent = pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+  }
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Boot
+  speedVal.textContent = (speedInput.value / 10).toFixed(1) + "x";
+  initCpuCores();
+  initProcesses();
+  tick();
+  schedule();
+  poke();
+})();
+</script>
+</body>
+</html>

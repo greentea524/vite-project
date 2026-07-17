@@ -301,6 +301,24 @@ class ReactTabHeader extends Component {
                         A PostgreSQL-style console that auto-types SQL queries with syntax highlighting, renders result tables, EXPLAIN ANALYZE plans, transactions, and occasional errors.
                       </p>
                     </div>
+                    <div className="game-card">
+                      <a
+                        className="game-link"
+                        href={`${import.meta.env.BASE_URL}fake-sysmon.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Fake System Monitor (opens in a new tab)"
+                      >
+                        <span className="game-link-title-row">
+                          <i className="fa fa-desktop" aria-hidden="true"></i>{" "}
+                          Fake System Monitor
+                        </span>
+                        <i className="fa fa-external-link" aria-hidden="true"></i>
+                      </a>
+                      <p className="game-link-description">
+                        A terminal-style system monitor (htop clone) featuring live-updating CPU core bars, memory and swap usage, network I/O sparklines, and a dynamic process list sorting by CPU usage.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
