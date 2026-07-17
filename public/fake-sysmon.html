@@ -108,8 +108,24 @@
   }
 
   @media (max-width: 850px) {
+    html, body {
+      overflow-y: auto;
+      height: auto;
+    }
+    #dashboard {
+      overflow: visible;
+      height: auto;
+      padding-bottom: 75px;
+    }
     .stats-grid {
       grid-template-columns: 1fr;
+    }
+    .process-panel {
+      min-height: 350px;
+    }
+    .process-table-wrap {
+      max-height: 380px;
+      -webkit-overflow-scrolling: touch;
     }
   }
 
