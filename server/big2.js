@@ -29,6 +29,7 @@ function publicState(g) {
     trick: g.state.trick,
     winner: g.state.winner,
     round: g.round,
+    totals: g.totals,
   };
 }
 

@@ -60,6 +60,7 @@ export function TableView({
   passEnabled,
   hint,
   onMenu,
+  onScoreboard,
 }) {
   const [west, north, east] = opponents;
   // Display sort (#114): hands arrive rank-sorted; "suit" regroups the
@@ -141,6 +142,17 @@ export function TableView({
           title="Game menu"
         >
           ⏸
+        </button>
+      )}
+      {onScoreboard && (
+        <button
+          type="button"
+          className="big2-score-toggle"
+          onClick={onScoreboard}
+          aria-label="Score board"
+          title="Score board"
+        >
+          🏆
         </button>
       )}
       <OpponentSeat {...north} side="north" />
@@ -295,6 +307,65 @@ export function ResultsOverlay({ title, rows, children }) {
           </tbody>
         </table>
         <div className="big2-results-actions">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Scoreboard overlay: displays a leaderboard of cumulative scores.
+ * `scores` is an array of { name, total, isMe }.
+ */
+export function ScoreboardOverlay({ scores, onClose }) {
+  const sortedScores = useMemo(() => {
+    return [...scores].sort((a, b) => b.total - a.total);
+  }, [scores]);
+
+  return (
+    <div className="big2-results-overlay">
+      <div className="big2-results big2-scoreboard">
+        <h2 className="big2-results-title">Leaderboard</h2>
+        <table className="big2-results-table">
+          <thead>
+            <tr>
+              <th style={{ width: "60px" }}>Rank</th>
+              <th>Player</th>
+              <th style={{ textAlign: "right" }}>Total Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedScores.map((row, idx) => {
+              const rank = idx + 1;
+              let rankEmoji = "";
+              if (rank === 1) rankEmoji = "🥇";
+              else if (rank === 2) rankEmoji = "🥈";
+              else if (rank === 3) rankEmoji = "🥉";
+              
+              return (
+                <tr key={row.name} style={row.isMe ? { backgroundColor: "rgba(255, 213, 79, 0.15)", fontWeight: "bold" } : {}}>
+                  <td>
+                    {rankEmoji} {rank}
+                  </td>
+                  <td>
+                    {row.name} {row.isMe && " (You)"}
+                  </td>
+                  <td
+                    className={row.total >= 0 ? "big2-score-pos" : "big2-score-neg"}
+                    style={{ textAlign: "right" }}
+                  >
+                    {row.total >= 0 ? "+" : ""}
+                    {row.total}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="big2-results-actions" style={{ justifyContent: "center", marginTop: "16px" }}>
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

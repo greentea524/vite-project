@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
+import { TableView, ResultsOverlay, PauseOverlay, ScoreboardOverlay } from "./Table.jsx";
 import { newGame, playCards, passTurn } from "./game.js";
 import { classifyHand, canBeat, canPass, isUnbeatable, HAND_TYPE_LABEL } from "./rules.js";
 import { chooseBotMove } from "./bot.js";
@@ -28,6 +28,15 @@ function SoloGame({ onExit }) {
   const [paused, setPaused] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showScoreboard, setShowScoreboard] = useState(false);
+
+  const scores = useMemo(() => {
+    return PLAYER_NAMES.map((name, i) => ({
+      name,
+      total: totals[i],
+      isMe: i === LOCAL_PLAYER,
+    }));
+  }, [totals]);
 
   const isMyTurn = state.turn === LOCAL_PLAYER && state.winner === null;
   const myHand = state.hands[LOCAL_PLAYER];
@@ -132,6 +141,7 @@ function SoloGame({ onExit }) {
       )}
       {showInstructions && <InstructionsOverlay onClose={() => setShowInstructions(false)} />}
       {showStats && <StatsOverlay onClose={() => setShowStats(false)} />}
+      {showScoreboard && <ScoreboardOverlay scores={scores} onClose={() => setShowScoreboard(false)} />}
       {state.winner !== null && roundResult && (
         <ResultsOverlay
           title={`Round ${round} — ${PLAYER_NAMES[state.winner]} ${
@@ -192,6 +202,7 @@ function SoloGame({ onExit }) {
         passEnabled={passable}
         hint={hint}
         onMenu={() => setPaused(true)}
+        onScoreboard={() => setShowScoreboard(true)}
       />
     </div>
   );

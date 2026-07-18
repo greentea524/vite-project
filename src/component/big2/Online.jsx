@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { TableView, ResultsOverlay, PauseOverlay } from "./Table.jsx";
+import { TableView, ResultsOverlay, PauseOverlay, ScoreboardOverlay } from "./Table.jsx";
 import { Network } from "./network.js";
 import { buildJoinLink } from "./joinLink.js";
 import { classifyHand, canBeat, canPass, isUnbeatable, HAND_TYPE_LABEL } from "./rules.js";
@@ -65,6 +65,7 @@ function Online({ joinCode, onExit }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showScoreboard, setShowScoreboard] = useState(false);
 
   useEffect(() => {
     Network.warmUp(); // KAN-53: poke a sleeping free-tier host early
@@ -176,6 +177,15 @@ function Online({ joinCode, onExit }) {
     const seatEmoji = seat.emoji || (seat.isBot ? "🤖" : "");
     return seatEmoji ? `${label} ${seatEmoji}` : label;
   };
+
+  const scores = useMemo(() => {
+    if (!gameState || !gameState.totals) return [];
+    return gameState.seats.map((seat, i) => ({
+      name: seatName(i) || seat.name,
+      total: gameState.totals[i] || 0,
+      isMe: i === mySeat,
+    }));
+  }, [gameState, mySeat, seatName]);
 
   const isMyTurn =
     gameState && gameState.winner === null && gameState.turn === mySeat;
@@ -413,6 +423,7 @@ function Online({ joinCode, onExit }) {
       )}
       {showInstructions && <InstructionsOverlay onClose={() => setShowInstructions(false)} />}
       {showStats && <StatsOverlay onClose={() => setShowStats(false)} />}
+      {showScoreboard && <ScoreboardOverlay scores={scores} onClose={() => setShowScoreboard(false)} />}
       {result && (
         <ResultsOverlay
           title={`Round ${result.round} — ${seatName(result.winner)} ${
@@ -465,6 +476,7 @@ function Online({ joinCode, onExit }) {
         passEnabled={Boolean(passable)}
         hint={hint}
         onMenu={() => setMenuOpen(true)}
+        onScoreboard={() => setShowScoreboard(true)}
       />
     </div>
   );
