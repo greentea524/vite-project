@@ -474,6 +474,29 @@
   text-align: center;
 }
 
+/* Cumulative score pill next to each player's name */
+.big2-seat-score {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  font-variant-numeric: tabular-nums;
+  color: #f2f7f2;
+}
+
+.big2-seat-score.big2-score-pos {
+  color: #9be89b;
+}
+
+.big2-seat-score.big2-score-neg {
+  color: #ff9c9c;
+}
+
+/* The local player's name/score line above their hand */
+.big2-seat-name-south {
+  margin-bottom: 4px;
+}
+
 .big2-thinking-container {
   height: 14px;
   width: 100%;
