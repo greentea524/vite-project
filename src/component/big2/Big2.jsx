@@ -122,6 +122,7 @@ function SoloGame({ onExit }) {
     name: PLAYER_NAMES[i],
     count: state.hands[i].length,
     active: state.winner === null && state.turn === i,
+    total: totals[i],
   });
 
   return (
@@ -189,6 +190,8 @@ function SoloGame({ onExit }) {
             : null
         }
         myActive={isMyTurn}
+        myName={PLAYER_NAMES[LOCAL_PLAYER]}
+        myTotal={totals[LOCAL_PLAYER]}
         myHand={myHand}
         selectedIds={selectedIds}
         onToggleCard={toggleCard}

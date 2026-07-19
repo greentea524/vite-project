@@ -392,6 +392,7 @@ function Online({ joinCode, onExit }) {
       name: seatName(i),
       count: gameState.counts[i],
       active: gameState.winner === null && gameState.turn === i,
+      total: gameState.totals?.[i] ?? 0,
     };
   };
   const trick = gameState.trick
@@ -467,6 +468,8 @@ function Online({ joinCode, onExit }) {
             : null
         }
         myActive={Boolean(isMyTurn)}
+        myName={seatName(mySeat)}
+        myTotal={gameState.totals?.[mySeat] ?? 0}
         myHand={myHand}
         selectedIds={selectedIds}
         onToggleCard={toggleCard}

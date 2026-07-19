@@ -13,16 +13,32 @@ function cardIdAt(x, y) {
 }
 
 /**
+ * Cumulative-score pill shown next to a player's name. Totals sum to
+ * zero (winner positive, losers negative), so the sign is meaningful.
+ */
+function ScorePill({ total }) {
+  if (typeof total !== "number") return null;
+  const cls = total > 0 ? "big2-score-pos" : total < 0 ? "big2-score-neg" : "";
+  return (
+    <span className={`big2-seat-score ${cls}`} title="Cumulative score">
+      {total > 0 ? "+" : ""}
+      {total}
+    </span>
+  );
+}
+
+/**
  * Presentational pieces shared by the solo (KAN-60) and online
  * (KAN-63) games: the felt table with four seats, and the end-of-round
  * results overlay (KAN-62). All state lives in the callers.
  */
 
-function OpponentSeat({ name, count, active, side }) {
+function OpponentSeat({ name, count, active, side, total }) {
   return (
     <div className={`big2-seat big2-seat-${side}${active ? " big2-seat-active" : ""}`}>
       <div className="big2-seat-name">
-        {name} <span className="big2-seat-count">{count}</span>
+        {name} <ScorePill total={total} />{" "}
+        <span className="big2-seat-count">{count}</span>
       </div>
       <div className="big2-thinking-container">
         {active && (
@@ -61,6 +77,8 @@ export function TableView({
   hint,
   onMenu,
   onScoreboard,
+  myName = "You",
+  myTotal,
 }) {
   const [west, north, east] = opponents;
   // Display sort (#114): hands arrive rank-sorted; "suit" regroups the
@@ -177,6 +195,10 @@ export function TableView({
       <OpponentSeat {...east} side="east" />
 
       <div className={`big2-seat big2-seat-south${myActive ? " big2-seat-active" : ""}`}>
+        <div className="big2-seat-name big2-seat-name-south">
+          {myName} <ScorePill total={myTotal} />{" "}
+          <span className="big2-seat-count">{myHand.length}</span>
+        </div>
         <div
           className="big2-my-hand"
           onPointerDown={onHandPointerDown}
