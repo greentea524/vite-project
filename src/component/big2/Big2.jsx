@@ -74,14 +74,23 @@ function SoloGame({ onExit }) {
     return () => clearTimeout(timer);
   }, [state, paused]);
 
+  const [houseRules, setHouseRules] = useState(true);
+  const [comboBonusesEnabled, setComboBonusesEnabled] = useState(true);
+
   // Score the round exactly once when someone goes out (KAN-62).
   useEffect(() => {
     if (state.winner === null || roundResult !== null) return;
-    const result = scoreRound(state.hands, state.winner);
+    const result = scoreRound(
+      state.hands,
+      state.winner,
+      houseRules,
+      state.comboBonuses,
+      { houseRules, comboBonusesEnabled }
+    );
     setRoundResult(result);
     setTotals((t) => t.map((v, i) => v + result.deltas[i]));
     recordGame(state.winner === LOCAL_PLAYER);
-  }, [state, roundResult]);
+  }, [state, roundResult, houseRules, comboBonusesEnabled]);
 
   const nextRound = () => {
     setState(newGame()); // fresh shuffle, deal, and 3♦ lead
@@ -129,6 +138,24 @@ function SoloGame({ onExit }) {
     <div className="big2-table-page">
       {paused && state.winner === null && !showInstructions && !showStats && (
         <PauseOverlay onResume={() => setPaused(false)}>
+          <div className="big2-house-rules-options">
+            <label>
+              <input
+                type="checkbox"
+                checked={houseRules}
+                onChange={(e) => setHouseRules(e.target.checked)}
+              />{" "}
+              Unused 2s & Quads/SF Doublings
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={comboBonusesEnabled}
+                onChange={(e) => setComboBonusesEnabled(e.target.checked)}
+              />{" "}
+              Premium Combo Bonuses (+3/+6/+9/+12)
+            </label>
+          </div>
           <button type="button" className="big2-link-btn" onClick={() => setShowInstructions(true)}>
             How to Play
           </button>
@@ -154,6 +181,8 @@ function SoloGame({ onExit }) {
             cards: state.hands[i],
             doubledByTwos: roundResult.breakdown[i].doubledByTwos,
             doubledByStrong: roundResult.breakdown[i].doubledByStrong,
+            comboBonus: roundResult.comboBonuses?.[i] ?? 0,
+            comboDelta: roundResult.comboDeltas?.[i] ?? 0,
             delta: roundResult.deltas[i],
             total: totals[i],
           }))}

@@ -51,14 +51,50 @@ export function penaltyPoints(hand, houseRules = true) {
 /**
  * Score a finished round. deltas is zero-sum: the winner gains the sum
  * of the losers' penalties, each loser drops their own penalty.
+ * When comboBonuses is provided, zero-sum combo bonus transfers are added to each player's delta.
  */
-export function scoreRound(hands, winner, houseRules = true) {
+export function scoreRound(
+  hands,
+  winner,
+  houseRules = true,
+  comboBonuses = [0, 0, 0, 0],
+  options = {}
+) {
+  const enableHouseRules =
+    typeof options === "object" && options.houseRules !== undefined
+      ? options.houseRules
+      : houseRules;
+  const enableComboBonuses =
+    typeof options === "object" && options.comboBonusesEnabled !== undefined
+      ? options.comboBonusesEnabled
+      : houseRules;
+
   const breakdown = hands.map((hand, i) =>
     i === winner
       ? { cardsLeft: 0, base: 0, doubledByTwos: false, doubledByStrong: false, points: 0 }
-      : penaltyPoints(hand, houseRules)
+      : penaltyPoints(hand, enableHouseRules)
   );
+
+  const rawBonuses = comboBonuses || [0, 0, 0, 0];
+  const totalBonuses = rawBonuses.reduce((sum, b) => sum + b, 0);
+
+  const comboDeltas =
+    enableComboBonuses && totalBonuses > 0
+      ? rawBonuses.map((b, i) => {
+          const othersBonusSum = totalBonuses - b;
+          return Math.round(b - othersBonusSum / 3);
+        })
+      : [0, 0, 0, 0];
+
   const winnerGain = breakdown.reduce((sum, b) => sum + b.points, 0);
-  const deltas = breakdown.map((b, i) => (i === winner ? winnerGain : -b.points));
-  return { breakdown, winnerGain, deltas };
+  const penaltyDeltas = breakdown.map((b, i) => (i === winner ? winnerGain : -b.points));
+  const deltas = penaltyDeltas.map((d, i) => d + comboDeltas[i]);
+
+  return {
+    breakdown,
+    winnerGain,
+    comboBonuses: enableComboBonuses ? rawBonuses : [0, 0, 0, 0],
+    comboDeltas,
+    deltas,
+  };
 }

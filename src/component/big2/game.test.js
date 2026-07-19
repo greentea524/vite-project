@@ -23,6 +23,7 @@ describe("newGame", () => {
     const state = freshGame();
     expect(state.trick).toBeNull();
     expect(state.winner).toBeNull();
+    expect(state.comboBonuses).toEqual([0, 0, 0, 0]);
     expect(state.hands[state.turn].some((c) => c.id === "3D")).toBe(true);
   });
 });

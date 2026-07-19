@@ -436,6 +436,8 @@ function Online({ joinCode, onExit }) {
             cards: result.hands[i],
             doubledByTwos: result.breakdown[i].doubledByTwos,
             doubledByStrong: result.breakdown[i].doubledByStrong,
+            comboBonus: result.comboBonuses?.[i] ?? 0,
+            comboDelta: result.comboDeltas?.[i] ?? 0,
             delta: result.deltas[i],
             total: result.totals[i],
           }))}

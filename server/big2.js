@@ -46,13 +46,20 @@ function broadcast(io, code, g) {
 }
 
 function finishRound(io, code, g) {
-  const { breakdown, deltas } = scoreRound(g.state.hands, g.state.winner);
+  const { breakdown, comboBonuses, comboDeltas, deltas } = scoreRound(
+    g.state.hands,
+    g.state.winner,
+    true,
+    g.state.comboBonuses ?? [0, 0, 0, 0]
+  );
   g.totals = g.totals.map((t, i) => t + deltas[i]);
-  g.result = { breakdown, deltas };
+  g.result = { breakdown, comboBonuses, comboDeltas, deltas };
   io.to(code).emit("big2:roundOver", {
     winner: g.state.winner,
     hands: g.state.hands, // reveal everyone's leftovers for the results screen
     breakdown,
+    comboBonuses,
+    comboDeltas,
     deltas,
     totals: g.totals,
     round: g.round,

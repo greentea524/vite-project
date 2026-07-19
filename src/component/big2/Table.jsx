@@ -312,10 +312,15 @@ export function ResultsOverlay({ title, rows, children }) {
                       ))}
                     </span>
                   )}
-                  {(row.doubledByTwos || row.doubledByStrong) && (
+                  {(row.doubledByTwos ||
+                    row.doubledByStrong ||
+                    row.comboBonus > 0 ||
+                    (row.comboDelta !== undefined && row.comboDelta !== 0)) && (
                     <div className="big2-results-doubles">
                       {row.doubledByTwos && <span>unused 2 ×2</span>}
                       {row.doubledByStrong && <span>quad/straight flush ×2</span>}
+                      {row.comboBonus > 0 && <span>combo bonus +{row.comboBonus}</span>}
+                      {row.comboDelta < 0 && <span>combo share {row.comboDelta}</span>}
                     </div>
                   )}
                 </td>

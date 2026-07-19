@@ -3,7 +3,7 @@
 // and win detection. Scoring lands in KAN-62.
 
 import { deal, findStartingPlayer, PLAYER_COUNT } from "./deck.js";
-import { canBeat, canPass } from "./rules.js";
+import { canBeat, canPass, classifyHand, COMBO_BONUSES } from "./rules.js";
 
 /**
  * Fresh round: dealt hands (pre-sorted), 3♦ holder to lead, no trick.
@@ -16,6 +16,7 @@ export function newGame(rng = Math.random) {
     turn: findStartingPlayer(hands),
     trick: null,
     winner: null,
+    comboBonuses: [0, 0, 0, 0],
   };
 }
 
@@ -45,6 +46,14 @@ export function playCards(state, cardIds) {
   if (cards.length !== ids.size) return state;
   if (!canBeat(cards, state.trick?.cards)) return state;
 
+  const classified = classifyHand(cards);
+  const bonus = (classified && COMBO_BONUSES[classified.type]) || 0;
+  const currentBonuses = state.comboBonuses ?? [0, 0, 0, 0];
+  const comboBonuses =
+    bonus > 0
+      ? currentBonuses.map((b, i) => (i === state.turn ? b + bonus : b))
+      : currentBonuses;
+
   const nextHand = hand.filter((c) => !ids.has(c.id));
   const hands = state.hands.map((h, i) => (i === state.turn ? nextHand : h));
   const played = {
@@ -52,6 +61,7 @@ export function playCards(state, cardIds) {
     hands,
     trick: { cards, owner: state.turn },
     winner: nextHand.length === 0 ? state.turn : null,
+    comboBonuses,
   };
   return played.winner !== null ? played : advanceTurn(played);
 }

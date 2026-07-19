@@ -90,4 +90,28 @@ describe("scoreRound", () => {
     expect(deltas).toEqual([27, -3, -20, -4]);
     expect(deltas.reduce((a, b) => a + b, 0)).toBe(0);
   });
+
+  it("calculates zero-sum combo bonuses distribution", () => {
+    const hands = [[], plainHand(3), plainHand(10), hand("2S", "4D")];
+    // Seat 0 played Full House (+6), Seat 1 played Straight (+3) => comboBonuses = [6, 3, 0, 0]
+    const { comboDeltas, deltas } = scoreRound(hands, 0, true, [6, 3, 0, 0]);
+    // Total combo bonus = 9
+    // Seat 0: 6 - 3/3 = +5
+    // Seat 1: 3 - 6/3 = +1
+    // Seat 2: 0 - 9/3 = -3
+    // Seat 3: 0 - 9/3 = -3
+    expect(comboDeltas).toEqual([5, 1, -3, -3]);
+    expect(comboDeltas.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(deltas).toEqual([27 + 5, -3 + 1, -20 - 3, -4 - 3]);
+    expect(deltas.reduce((a, b) => a + b, 0)).toBe(0);
+  });
+
+  it("can disable combo bonuses via options", () => {
+    const hands = [[], plainHand(3), plainHand(10), hand("2S", "4D")];
+    const { comboDeltas, deltas } = scoreRound(hands, 0, true, [6, 3, 0, 0], {
+      comboBonusesEnabled: false,
+    });
+    expect(comboDeltas).toEqual([0, 0, 0, 0]);
+    expect(deltas).toEqual([27, -3, -20, -4]);
+  });
 });
