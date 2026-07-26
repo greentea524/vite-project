@@ -18,6 +18,14 @@ function ProjectLinks() {
         >
           <i className="fa fa-gamepad"></i> Web Games
         </a>
+        <a
+          className="my-button cta-button"
+          href="https://baby-6f5b0.web.app"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <i className="fa fa-child"></i> Baby Tracker
+        </a>
       </div>
 
       <div className="home-social">
