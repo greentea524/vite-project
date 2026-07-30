@@ -20,6 +20,14 @@ function ProjectLinks() {
         </a>
         <a
           className="my-button cta-button"
+          href="https://greentea524.github.io/nextjs-blog/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <i className="fa fa-pencil"></i> Blog
+        </a>
+        <a
+          className="my-button cta-button"
           href="https://baby-6f5b0.web.app"
           target="_blank"
           rel="noreferrer"
