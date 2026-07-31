@@ -870,6 +870,44 @@ button.game-link {
   overflow: hidden;
 }
 
+.data-analytics-summary-quad {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.data-chart-panel-github {
+  min-height: 320px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.data-chart-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.data-chart-toggle .data-page-button[aria-pressed="true"] {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+.data-chart-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 2rem 0.5rem;
+  color: #adb5bd;
+}
+
+@media (prefers-color-scheme: light) {
+  .data-chart-state {
+    color: #495057;
+  }
+}
+
 .data-table-panel {
   padding: 1rem;
 }
@@ -957,7 +995,8 @@ button.game-link {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .data-analytics-summary {
+  .data-analytics-summary,
+  .data-analytics-summary-quad {
     grid-template-columns: 1fr;
   }
 
