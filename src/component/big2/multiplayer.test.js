@@ -27,6 +27,22 @@ function connected(net, url) {
   return p;
 }
 
+// Resolve once the client has seen a public state matching `predicate`,
+// counting the state it already holds. Waiting on an observable condition
+// keeps these tests off wall-clock timing, which the round can outrun.
+function stateWhere(net, predicate, label, timeout = 5000) {
+  if (net.gameState && predicate(net.gameState)) return Promise.resolve(net.gameState);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`timeout waiting for ${label}`)), timeout);
+    const off = net.on("state", (state) => {
+      if (!predicate(state)) return;
+      clearTimeout(timer);
+      off();
+      resolve(state);
+    });
+  });
+}
+
 // Auto-drive a seat like the UI would: whenever it's this player's
 // turn, ask the client-side bot brain for a move and send it.
 function autoDrive(net) {
@@ -165,8 +181,14 @@ describe("big2 multiplayer (KAN-63)", () => {
     host.startGame({ botDelayMs: BOT_DELAY_MS });
     await dealt;
 
-    // Let the round get going, then yank the guest mid-game.
-    await new Promise((r) => setTimeout(r, 150));
+    // Yank the guest once the round is demonstrably underway. A fixed sleep
+    // used to race here: with botDelayMs=5 a whole round runs in 120-200ms, so
+    // a 150ms wait let the round finish first often enough to flake.
+    await stateWhere(
+      host,
+      (s) => s.winner === null && s.counts.some((c) => c < 13),
+      "a card to be played",
+    );
     const guestSeat = guest.mySeat;
     stopGuest();
     guest.destroy();
@@ -176,8 +198,15 @@ describe("big2 multiplayer (KAN-63)", () => {
     expect(result.hands[result.winner]).toHaveLength(0);
     expect(result.deltas.reduce((a, b) => a + b, 0)).toBe(0);
     expect(result.totals).toEqual(result.deltas); // first round: totals = deltas
-    // The abandoned seat is now a bot in the public state.
-    expect(host.gameState.seats[guestSeat].isBot).toBe(true);
+    // The abandoned seat becomes a bot in the public state. The takeover
+    // broadcast is independent of roundOver, so wait for it rather than
+    // assuming it landed first.
+    const takeover = await stateWhere(
+      host,
+      (s) => s.seats[guestSeat].isBot,
+      "the abandoned seat to go bot",
+    );
+    expect(takeover.seats[guestSeat].isBot).toBe(true);
 
     // Host starts round 2 from the results screen: fresh 13-card hand.
     const redeal = once(host, "hand");
