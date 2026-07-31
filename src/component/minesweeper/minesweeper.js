@@ -1,5 +1,19 @@
-const times = _.times();
-const range = _.range();
+/**
+ * These replace the two lodash/fp helpers this module used to pull off the
+ * global `_` supplied by a CDN script tag. That made the CDN a hard dependency
+ * of app startup: this module is in the main bundle, so a failed request threw
+ * "_ is not defined" during evaluation and no part of the app mounted.
+ *
+ * Signatures match the previous fp-curried call sites: iteratee first for
+ * `times`, half-open interval for `range`.
+ */
+function times(iteratee, count) {
+  return Array.from({ length: count }, (_value, index) => iteratee(index));
+}
+
+function range(start, end) {
+  return Array.from({ length: end - start }, (_value, index) => start + index);
+}
 
 export const TILE_STATUSES = {
   HIDDEN: "hidden",
