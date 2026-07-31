@@ -81,12 +81,22 @@ function afterAction(io, code, room) {
 function scheduleBot(io, code, room) {
   const g = room.big2;
   if (!g || g.state.winner !== null) return;
+  // Never stack timers. A seat going bot mid-round calls in here while a
+  // timer may already be pending; without this, both fire and the second
+  // one moves for whoever holds the turn by then — including a human.
+  if (g.timer) {
+    clearTimeout(g.timer);
+    g.timer = null;
+  }
   const seat = g.seats[g.state.turn];
   if (seat.socketId) return; // human's move
   const delay = g.botDelayMs ?? 800 + Math.random() * 400;
   g.timer = setTimeout(() => {
-    // The room may have emptied (and been closed) while we slept.
+    g.timer = null;
+    // The room may have emptied (and been closed) while we slept, or the
+    // turn may have passed to a human — only ever move for a bot seat.
     if (room.big2 !== g || g.state.winner !== null) return;
+    if (g.seats[g.state.turn].socketId) return;
     const move = chooseBotMove(g.state.hands[g.state.turn], g.state.trick?.cards);
     g.state =
       move.type === "play" ? playCards(g.state, move.cardIds) : passTurn(g.state);
