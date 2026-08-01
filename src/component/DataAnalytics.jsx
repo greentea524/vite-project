@@ -178,6 +178,26 @@ function DataAnalytics({ theme }) {
       groupedRows[0],
     ) || groupedRows[0];
 
+  const exportToCSV = () => {
+    const headers = ["Index", "Weeks", "Probability (%)"];
+    const csvContent = [
+      headers.join(","),
+      ...sortedRows.map(row => 
+        [row.group, row.weekCount, formatNumber(row.probability, 2)].join(",")
+      )
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "weekly_pattern_overview.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="data-analytics">
       <div className="data-analytics-hero">
@@ -222,16 +242,21 @@ function DataAnalytics({ theme }) {
               Sort the groups and page through the week distribution.
             </p>
           </div>
-          <label className="data-page-size">
-            Rows per page
-            <select value={rowsPerPage} onChange={handleRowsPerPageChange}>
-              {rowsPerPageOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button className="my-button" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={exportToCSV}>
+              <i className="fa fa-download" aria-hidden="true"></i> Export CSV
+            </button>
+            <label className="data-page-size">
+              Rows per page
+              <select value={rowsPerPage} onChange={handleRowsPerPageChange}>
+                {rowsPerPageOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         <div className="data-table-wrap">
