@@ -469,6 +469,34 @@ button.game-link {
   padding: 0 0.15rem;
 }
 
+/*
+  Secondary link on a project card, for the repo behind a deployed app. Colour
+  is set explicitly rather than inherited: the swappable 98/XP/7 stylesheets
+  each define their own anchor colour, and one of them renders as near-invisible
+  against the card.
+*/
+.project-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
+  padding: 0 0.15rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.project-source a {
+  color: #0d6efd;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.project-source a:hover,
+.project-source a:focus {
+  color: #bd34fe;
+  border-bottom-color: currentColor;
+}
+
 .utilities-launch {
   display: flex;
   flex-direction: column;

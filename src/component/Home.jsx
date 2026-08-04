@@ -27,8 +27,11 @@ function Home() {
           <p className="home-description">
             This is a personal sandbox for experimenting with React — a place to
             try out components, UI ideas, and small browser apps. Browse the tabs
-            above to explore a fuel calculator, data analytics charts, and a few
-            mini-games like TicTacToe, Minesweeper, and Dice 21.
+            above: <strong>Projects</strong> for deployed apps and APIs built
+            outside this sandbox, <strong>Utilities</strong> for tools like a
+            fuel calculator and data analytics charts, and{" "}
+            <strong>Games</strong> for mini-games like TicTacToe, Minesweeper,
+            and Dice 21.
           </p>
         </div>
 

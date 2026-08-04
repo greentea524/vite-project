@@ -39,6 +39,41 @@ const LOCAL_GAMES = [
   },
 ];
 
+// Separately deployed applications, as opposed to the Utilities tab, which is
+// things that run inside this sandbox. `source` is optional and renders as a
+// second link under the description — the repo is where the design decisions
+// are written down, which is the part that reads as ownership.
+const APPLICATIONS = [
+  {
+    title: "Blog",
+    icon: "fa-pencil",
+    href: "https://greentea524.github.io/nextjs-blog/",
+    description:
+      "A statically generated blog built with Next.js, using dynamic routes and markdown-backed posts.",
+  },
+  {
+    title: "Baby Tracker",
+    icon: "fa-child",
+    href: "https://baby-6f5b0.web.app",
+    description:
+      "Flutter web PWA for tracking a baby's feeding, diaper changes, and growth. Google sign-in with real-time sync across caregivers via Firebase Auth and Firestore.",
+  },
+];
+
+const SERVICES = [
+  {
+    title: "Expense Tracker API",
+    icon: "fa-server",
+    href: "https://expense-tracker-api-e7lw.onrender.com/docs",
+    source: "https://github.com/greentea524/expense-tracker-api",
+    description:
+      "A REST API with JWT auth and per-user expense CRUD — Node, Express, Prisma and PostgreSQL, deployed on Render with migrations running at build time. The link opens interactive Swagger docs where you can authorize and call the live service.",
+    // Free tier sleeps after 15 minutes idle. Unwarned, a ~60s cold start reads
+    // as a broken link — the one link meant to show backend work.
+    note: "Hosted on a free tier, so the first request may take up to a minute to wake.",
+  },
+];
+
 const WEB_GAMES = [
   {
     title: "2048",
@@ -124,6 +159,54 @@ class ReactTabHeader extends Component {
     }
   }
 
+  renderProjectSection(title, projects) {
+    return (
+      <div className="games-section">
+        <h6 className="games-section-title">{title}</h6>
+        <div className="games-grid">
+          {projects.map((project) => (
+            <div className="game-card" key={project.title}>
+              <a
+                className="game-link"
+                href={project.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${project.title} (opens in a new tab)`}
+              >
+                <span className="game-link-title-row">
+                  <i className={`fa ${project.icon}`} aria-hidden="true"></i>{" "}
+                  {project.title}
+                </span>
+                <i className="fa fa-external-link" aria-hidden="true"></i>
+              </a>
+              <p className="game-link-description">
+                {project.description}
+                {project.note && (
+                  <>
+                    {" "}
+                    <em>{project.note}</em>
+                  </>
+                )}
+              </p>
+              {project.source && (
+                <p className="project-source">
+                  <a
+                    href={project.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${project.title} source on GitHub (opens in a new tab)`}
+                  >
+                    <i className="fa fa-code" aria-hidden="true"></i> View source
+                  </a>
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   render() {
     return (
       <div className="tabs-shell">
@@ -142,6 +225,12 @@ class ReactTabHeader extends Component {
           {/* <Tab eventKey="profile" title="About">
             <About />
           </Tab> */}
+          <Tab eventKey="projects" title="Projects">
+            <div className="games-layout">
+              {this.renderProjectSection("Applications", APPLICATIONS)}
+              {this.renderProjectSection("APIs & Services", SERVICES)}
+            </div>
+          </Tab>
           <Tab eventKey="utilities" title="Utilities">
             {this.state.selectedUtility ? (
               <div className="games-layout">
