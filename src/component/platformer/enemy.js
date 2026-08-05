@@ -140,3 +140,23 @@ export function squashEnemy(e) {
   e.dead = true;
   e.squashT = SQUASH_TIME;
 }
+
+// Stable per-enemy ID for multiplayer sync (PG-61). The level index is
+// part of the key: a room's dead-enemy set is shared by everyone and
+// lives for the whole race, so a bare spawn index would collide across
+// levels — killing enemy 0 in one level would erase enemy 0 in every
+// level after it, and in whatever level a racing peer happens to be on.
+export function enemyId(levelIndex, spawnIndex) {
+  return `L${levelIndex}_enemy_${spawnIndex}`;
+}
+
+// Tag a freshly-spawned level's enemies and hide the ones already
+// killed this race. `deadEnemies` is the room-wide set of IDs, or
+// null/undefined in single-player, where nothing is ever pre-killed.
+export function assignEnemyIds(enemies, levelIndex, deadEnemies = null) {
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    e.id = enemyId(levelIndex, i);
+    if (deadEnemies?.has(e.id)) e.gone = true;
+  }
+}

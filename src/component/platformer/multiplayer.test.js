@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import { createRelayServer, MAX_PLAYERS } from "../../../server/relay.js";
 import { Network, isLocalNetworkHost, MAX_PLAYERS as CLIENT_MAX } from "./network.js";
 import { createGhost, pushSnapshot, sampleGhost } from "./ghosts.js";
+import { assignEnemyIds, enemyId, createEnemy } from "./enemy.js";
 
 describe("isLocalNetworkHost", () => {
   it("allows localhost and private LAN addresses", () => {
@@ -354,5 +355,50 @@ describe("ghost interpolation", () => {
     expect(sampleGhost(g, 1250).x).toBeCloseTo(15, 5);
     // far ahead -> capped at MAX_EXTRAPOLATE_MS (200ms) -> 10 + 100*0.2 = 30
     expect(sampleGhost(g, 9000).x).toBeCloseTo(30, 5);
+  });
+});
+
+// Regression: enemy IDs must be level-scoped. The room's dead-enemy set
+// is shared and lives for a whole race, so level-local indices made a
+// kill in one level delete the same-numbered enemy in every level after
+// it — enemies stopped appearing a few levels into a race.
+describe("enemy IDs across levels (multiplayer)", () => {
+  const spawn = (n) => Array.from({ length: n }, (_, i) => createEnemy(i * 32, 0));
+
+  it("keys IDs by level so the same spawn index differs per level", () => {
+    expect(enemyId(2, 0)).not.toBe(enemyId(3, 0));
+  });
+
+  it("does not pre-kill a later level's enemies after a kill in an earlier one", () => {
+    const dead = new Set();
+
+    // Level 2 has 3 enemies; the player stomps all of them.
+    const level2 = spawn(3);
+    assignEnemyIds(level2, 2, dead);
+    for (const e of level2) dead.add(e.id);
+
+    // Level 3 has 4 enemies and must spawn a full set.
+    const level3 = spawn(4);
+    assignEnemyIds(level3, 3, dead);
+    expect(level3.filter((e) => e.gone)).toHaveLength(0);
+  });
+
+  it("still hides an enemy already killed in this level (re-entry after death)", () => {
+    const first = spawn(3);
+    assignEnemyIds(first, 5, new Set());
+    const dead = new Set([first[1].id]);
+
+    const reloaded = spawn(3);
+    assignEnemyIds(reloaded, 5, dead);
+    expect(reloaded.map((e) => !!e.gone)).toEqual([false, true, false]);
+  });
+
+  it("never pre-kills in single-player, whatever the set holds", () => {
+    const enemies = spawn(3);
+    assignEnemyIds(enemies, 3, null);
+    expect(enemies.filter((e) => e.gone)).toHaveLength(0);
+    expect(enemies.map((e) => e.id)).toEqual([
+      enemyId(3, 0), enemyId(3, 1), enemyId(3, 2),
+    ]);
   });
 });
