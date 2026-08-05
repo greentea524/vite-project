@@ -26,6 +26,7 @@ import {
   batFrame,
   createYeti,
   createDrone,
+  assignEnemyIds,
 } from "./enemy.js";
 import {
   createCoin,
@@ -151,7 +152,9 @@ export class Engine {
       }),
       network.on("playerLeft", ({ id }) => this.ghosts.delete(id)),
       network.on("enemyKilled", (enemyId) => {
-        if (!this.enemies) return;
+        // IDs are level-scoped, so a kill from a peer racing ahead on
+        // another level simply won't match anything here.
+        if (!this.enemies || !this.state.multiplayer) return;
         const e = this.enemies.find((x) => x.id === enemyId);
         if (e && !e.gone) e.gone = true;
       }),
@@ -243,14 +246,14 @@ export class Engine {
       else if (s.type === "flag") this.flags.push(createFlag(s.x, s.y));
     }
 
-    // Assign deterministic IDs to enemies for multiplayer sync (PG-61)
-    for (let i = 0; i < this.enemies.length; i++) {
-      const e = this.enemies[i];
-      e.id = `enemy_${i}`;
-      if (this.network?.deadEnemies?.has(e.id)) {
-        e.gone = true;
-      }
-    }
+    // Deterministic IDs for multiplayer sync (PG-61), keyed by level so
+    // kills don't bleed across levels. Only a race consults the room's
+    // dead-enemy set; single-player always spawns a full level.
+    assignEnemyIds(
+      this.enemies,
+      index,
+      this.state.multiplayer ? this.network?.deadEnemies : null,
+    );
 
     // Ice physics flag (World 5): makes the player slide.
     this.level.ice = !!data.ice;
