@@ -122,6 +122,13 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     attachBig2(io, rooms, socket);
 
     socket.on("createRoom", (payload = {}, ack) => {
+      // Leave whatever room this socket is already in first (#140). join()
+      // overwrites socket.data.roomCode, and leave() only ever cleans up the
+      // room that pointer names — so without this the old room keeps a
+      // phantom player, never reaches players.size === 0, and is therefore
+      // never deleted. It outlives every socket that touched it.
+      // Leaving before makeCode also frees the old code for reuse.
+      leave(socket);
       const code = makeCode(rooms);
       // Rooms carry a game tag and their own player cap (#79): the
       // invasion shooter creates 2-player rooms on the same relay the
@@ -151,6 +158,12 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
         ack?.({ ok: false, error: "Room is full" });
         return;
       }
+      // Same as createRoom (#140) — but only after the checks above have
+      // passed, so a failed join doesn't evict the player from the room they
+      // are already in. Skipped when re-joining the current room: leave()
+      // would delete it if they were its last member, and `room` would then
+      // be an object no longer in `rooms`.
+      if (socket.data.roomCode && socket.data.roomCode !== code) leave(socket);
       const player = join(socket, room, code, payload);
       ack?.({ ok: true, code, playerId: socket.id, hostId: room.hostId, roster: roster(room), deadEnemies: Array.from(room.deadEnemies), catchUpShields: room.catchUpShields });
       // Tell everyone else who joined.
