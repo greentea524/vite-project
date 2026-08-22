@@ -45,13 +45,6 @@ const LOCAL_GAMES = [
 // are written down, which is the part that reads as ownership.
 const APPLICATIONS = [
   {
-    title: "Blog",
-    icon: "fa-pencil",
-    href: "https://greentea524.github.io/nextjs-blog/",
-    description:
-      "A statically generated blog built with Next.js, using dynamic routes and markdown-backed posts.",
-  },
-  {
     title: "Baby Tracker",
     icon: "fa-child",
     href: "https://baby-6f5b0.web.app",
