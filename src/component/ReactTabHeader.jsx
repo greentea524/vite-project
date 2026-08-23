@@ -45,18 +45,35 @@ const LOCAL_GAMES = [
 // are written down, which is the part that reads as ownership.
 const APPLICATIONS = [
   {
-    title: "Blog",
-    icon: "fa-pencil",
-    href: "https://greentea524.github.io/nextjs-blog/",
-    description:
-      "A statically generated blog built with Next.js, using dynamic routes and markdown-backed posts.",
-  },
-  {
     title: "Baby Tracker",
     icon: "fa-child",
     href: "https://baby-6f5b0.web.app",
     description:
       "Flutter web PWA for tracking a baby's feeding, diaper changes, and growth. Google sign-in with real-time sync across caregivers via Firebase Auth and Firestore.",
+  },
+  {
+    title: "React Kanban Board",
+    icon: "fa-columns",
+    href: "https://greentea524.github.io/react-kanban-board/",
+    source: "https://github.com/greentea524/react-kanban-board",
+    description:
+      "Interactive drag-and-drop Kanban board built with React 19, Tailwind CSS, and @dnd-kit, featuring keyboard accessibility and persistent local storage.",
+  },
+  {
+    title: "Svelte Markdown Editor",
+    icon: "fa-file-text-o",
+    href: "https://greentea524.github.io/svelte-markdown-editor/",
+    source: "https://github.com/greentea524/svelte-markdown-editor",
+    description:
+      "Real-time dual-pane markdown editor built with Svelte 5 runes and Vite, featuring syntax highlighting, export to Markdown/HTML, and custom themes.",
+  },
+  {
+    title: "Vue Recipe Finder",
+    icon: "fa-cutlery",
+    href: "https://greentea524.github.io/vue-recipe-finder/",
+    source: "https://github.com/greentea524/vue-recipe-finder",
+    description:
+      "Recipe discovery application built with Vue 3 and TheMealDB API, featuring keyword search, category filters, ingredient checklists, and video guides.",
   },
 ];
 

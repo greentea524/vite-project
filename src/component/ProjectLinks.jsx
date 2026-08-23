@@ -12,17 +12,20 @@ function ProjectLinks() {
         </a>
         <a
           className="my-button cta-button"
+          href="https://greentea524.github.io/nextjs-blog/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <i className="fa fa-pencil"></i> Blog
+        </a>
+        <a
+          className="my-button cta-button"
           href="https://greentea524.github.io/games/"
           target="_blank"
           rel="noreferrer"
         >
           <i className="fa fa-gamepad"></i> Web Games
         </a>
-        {/*
-          Blog, Baby Tracker and the Expense API moved to the Projects tab,
-          where the card layout gives each one a description. These two stay
-          here as the primary calls to action.
-        */}
       </div>
 
       <div className="home-social">
