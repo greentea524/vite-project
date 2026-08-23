@@ -36,6 +36,23 @@ const MAX_BOSS_DAMAGE = 8;    // no level fields more than a couple of bosses
 const MAX_ENEMY_ID = 64;      // real ids are ~20 chars ("L3_enemy_7", "w2-r1-c4")
 export const MAX_DEAD_ENEMIES = 2000; // far above a long race, far below harm
 
+// Rooms live in memory on a free-tier host, and nothing authenticates the
+// clients that create them (#141). A per-socket cap is not needed — since
+// #140 a socket leaves its current room before entering another, so it is
+// structurally in exactly one — but nothing stopped many sockets, or one
+// socket churning, from filling the process.
+//
+// 200 concurrent games is far beyond anything this relay has ever seen, and
+// bounds the worst case at roughly 8 MB (each room's dead-enemy set is
+// capped above). Raise it here if that ever stops being true.
+export const MAX_ROOMS = 200;
+
+// createRoom/joinRoom are things a person does, a few times a minute at
+// most. One socket managed 200 create-and-leave cycles in 90ms unthrottled,
+// which is pure code generation and room churn on the event loop.
+const ROOM_ACTIONS_PER_SEC = 5;
+const ROOM_ACTIONS_BURST = 10;
+
 const finite = (v) => (Number.isFinite(v) ? v : undefined);
 const text = (v, max) => (typeof v === "string" ? v.slice(0, max) : undefined);
 
@@ -122,14 +139,21 @@ export function sanitizeEnemyId(id) {
   return typeof id === "string" && id.length > 0 ? id.slice(0, MAX_ENEMY_ID) : null;
 }
 
+// Returns an unused room code, or null if it could not find one.
+//
+// The retry loop used to be unbounded: with room creation uncapped, filling
+// a large fraction of the 32^4 (~1.05M) code space made it spin, stalling
+// the event loop rather than failing. MAX_ROOMS now keeps occupancy about
+// four orders of magnitude below that, so this is belt-and-braces — but an
+// unbounded loop over a shared resource is not worth keeping either way.
 function makeCode(taken) {
-  let code;
-  do {
-    code = Array.from({ length: CODE_LEN }, () =>
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const code = Array.from({ length: CODE_LEN }, () =>
       CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)],
     ).join("");
-  } while (taken.has(code));
-  return code;
+    if (!taken.has(code)) return code;
+  }
+  return null;
 }
 
 // Public roster shape sent to clients.
@@ -146,7 +170,7 @@ function roster(room) {
   }));
 }
 
-export function createRelayServer({ port = 0, allowedOrigins } = {}) {
+export function createRelayServer({ port = 0, allowedOrigins, maxRooms = MAX_ROOMS } = {}) {
   const httpServer = createServer((req, res) => {
     // Tiny health check for hosting platforms (PLAT-27).
     if (req.url === "/health") {
@@ -234,6 +258,12 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     attachBig2(io, rooms, socket);
 
     socket.on("createRoom", (payload = {}, ack) => {
+      // Errors here reach the player verbatim — every lobby renders res.error
+      // straight into its own error line — so they are written as sentences.
+      if (!withinRate(socket, "_roomActionBucket", ROOM_ACTIONS_PER_SEC, ROOM_ACTIONS_BURST)) {
+        ack?.({ ok: false, error: "Too many attempts — wait a moment and try again." });
+        return;
+      }
       // Leave whatever room this socket is already in first (#140). join()
       // overwrites socket.data.roomCode, and leave() only ever cleans up the
       // room that pointer names — so without this the old room keeps a
@@ -241,7 +271,17 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
       // never deleted. It outlives every socket that touched it.
       // Leaving before makeCode also frees the old code for reuse.
       leave(socket);
+      // Checked after the leave, so a player who was the last member of their
+      // previous room frees a slot for the one they are about to open.
+      if (rooms.size >= maxRooms) {
+        ack?.({ ok: false, error: "The server is at capacity — try again in a minute." });
+        return;
+      }
       const code = makeCode(rooms);
+      if (code === null) {
+        ack?.({ ok: false, error: "Could not allocate a room code — try again." });
+        return;
+      }
       // Rooms carry a game tag and their own player cap (#79): the
       // invasion shooter creates 2-player rooms on the same relay the
       // platformer uses. Platformer clients send neither field, so the
@@ -258,6 +298,10 @@ export function createRelayServer({ port = 0, allowedOrigins } = {}) {
     });
 
     socket.on("joinRoom", (payload = {}, ack) => {
+      if (!withinRate(socket, "_roomActionBucket", ROOM_ACTIONS_PER_SEC, ROOM_ACTIONS_BURST)) {
+        ack?.({ ok: false, error: "Too many attempts — wait a moment and try again." });
+        return;
+      }
       const code = String(payload.code || "").toUpperCase();
       const room = rooms.get(code);
       // A cross-game code collision reads as "not found" — to a
