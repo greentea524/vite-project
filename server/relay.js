@@ -146,6 +146,63 @@ export function sanitizeEnemyId(id) {
 // the event loop rather than failing. MAX_ROOMS now keeps occupancy about
 // four orders of magnitude below that, so this is belt-and-braces — but an
 // unbounded loop over a shared resource is not worth keeping either way.
+// --- origin policy (#145) ----------------------------------------------
+//
+// The relay used to accept any origin unless ALLOWED_ORIGINS happened to be
+// set, and echoed whatever Origin it was given on /health. Nothing in the
+// repo asserted the variable was set on the host, so the deployed default
+// was invisible from here — and it was `*`.
+//
+// The obvious fix, refusing to start in production without the variable,
+// would take the live relay down on the next deploy if it has never been
+// set. Instead the fallback is a real allowlist: the deployed site, plus the
+// local and private-network origins a developer actually serves from. Set
+// ALLOWED_ORIGINS to override it with an exact list.
+
+/** Where the built client is deployed (package.json "homepage"). */
+export const PRODUCTION_ORIGIN = "https://greentea524.github.io";
+
+// Mirrors isLocalNetworkHost in the client's network.js: a phone testing
+// against a dev server over the LAN is a normal thing to do here, and
+// blocking it would break that without making anyone safer.
+function isLocalHostname(hostname) {
+  // URL.hostname keeps the brackets on an IPv6 literal ("[::1]"), so strip
+  // them before comparing or IPv6 localhost is refused.
+  const host = hostname.replace(/^\[(.*)\]$/, "$1");
+  if (["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(host)) return true;
+  if (host.endsWith(".local")) return true;
+  return (
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host)
+  );
+}
+
+/**
+ * Builds the predicate both Socket.io and the health route use.
+ *
+ * `allowedOrigins` may be an explicit array (exact matches only, which is
+ * what a deployment should use) or undefined/"*" for the default policy.
+ */
+export function makeOriginAllowed(allowedOrigins) {
+  const explicit =
+    Array.isArray(allowedOrigins) && allowedOrigins.length > 0 ? allowedOrigins : null;
+
+  return function originAllowed(origin) {
+    // No Origin header at all: curl, a host's health probe, a native client.
+    // CORS exists to protect browsers from other pages, so there is nothing
+    // to decide here — and rejecting it would break Render's health check.
+    if (!origin) return true;
+    if (explicit) return explicit.includes(origin);
+    if (origin === PRODUCTION_ORIGIN) return true;
+    try {
+      return isLocalHostname(new URL(origin).hostname);
+    } catch {
+      return false; // unparseable Origin
+    }
+  };
+}
+
 function makeCode(taken) {
   for (let attempt = 0; attempt < 100; attempt++) {
     const code = Array.from({ length: CODE_LEN }, () =>
@@ -171,25 +228,32 @@ function roster(room) {
 }
 
 export function createRelayServer({ port = 0, allowedOrigins, maxRooms = MAX_ROOMS } = {}) {
+  const originAllowed = makeOriginAllowed(allowedOrigins);
+
+  // Echo an origin only when it is allowed; otherwise send no CORS header at
+  // all and let the browser refuse. Reflecting whatever arrived turns the
+  // header into a rubber stamp.
+  function corsHeaders(req) {
+    const origin = req.headers.origin;
+    const headers = {
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      Vary: "Origin",
+    };
+    if (origin && originAllowed(origin)) headers["Access-Control-Allow-Origin"] = origin;
+    return headers;
+  }
+
   const httpServer = createServer((req, res) => {
     // Tiny health check for hosting platforms (PLAT-27).
     if (req.url === "/health") {
-      res.writeHead(200, {
-        "content-type": "text/plain",
-        "Access-Control-Allow-Origin": req.headers.origin || "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      });
+      res.writeHead(200, { "content-type": "text/plain", ...corsHeaders(req) });
       res.end("ok");
       return;
     }
     // Also handle preflight requests if needed
     if (req.method === "OPTIONS") {
-      res.writeHead(204, {
-        "Access-Control-Allow-Origin": req.headers.origin || "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      });
+      res.writeHead(204, corsHeaders(req));
       res.end();
       return;
     }
@@ -198,7 +262,12 @@ export function createRelayServer({ port = 0, allowedOrigins, maxRooms = MAX_ROO
   });
 
   const io = new Server(httpServer, {
-    cors: { origin: allowedOrigins ?? "*", methods: ["GET", "POST"] },
+    cors: {
+      // A predicate rather than a list, so the default policy can accept any
+      // localhost/LAN port without enumerating them.
+      origin: (origin, callback) => callback(null, originAllowed(origin)),
+      methods: ["GET", "POST"],
+    },
     // Socket.io defaults to 1 MB per message. The largest thing a real
     // client sends is a movement snapshot with a few piggybacked shots —
     // single-digit KB — and every one of those is fanned out to the rest of
