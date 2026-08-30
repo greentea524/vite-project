@@ -156,6 +156,7 @@
   z-index: 10;
 }
 
+.instructions h2,
 .instructions h3 {
   margin-top: 0;
 }
@@ -228,6 +229,7 @@
   z-index: 10;
 }
 
+.menuOverlay h2,
 .menuOverlay h3 {
   margin: 0 0 10px;
   font-size: clamp(1.5rem, 5vw, 2.5rem);
@@ -453,6 +455,7 @@
   z-index: 10;
 }
 
+.achPanel h2,
 .achPanel h3 {
   margin: 0 0 4px;
 }
@@ -584,6 +587,7 @@
   }
 }
 
+.gameOver h2,
 .gameOver h3 {
   margin: 0;
   font-size: clamp(1.3rem, 4vw, 2rem);

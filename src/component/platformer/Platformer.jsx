@@ -702,7 +702,9 @@ function Platformer() {
 
         {screen === "menu" && (
           <div className="plat-overlay plat-menu-bg">
-            <h3 className="plat-title">Platform Game</h3>
+            {/* The page had no h1; this names it (#147). Styling is
+                class-based, so nothing moves. */}
+            <h1 className="plat-title">Platform Game</h1>
             {!showMenuMap && !showHelp && !showMenuAch && (
               <div className="plat-world-previews-carousel">
                 <button 

@@ -23,7 +23,11 @@ function Home() {
           className="home-intro animate-fade-in-up"
           style={{ animationDelay: "0.2s" }}
         >
-          <p className="home-tagline">A test project built with Vite + React.</p>
+          {/* The page had no h1 at all, so its outline started at h2 and a
+              screen reader navigating by heading found nothing. This is
+              already the most prominent text on the page; the styling is
+              class-based, so nothing moves. */}
+          <h1 className="home-tagline">A test project built with Vite + React.</h1>
           <p className="home-description">
             This is a personal sandbox for experimenting with React — a place to
             try out components, UI ideas, and small browser apps. Browse the tabs

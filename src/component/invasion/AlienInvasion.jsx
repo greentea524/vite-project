@@ -486,7 +486,8 @@ export default function AlienInvasion() {
   return (
     <div className={styles.shell}>
       <div className={styles.topBar}>
-        <h2 className={styles.title}>Invasion</h2>
+        {/* The page had no h1; this names it (#147). */}
+        <h1 className={styles.title}>Invasion</h1>
         {/* In a room, pausing only freezes YOUR view — the opponent keeps
             racing — so the menu is mainly an exit hatch (#82). */}
         {gameState === "playing" && (
@@ -553,7 +554,7 @@ export default function AlienInvasion() {
 
         {gameState === "menu" && !showInstructions && !showAchievements && (
           <div className={styles.menuOverlay}>
-            <h3>Alien Invasion</h3>
+            <h2>Alien Invasion</h2>
             <div className={styles.shipPicker}>
               <button
                 type="button"
@@ -647,7 +648,7 @@ export default function AlienInvasion() {
 
         {gameState === "lobby" && !showInstructions && (
           <div className={styles.menuOverlay}>
-            <h3>Multiplayer</h3>
+            <h2>Multiplayer</h2>
             {lobbyStage === "choose" && (
               <div className={styles.lobby}>
                 <div className={styles.shipPicker} style={{ marginBottom: '8px' }}>
@@ -807,7 +808,7 @@ export default function AlienInvasion() {
 
         {gameState === "paused" && !showInstructions && (
           <div className={styles.menuOverlay}>
-            <h3>Paused</h3>
+            <h2>Paused</h2>
             {inRoom && (
               <p className={styles.connNote}>
                 The match keeps going for {opponentName} — resume soon or leave.
@@ -843,7 +844,7 @@ export default function AlienInvasion() {
 
         {showInstructions && (
           <div className={styles.instructions}>
-            <h3>Instructions</h3>
+            <h2>Instructions</h2>
             <ul>
               <li>Touch Left/Right: Move (Mobile)</li>
               <li>Touch Shoot: Fire (Mobile)</li>

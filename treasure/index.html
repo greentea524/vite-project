@@ -23,6 +23,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Treasure Hunt</title>
+    <meta name="description" content="A 3D treasure hunt built with Three.js: collect rings, dodge bombs and ghosts, and reach a score of 10 before your life runs out." />
     <style>
       /* Fullscreen canvas shell; HUD is an HTML overlay on top. */
       html,
@@ -90,7 +91,8 @@
         user-select: none;
         text-align: center;
       }
-      .overlay h1 {
+      .overlay h1,
+      .overlay h2 {
         margin: 0;
         font-size: 40px;
       }
@@ -143,7 +145,8 @@
       <button id="menu-play" class="menu-btn" disabled>Loading…</button>
     </div>
     <div id="pause" class="overlay" style="display: none">
-      <h1>Paused</h1>
+      <!-- h2, not h1: this names a dialog, not the page (#147). -->
+      <h2>Paused</h2>
       <button id="pause-resume" class="menu-btn">Resume</button>
       <button id="pause-menu" class="menu-btn">Back to Menu</button>
     </div>
