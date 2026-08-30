@@ -181,7 +181,10 @@
   background: #fff;
   text-decoration: none;
   border-radius: 999px;
-  padding: 0.6rem 1.2rem;
+  /* 44px is the iOS minimum and the WCAG 2.2 target size; these sat at 36
+     (#148). Padding rather than a fixed height so the label still centres. */
+  min-height: 44px;
+  padding: 0.7rem 1.2rem;
   font-weight: 700;
   transition: all 0.3s ease;
 }
@@ -205,6 +208,13 @@
 }
 
 .home-social a {
+  /* Icon-only links with no padding at all measured 38x27 (#148). The icon
+     keeps its size; the hit area grows around it. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   transition: all 0.3s ease;
   color: inherit;
   opacity: 0.8;
@@ -250,6 +260,28 @@ div.navbrand {
   justify-content: flex-start;
   text-align: left;
   margin-bottom: 0.5rem;
+}
+
+/* The theme radios are the smallest real controls on the page: the input is
+   0x0 (the retro themes draw their own) so the label IS the tap target, and
+   it was 16px tall (#148). Height on the label rather than the row, since the
+   row is what the label sits inside. */
+.theme-switcher label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+/* The retro themes draw the radio as label::before pinned to top: 0, so a
+   taller label leaves the circle stranded above the text. Re-centre both the
+   circle and its checked dot against the label's new height. Written against
+   the shared [type=radio] + label pattern that 98.css, XP.css and 7.css all
+   use, and checked in each. */
+.theme-switcher [type="radio"] + label::before,
+.theme-switcher [type="radio"]:checked + label::after {
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .theme-switcher .field-row {
@@ -1112,6 +1144,17 @@ button.game-link {
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
+}
+
+/* Primary navigation for the whole site, previously 36px tall (#148).
+   Scoped to .nav-link rather than .nav-tabs .nav-link: react-bootstrap
+   renders these as nav-pills, so the .nav-tabs rules in this file have never
+   matched anything. */
+.tabs-shell .nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
 }
 
 @media (prefers-color-scheme: light) {

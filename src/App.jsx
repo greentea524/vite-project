@@ -81,14 +81,35 @@ function App() {
               />
               <label htmlFor="theme-7">Windows 7</label>
             </div>
-            <span 
+            {/* Kept as a span rather than promoted to a <button>: the
+                retro themes style every <button> with their own beveled
+                box-shadow and colour, which drew this as a black square in
+                98.css. What the ticket actually asked for is the hit area
+                (it was 22x26), and Space now activates it as well as Enter —
+                a real button responds to both, and this only handled Enter
+                (#148). */}
+            <span
               onClick={() => setShowCredits(true)}
-              style={{ marginLeft: 'auto', cursor: 'pointer', fontSize: '1.1rem' }}
+              style={{
+                marginLeft: 'auto',
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '44px',
+                minHeight: '44px',
+              }}
               aria-label="Theme Credits"
               title="Theme Credits"
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && setShowCredits(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowCredits(true);
+                }
+              }}
             >
               ℹ️
             </span>
@@ -133,9 +154,19 @@ function App() {
               {"C:\\Windows\\User\\¯|_(ツ)_/¯.exe"}
             </div>
             <div className="title-bar-controls">
-              <button type="button" aria-label="Minimize"></button>
-              <button type="button" aria-label="Maximize"></button>
-              <button type="button" aria-label="Close"></button>
+              {/* Decoration, not controls (#148). None of these has ever
+                  had an onClick, but as <button>s with accessible names they
+                  took keyboard focus and announced as "Minimize, button" —
+                  three tab stops before the real navigation that promised an
+                  action and delivered nothing. aria-hidden takes them out of
+                  the accessibility tree; the aria-label has to stay because
+                  the XP theme draws each glyph with
+                  button[aria-label=Minimize] and friends. The Close button
+                  inside the Theme Credits dialog below is a real control and
+                  is untouched. */}
+              <button type="button" aria-label="Minimize" aria-hidden="true" tabIndex={-1}></button>
+              <button type="button" aria-label="Maximize" aria-hidden="true" tabIndex={-1}></button>
+              <button type="button" aria-label="Close" aria-hidden="true" tabIndex={-1}></button>
             </div>
           </div>
           <div className="window-body">
