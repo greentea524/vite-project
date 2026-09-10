@@ -21,7 +21,9 @@ body {
 }
 
 .scoreboard {
-  color: darkgreen;
+  /* darkgreen is 4.09:1 on 98.css's #c0c0c0 chrome, under the 4.5 floor for
+     text this size (1rem); this steps it to 5.60:1. */
+  color: #004d00;
   font-size: 1rem;
   margin-bottom: 10px;
   margin-top: -20px;
