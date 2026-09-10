@@ -4,8 +4,7 @@ import Tabs from "react-bootstrap/Tabs";
 import Home from "./Home";
 import TicTacToe from "./boardgame.jsx";
 import Minesweeper from "./Minesweeper.jsx";
-import DataAnalytics from "./DataAnalytics.jsx";
-import GitHubCommitsChart from "./GitHubCommitsChart.jsx";
+import ActivityDashboard from "./analytics/ActivityDashboard.jsx";
 import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 import Sudoku from "./Sudoku.jsx";
@@ -264,13 +263,10 @@ class ReactTabHeader extends Component {
                     <FuelCalculator />
                   )}
                   {this.state.selectedUtility === "analytics" && (
-                    <DataAnalytics theme={this.props.theme} />
+                    <ActivityDashboard />
                   )}
                   {this.state.selectedUtility === "rubikscube" && (
                     <RubiksCubeSolver />
-                  )}
-                  {this.state.selectedUtility === "githubactivity" && (
-                    <GitHubCommitsChart theme={this.props.theme} />
                   )}
                 </div>
               </div>
@@ -309,17 +305,17 @@ class ReactTabHeader extends Component {
                         onClick={() =>
                           this.setState({ selectedUtility: "analytics" })
                         }
-                        aria-label="Open Analytics"
+                        aria-label="Open Activity Dashboard"
                       >
                         <span className="game-link-title-row">
                           <i className="fa fa-bar-chart" aria-hidden="true"></i>{" "}
-                          Analytics
+                          Activity Dashboard
                         </span>
                         <i className="fa fa-play" aria-hidden="true"></i>
                       </button>
                       <p className="game-link-description">
-                        Interactive data analytics dashboard with charts,
-                        tables, and export options.
+                        A year of GitHub contributions as coordinated views —
+                        drag the timeline and every chart, stat and row follows.
                       </p>
                     </div>
                     <div className="game-card">
@@ -340,26 +336,6 @@ class ReactTabHeader extends Component {
                       <p className="game-link-description">
                         3D Rubik's Cube solver — input your cube state and get
                         an optimal solution.
-                      </p>
-                    </div>
-                    <div className="game-card">
-                      <button
-                        type="button"
-                        className="game-link"
-                        onClick={() =>
-                          this.setState({ selectedUtility: "githubactivity" })
-                        }
-                        aria-label="Open GitHub Activity"
-                      >
-                        <span className="game-link-title-row">
-                          <i className="fa fa-github" aria-hidden="true"></i>{" "}
-                          GitHub Activity
-                        </span>
-                        <i className="fa fa-play" aria-hidden="true"></i>
-                      </button>
-                      <p className="game-link-description">
-                        Daily contribution history as a GitHub-style calendar
-                        heatmap with a rolling trend view.
                       </p>
                     </div>
                   </div>
