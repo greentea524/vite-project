@@ -4,9 +4,15 @@
   line-height: 24px;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* This app is light in every theme. The retro theme stylesheets (98/XP/7)
+     paint `body` white, so a dark `html` never reaches the page — the old
+     dark-first values here rendered near-white text on a white ground under
+     `prefers-color-scheme: dark`, and `color-scheme: light dark` handed the
+     native controls a dark palette on a light page. One light scheme is the
+     honest description of what actually renders. */
+  color-scheme: light;
+  color: #213547;
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -17,11 +23,13 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  /* #646cff managed only 4.09:1 on white and 2.25:1 on 98.css's grey chrome.
+     Same hue, stepped down: 9.63:1 on white, 5.29:1 on #c0c0c0. */
+  color: #2f32ad;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #23257d;
 }
 
 body {
@@ -44,7 +52,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f9f9f9;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -54,17 +62,4 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
 }

@@ -165,13 +165,17 @@
   gap: 0.5rem;
 }
 
+/* The filter row is the one part of this screen that sits on the page ground
+   instead of on a .viz-panel, so its ink is read against the theme's window
+   chrome. #5f6b7a scored 2.98:1 on 98.css's grey; #343a40 makes 6.32:1 there
+   and 9.4+ on the other two. */
 .viz-custom-range label {
   display: grid;
   gap: 0.2rem;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #5f6b7a;
+  color: #343a40;
 }
 
 .viz-custom-range input {
@@ -200,9 +204,10 @@
   background: rgba(42, 120, 214, 0.1);
 }
 
+/* White on #2a78d6 is 4.42:1 — just under the floor. One step darker: 6.63:1. */
 .viz-button[aria-pressed="true"] {
-  background: #2a78d6;
-  border-color: #2a78d6;
+  background: #1c5cab;
+  border-color: #1c5cab;
   color: #fff;
 }
 
@@ -215,7 +220,7 @@
   margin: 0;
   padding: 0 0.25rem;
   font-size: 0.9rem;
-  color: #495057;
+  color: #343a40;
 }
 
 .viz-selection-note strong {

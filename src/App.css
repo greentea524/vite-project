@@ -1,3 +1,16 @@
+/* One colour scheme, deliberately.
+   ---------------------------------
+   The retro theme stylesheets (98/XP/7) paint `body` white, so the dark
+   `html` that index.css used to set never reached the page: measured across
+   all three themes and both `prefers-color-scheme` settings, the ground
+   behind this UI is light in all six. The dark-first values these rules used
+   to carry could therefore never render as intended — cards at 3% white
+   vanished into the chrome, and pale text landed on it at 1.1-1.8:1. Each
+   rule below now carries what used to be its `prefers-color-scheme: light`
+   value, and the media queries are gone. Colours here are chosen against the
+   darkest chrome (98.css #c0c0c0); check any new one against that, not
+   against white. */
+
 /* Brand gradient (#146).
  *
  * Was #bd34fe -> #61dafb. Both stops failed contrast in both of the ways
@@ -116,20 +129,13 @@
 }
 
 .home-intro, .home-links {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   padding: 2rem;
-}
-
-@media (prefers-color-scheme: light) {
-  .home-intro, .home-links {
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-  }
 }
 
 .home-intro {
@@ -226,20 +232,13 @@
 }
 
 .home-social a[href*="github"]:hover {
-  color: #fff;
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+  color: #333;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
 }
 
 .home-social a[href*="twitter"]:hover {
   color: #1da1f2;
   filter: drop-shadow(0 0 8px rgba(29, 161, 242, 0.8));
-}
-
-@media (prefers-color-scheme: light) {
-  .home-social a[href*="github"]:hover {
-    color: #333;
-    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
-  }
 }
 
 .justify {
@@ -339,21 +338,14 @@ div.navbrand {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   padding: 1.25rem;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-@media (prefers-color-scheme: light) {
-  .game-card {
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-  }
 }
 
 .game-card:hover {
@@ -468,6 +460,15 @@ button.game-link {
   each define their own anchor colour, and one of them renders as near-invisible
   against the card.
 */
+/* Bootstrap's default code colour (#d63384) is 4.50:1 on white but only
+   2.47:1 on 98.css's grey chrome, which the instruction panels composite
+   over. Same hue, darker: 4.92:1 there, 8.95:1 on white. */
+.App code {
+  /* Scoped to .App because main.jsx loads bootstrap.min.css after App.css,
+     so a bare `code` selector loses on order. */
+  color: #8a1c4a;
+}
+
 .project-source {
   display: inline-flex;
   align-items: center;
@@ -478,15 +479,18 @@ button.game-link {
   font-weight: 600;
 }
 
+/* The cards are a translucent wash, so this link is read against the theme
+   chrome too: #0d6efd managed 2.52:1 on 98.css and the brand purple 2.81:1
+   on hover. Darker steps of the same hues — 5.57:1 and 6.14:1 there. */
 .project-source a {
-  color: #0d6efd;
+  color: #104281;
   text-decoration: none;
   border-bottom: 1px solid transparent;
 }
 
 .project-source a:hover,
 .project-source a:focus {
-  color: var(--brand-purple);
+  color: #5f1583;
   border-bottom-color: currentColor;
 }
 
@@ -499,19 +503,12 @@ button.game-link {
   margin: 0 auto;
   padding: 1.5rem;
   text-align: left;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-@media (prefers-color-scheme: light) {
-  .utilities-launch {
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-  }
 }
 
 .utilities-launch-title {
@@ -623,7 +620,9 @@ button.game-link {
 .fuel-unit-chip {
   border: none;
   background: transparent;
-  color: #495057;
+  /* The toggle is a translucent wash over the theme chrome, so this reads
+     against #bcbcbc on 98.css, where #495057 fell to 4.31:1. */
+  color: #343a40;
   font-weight: 600;
   padding: 0.5rem 1.5rem;
   border-radius: 999px;
@@ -730,73 +729,12 @@ button.game-link {
   font-style: italic;
 }
 
-@media (prefers-color-scheme: dark) {
-  .modern-calculator-card {
-    background: rgba(30, 30, 35, 0.5);
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  }
-  
-  .fuel-calculator-intro {
-    color: #adb5bd;
-  }
-  
-  .fuel-unit-toggle {
-    background: rgba(0, 0, 0, 0.4);
-  }
-  
-  .fuel-unit-chip {
-    color: #adb5bd;
-  }
-  
-  .fuel-unit-chip:hover,
-  .fuel-unit-chip:focus {
-    color: #f8f9fa;
-  }
-  
-  .fuel-unit-chip.is-active {
-    background: #2b3035;
-    color: #bd34fe;
-  }
-  
-  .fuel-form-grid label {
-    color: #dee2e6;
-  }
-
-  .modern-calculator-card .form-control {
-    background-color: rgba(0, 0, 0, 0.2);
-    color: #f8f9fa;
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .modern-calculator-card .form-control::placeholder {
-    color: #aeb6bd; /* clearer placeholder for dark mode */
-    opacity: 1;
-  }
-  
-  .modern-calculator-card .form-control:focus {
-    background-color: rgba(0, 0, 0, 0.4);
-    border-color: #bd34fe;
-    box-shadow: 0 0 0 4px rgba(255, 138, 0, 0.15);
-  }
-  
-  .fuel-result-card {
-    background: linear-gradient(135deg, rgba(40, 40, 45, 0.8), rgba(20, 20, 25, 0.8));
-    border-color: rgba(255, 255, 255, 0.05);
-  }
-  
-  .fuel-result-label {
-    color: #adb5bd;
-  }
-  
-  .fuel-result-value {
-    color: #f8f9fa;
-  }
-  
-  .fuel-calculator-note {
-    color: #adb5bd;
-  }
-}
+/* The Fuel Calculator used to restyle itself for prefers-color-scheme: dark —
+   a translucent dark card, pale labels, a dark form control. None of it could
+   ever render as intended: the card composited to a mid grey over the theme's
+   light chrome (rgba(30,30,35,.5) over #ece9d8), and #adb5bd copy on that
+   measured 1.57:1. The light styling above is what the page actually is, in
+   both colour schemes. */
 
 @media (max-width: 768px) {
   .fuel-form-grid,
@@ -841,45 +779,30 @@ button.game-link {
 .tabs-shell .nav-pills {
   gap: 0.5rem;
   padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   margin-bottom: 1.5rem !important;
 }
 
-@media (prefers-color-scheme: light) {
-  .tabs-shell .nav-pills {
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-  }
-}
-
+/* These tabs sit on the theme's window chrome, which is light in every theme
+   and in both colour schemes, so there is no dark variant to write. The old
+   pair was unreadable under prefers-color-scheme: dark — #adb5bd scored
+   1.16:1 on 98.css and the #f8f9fa hover 1.08:1 on 7.css. Measured worst
+   case: #343a40 idle 5.93:1, #212529 hover 7.95:1 (both on 98.css). */
 .tabs-shell .nav-pills .nav-link {
   border-radius: 8px;
-  color: #adb5bd;
+  color: #343a40;
   font-weight: 600;
   padding: 0.6rem 1.2rem;
   transition: all 0.2s ease;
 }
 
-@media (prefers-color-scheme: light) {
-  .tabs-shell .nav-pills .nav-link {
-    color: #6c757d;
-  }
-}
-
 .tabs-shell .nav-pills .nav-link:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f8f9fa;
-}
-
-@media (prefers-color-scheme: light) {
-  .tabs-shell .nav-pills .nav-link:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #212529;
-  }
+  background: rgba(0, 0, 0, 0.06);
+  color: #212529;
 }
 
 .tabs-shell .nav-pills .nav-link.active {
@@ -890,18 +813,12 @@ button.game-link {
 
 /* Sub-tabs for Utilities */
 .tabs-shell .nav-tabs {
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.05);
   margin-bottom: 1.5rem !important;
 }
 
-@media (prefers-color-scheme: light) {
-  .tabs-shell .nav-tabs {
-    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
-  }
-}
-
 .tabs-shell .nav-tabs .nav-link {
-  color: #adb5bd;
+  color: #6c757d;
   font-weight: 600;
   border: none;
   border-bottom: 2px solid transparent;
@@ -919,21 +836,9 @@ button.game-link {
   min-height: 44px;
 }
 
-@media (prefers-color-scheme: light) {
-  .tabs-shell .nav-tabs .nav-link {
-    color: #6c757d;
-  }
-}
-
 .tabs-shell .nav-tabs .nav-link:hover {
   border-color: transparent;
-  color: #f8f9fa;
-}
-
-@media (prefers-color-scheme: light) {
-  .tabs-shell .nav-tabs .nav-link:hover {
-    color: #212529;
-  }
+  color: #212529;
 }
 
 .tabs-shell .nav-tabs .nav-link.active {
