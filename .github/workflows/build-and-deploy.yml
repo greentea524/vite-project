@@ -34,6 +34,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Non-blocking on purpose (#143): a transitive advisory should not stop
+      # a Pages deploy, but it should announce itself here instead of being
+      # found by hand. Both lockfiles are audited — the root one governs the
+      # site and the Render relay build, server/ covers a standalone relay
+      # install.
+      - name: Audit dependencies
+        id: audit
+        continue-on-error: true
+        run: |
+          status=0
+          npm audit --audit-level=high || status=1
+          npm audit --audit-level=high --prefix server || status=1
+          exit $status
+
+      - name: Flag audit findings
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo "::warning title=Dependency audit::npm audit reported a high-severity advisory; see the 'Audit dependencies' step for the report."
+          {
+            echo "### Dependency audit"
+            echo
+            echo "npm audit --audit-level=high reported at least one advisory."
+            echo "The deploy was allowed to continue. See the **Audit dependencies** step for the report."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build
         run: npm run build
         env:
