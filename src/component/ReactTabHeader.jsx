@@ -47,6 +47,7 @@ const APPLICATIONS = [
     title: "Baby Tracker",
     icon: "fa-child",
     href: "https://baby-6f5b0.web.app",
+    source: "https://github.com/greentea524/baby-app",
     description:
       "Flutter web PWA for tracking a baby's feeding, diaper changes, and growth. Google sign-in with real-time sync across caregivers via Firebase Auth and Firestore.",
   },
