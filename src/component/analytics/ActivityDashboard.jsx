@@ -31,6 +31,7 @@ import {
   exportFileName,
   svgToPngBlob,
 } from "./exportView.js";
+import LoadingState from "./LoadingState.jsx";
 import TimelineChart from "./TimelineChart.jsx";
 import CalendarHeatmap from "./CalendarHeatmap.jsx";
 import WeekdayChart from "./WeekdayChart.jsx";
@@ -257,13 +258,7 @@ function ActivityDashboard() {
   }, [bounds, range, series]);
 
   if (isPending) {
-    return (
-      <div className="viz-dashboard">
-        <p className="viz-state" role="status">
-          Loading contribution history…
-        </p>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (isError) {

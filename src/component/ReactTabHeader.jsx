@@ -4,7 +4,6 @@ import Tabs from "react-bootstrap/Tabs";
 import Home from "./Home";
 import TicTacToe from "./boardgame.jsx";
 import Minesweeper from "./Minesweeper.jsx";
-import ActivityDashboard from "./analytics/ActivityDashboard.jsx";
 import FuelCalculator from "./FuelCalculator.jsx";
 import DiceBlackjack from "./DiceBlackjack.jsx";
 import Sudoku from "./Sudoku.jsx";
@@ -263,9 +262,6 @@ class ReactTabHeader extends Component {
                   {this.state.selectedUtility === "fuelcalculator" && (
                     <FuelCalculator />
                   )}
-                  {this.state.selectedUtility === "analytics" && (
-                    <ActivityDashboard />
-                  )}
                   {this.state.selectedUtility === "rubikscube" && (
                     <RubiksCubeSolver />
                   )}
@@ -297,26 +293,6 @@ class ReactTabHeader extends Component {
                       <p className="game-link-description">
                         Calculate fuel cost and efficiency for your trips with
                         real-time unit conversions.
-                      </p>
-                    </div>
-                    <div className="game-card">
-                      <button
-                        type="button"
-                        className="game-link"
-                        onClick={() =>
-                          this.setState({ selectedUtility: "analytics" })
-                        }
-                        aria-label="Open Activity Dashboard"
-                      >
-                        <span className="game-link-title-row">
-                          <i className="fa fa-bar-chart" aria-hidden="true"></i>{" "}
-                          Activity Dashboard
-                        </span>
-                        <i className="fa fa-play" aria-hidden="true"></i>
-                      </button>
-                      <p className="game-link-description">
-                        A year of GitHub contributions as coordinated views —
-                        drag the timeline and every chart, stat and row follows.
                       </p>
                     </div>
                     <div className="game-card">

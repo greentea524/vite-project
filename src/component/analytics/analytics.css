@@ -241,6 +241,72 @@
   color: #495057;
 }
 
+/* Loading placeholder ---------------------------------------------------- */
+
+.viz-loading-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.viz-spinner {
+  flex: none;
+}
+
+.viz-skeleton {
+  display: block;
+  border-radius: 8px;
+  background: #eceff3;
+}
+
+.viz-skeleton-label {
+  width: 9rem;
+  height: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* Sized to the charts they stand in for, so the placeholder reads as this
+   dashboard rather than as a generic spinner block. */
+.viz-skeleton-timeline {
+  height: 168px;
+}
+
+.viz-skeleton-calendar {
+  height: 130px;
+}
+
+/* Both animations follow the convention App.css already uses: motion is
+   opt-in, so a reader who asked for less gets a static placeholder that still
+   reads as "not ready" next to the message beside it. */
+@media (prefers-reduced-motion: no-preference) {
+  .viz-spinner-arc {
+    transform-origin: 50% 50%;
+    animation: viz-spin 0.9s linear infinite;
+  }
+
+  .viz-skeleton {
+    background: linear-gradient(90deg, #eceff3 25%, #f7f9fb 50%, #eceff3 75%);
+    background-size: 200% 100%;
+    animation: viz-shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes viz-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes viz-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 /* Charts --------------------------------------------------------------- */
 
 .viz-plot {
