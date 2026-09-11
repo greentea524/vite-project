@@ -1,5 +1,6 @@
 import React from "react";
-import { PALETTE } from "./palette.js";
+import spinnerGif from "../../assets/spinner.gif";
+import spinnerStillGif from "../../assets/spinner-static.gif";
 
 /**
  * Placeholder shown while the contribution history is in flight.
@@ -11,10 +12,20 @@ import { PALETTE } from "./palette.js";
  * the last thing on the home page, so the page grows downward when the data
  * lands and nothing above it moves.
  *
- * The spinner is drawn rather than shipped as a GIF — one element, no extra
- * request, sharp at any density, recoloured from the same palette as the
- * charts, and it can honour prefers-reduced-motion (see analytics.css), which
- * an animated GIF cannot.
+ * ## The spinner
+ *
+ * An animated GIF, generated from the dashboard palette: a #eceff3 track with
+ * a #2a78d6 arc, 12 frames at 60ms, 60px for a 30px box so it stays sharp on a
+ * 2x display. The background is baked to #fcfcfc — the panel surface is a
+ * fixed value (see palette.js), so painting it beats GIF's 1-bit transparency,
+ * which would fringe every antialiased edge.
+ *
+ * `<picture>` handles reduced motion: `prefers-reduced-motion: reduce` selects
+ * a single-frame copy, and the browser fetches only the one it picks, so the
+ * still version costs nothing to the people who don't get it. Doing this in
+ * CSS is not possible — a media query cannot swap an <img> src — and doing it
+ * in JS would mean the animated file is already downloaded by the time you
+ * decide.
  */
 function LoadingState() {
   return (
@@ -26,34 +37,21 @@ function LoadingState() {
           <h4 className="viz-title">GitHub Activity</h4>
           <p className="viz-copy">Loading a year of contributions…</p>
         </div>
-        <svg
-          className="viz-spinner"
-          viewBox="0 0 32 32"
-          width="30"
-          height="30"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <circle
-            cx="16"
-            cy="16"
-            r="13"
-            fill="none"
-            stroke={PALETTE.empty}
-            strokeWidth="3.5"
+        <picture>
+          <source
+            srcSet={spinnerStillGif}
+            media="(prefers-reduced-motion: reduce)"
           />
-          <circle
-            className="viz-spinner-arc"
-            cx="16"
-            cy="16"
-            r="13"
-            fill="none"
-            stroke={PALETTE.accent}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeDasharray="28 54"
+          <img
+            className="viz-spinner"
+            src={spinnerGif}
+            width="30"
+            height="30"
+            alt=""
+            aria-hidden="true"
+            decoding="async"
           />
-        </svg>
+        </picture>
       </div>
 
       <div className="viz-panel" aria-hidden="true">

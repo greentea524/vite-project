@@ -252,6 +252,9 @@
 
 .viz-spinner {
   flex: none;
+  display: block;
+  width: 30px;
+  height: 30px;
 }
 
 .viz-skeleton {
@@ -279,22 +282,13 @@
 /* Both animations follow the convention App.css already uses: motion is
    opt-in, so a reader who asked for less gets a static placeholder that still
    reads as "not ready" next to the message beside it. */
+/* Only the shimmer is CSS now — the spinner's motion lives in the GIF, and
+   its reduced-motion variant is picked by <picture> in LoadingState.jsx. */
 @media (prefers-reduced-motion: no-preference) {
-  .viz-spinner-arc {
-    transform-origin: 50% 50%;
-    animation: viz-spin 0.9s linear infinite;
-  }
-
   .viz-skeleton {
     background: linear-gradient(90deg, #eceff3 25%, #f7f9fb 50%, #eceff3 75%);
     background-size: 200% 100%;
     animation: viz-shimmer 1.5s ease-in-out infinite;
-  }
-}
-
-@keyframes viz-spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 

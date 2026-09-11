@@ -49,11 +49,15 @@ function Home() {
         </div>
 
         {/* Full-bleed within the centred column: .home centres its children,
-            and the dashboard wants the width, not the centring. */}
-        <div
-          className="home-dashboard animate-fade-in-up"
-          style={{ animationDelay: "0.4s" }}
-        >
+            and the dashboard wants the width, not the centring.
+
+            Deliberately not `animate-fade-in-up` like its neighbours: that
+            class starts at opacity 0, so a 0.4s delay plus a 0.6s fade left
+            the loading placeholder invisible for the first second — exactly
+            the moment it exists to cover. The blocks above it are static
+            content that can afford to arrive; this one is telling you to
+            wait. */}
+        <div className="home-dashboard">
           <ActivityDashboard />
         </div>
       </div>
