@@ -128,7 +128,14 @@
   }
 }
 
-.home-intro, .home-links {
+.home-intro, /* The dashboard is the one child of .home that wants the full column rather
+   than the centred, max-width text block around it. */
+.home-dashboard {
+  width: 100%;
+  align-self: stretch;
+}
+
+.home-links {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

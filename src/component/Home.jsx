@@ -1,6 +1,7 @@
 import reactLogo from "../assets/react.svg";
 import viteLogo from "../assets/vite.svg";
 import ProjectLinks from "./ProjectLinks.jsx";
+import ActivityDashboard from "./analytics/ActivityDashboard.jsx";
 
 function Home() {
 
@@ -33,9 +34,10 @@ function Home() {
             try out components, UI ideas, and small browser apps. Browse the tabs
             above: <strong>Projects</strong> for deployed apps and APIs built
             outside this sandbox, <strong>Utilities</strong> for tools like a
-            fuel calculator and data analytics charts, and{" "}
+            fuel calculator and a Rubik's cube solver, and{" "}
             <strong>Games</strong> for mini-games like TicTacToe, Minesweeper,
-            and Dice 21.
+            and Dice 21. The dashboard below is my GitHub activity for the last
+            year.
           </p>
         </div>
 
@@ -44,6 +46,15 @@ function Home() {
           style={{ animationDelay: "0.3s" }}
         >
           <ProjectLinks />
+        </div>
+
+        {/* Full-bleed within the centred column: .home centres its children,
+            and the dashboard wants the width, not the centring. */}
+        <div
+          className="home-dashboard animate-fade-in-up"
+          style={{ animationDelay: "0.4s" }}
+        >
+          <ActivityDashboard />
         </div>
       </div>
     </div>
