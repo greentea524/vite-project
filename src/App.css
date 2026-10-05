@@ -22,14 +22,16 @@
  *   - as a pill-button BACKGROUND under white text it scored 1.62:1, where
  *     4.5:1 is needed
  *
- * These values clear both, checked at every step along the gradient rather
- * than just at the stops: 4.11:1 worst for text, 4.96:1 worst for white on
- * it. The purple is the least-darkened one that reaches the plateau, so the
- * palette still reads as Vite purple into React blue.
+ * It then went to a darkened purple -> cyan (#a92ce6 -> #0f7a94), which
+ * passed but was dropped as a style. The pair is now the classic Windows
+ * active-title-bar gradient, navy into steel blue, to match the 98/XP/7
+ * themes. Checked at every step along the gradient rather than just at the
+ * stops: 3.66:1 worst for text against the darkest chrome (#c0c0c0), 6.66:1
+ * worst for white on it.
  */
 :root {
-  --brand-purple: #a92ce6;
-  --brand-cyan: #0f7a94;
+  --brand-start: #0a246a;
+  --brand-end: #2f5f8f;
 }
 
 #root {
@@ -158,7 +160,7 @@
      and unchanged from 768px up (#146). */
   font-size: clamp(1.15rem, 5vw, 1.8rem);
   font-weight: 800;
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -379,7 +381,7 @@ div.navbrand {
   text-align: left;
   font-weight: 800;
   font-size: 1.35rem;
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -395,7 +397,7 @@ div.navbrand {
   color: #fff;
   text-decoration: none;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   box-shadow: 0 4px 15px rgba(189, 52, 254, 0.3);
   transition: all 0.3s ease;
 }
@@ -525,7 +527,7 @@ button.game-link {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -547,7 +549,7 @@ button.game-link {
   color: #fff;
   text-decoration: none;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   box-shadow: 0 4px 15px rgba(229, 46, 113, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -555,7 +557,7 @@ button.game-link {
 
 .utilities-launch-btn:hover,
 .utilities-launch-btn:focus {
-  background: linear-gradient(90deg, var(--brand-cyan), var(--brand-purple));
+  background: linear-gradient(90deg, var(--brand-end), var(--brand-start));
   color: #fff;
   text-decoration: none;
   transform: translateY(-2px);
@@ -605,7 +607,7 @@ button.game-link {
   margin: 0 0 0.5rem;
   font-weight: 800;
   font-size: 1.8rem;
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -644,7 +646,7 @@ button.game-link {
 
 .fuel-unit-chip.is-active {
   background: #fff;
-  color: var(--brand-cyan);
+  color: var(--brand-end);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -667,7 +669,7 @@ button.game-link {
 
 .fuel-field-error {
   margin-top: 0.35rem;
-  color: var(--brand-cyan);
+  color: var(--brand-end);
   font-size: 0.9rem;
   line-height: 1.35;
 }
@@ -691,7 +693,7 @@ button.game-link {
 
 .modern-calculator-card .form-control:focus {
   background-color: #fff;
-  border-color: var(--brand-cyan);
+  border-color: var(--brand-end);
   outline: 0;
   box-shadow: 0 0 0 4px rgba(229, 46, 113, 0.15);
 }
@@ -813,7 +815,7 @@ button.game-link {
 }
 
 .tabs-shell .nav-pills .nav-link.active {
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   color: #fff;
   box-shadow: 0 4px 15px rgba(189, 52, 254, 0.3);
 }
@@ -850,6 +852,6 @@ button.game-link {
 
 .tabs-shell .nav-tabs .nav-link.active {
   background: transparent;
-  color: var(--brand-purple);
-  border-bottom: 2px solid var(--brand-purple);
+  color: var(--brand-start);
+  border-bottom: 2px solid var(--brand-start);
 }

@@ -36,7 +36,7 @@
   margin: 0;
   font-weight: 800;
   font-size: 1.35rem;
-  background: linear-gradient(90deg, var(--brand-purple), var(--brand-cyan));
+  background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
