@@ -550,7 +550,7 @@ button.game-link {
   text-decoration: none;
   font-weight: 700;
   background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
-  box-shadow: 0 4px 15px rgba(229, 46, 113, 0.3);
+  box-shadow: 0 4px 15px rgba(10, 36, 106, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -561,7 +561,7 @@ button.game-link {
   color: #fff;
   text-decoration: none;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(229, 46, 113, 0.4);
+  box-shadow: 0 6px 20px rgba(10, 36, 106, 0.4);
 }
 
 .App > .window {
