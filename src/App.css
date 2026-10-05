@@ -695,7 +695,7 @@ button.game-link {
   background-color: #fff;
   border-color: var(--brand-end);
   outline: 0;
-  box-shadow: 0 0 0 4px rgba(229, 46, 113, 0.15);
+  box-shadow: 0 0 0 4px rgba(47, 95, 143, 0.2); /* --brand-end */
 }
 
 .fuel-results {
